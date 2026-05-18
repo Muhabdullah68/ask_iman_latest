@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "509283424279",
+    "project_id": "ask-iman-prod",
+    "storage_bucket": "ask-iman-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:509283424279:android:7980c9b1e332814f9fa452",
+        "android_client_info": {
+          "package_name": "com.askiman.ask_iman"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-hW5HLvlMW7DwiciG92RX30YsIouIsds"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
