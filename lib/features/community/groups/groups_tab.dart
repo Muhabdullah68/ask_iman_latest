@@ -91,7 +91,7 @@ class _GroupsTabState extends State<GroupsTab> {
         padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
         child: Column(
           children: [
-            Icon(Icons.group_outlined, size: 64, color: AppColors.textLightGrey.withOpacity(0.5)),
+            Icon(Icons.group_outlined, size: 64, color: AppColors.textLightGrey.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             const Text(
               'No groups joined yet',
@@ -199,8 +199,8 @@ class _GroupsTabState extends State<GroupsTab> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx2, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text('Create New Group', style: TextStyle(fontFamily: 'Cairo')),
           content: SingleChildScrollView(
@@ -240,16 +240,25 @@ class _GroupsTabState extends State<GroupsTab> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(ctx2),
               child: const Text('Cancel', style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)),
             ),
             TextButton(
               onPressed: () async {
-                if (nameCtrl.text.isEmpty) return;
-                await _svc.createGroup(nameCtrl.text.trim(), notifConfig);
-                Navigator.pop(context);
+                final name = nameCtrl.text.trim();
+                if (name.isEmpty) return;
+                try {
+                  await _svc.createGroup(name, notifConfig);
+                  if (ctx2.mounted) Navigator.pop(ctx2);
+                } catch (e) {
+                  if (ctx2.mounted) {
+                    ScaffoldMessenger.of(ctx2).showSnackBar(
+                      SnackBar(content: Text('Failed to create group: $e')),
+                    );
+                  }
+                }
               },
-              child: const Text('Create', style: TextStyle(fontFamily: 'Cairo', color: AppColors.primaryDark, fontWeight: FontWeight.w700)),
+              child: const Text('Create', style: TextStyle(fontFamily: 'Cairo', color: AppColors.gold, fontWeight: FontWeight.bold)),
             ),
           ],
         ),

@@ -91,13 +91,13 @@ class _LocalData {
   // Surah 1: ayah 1 IS the Bismillah (it is genuinely part of Al-Fatihah).
   static const Map<int, List<Map<String, String>>> ayahs = {
     1: [
-      {'a': 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ', 't': 'In the name of Allah, the Entirely Merciful, the Especially Merciful.', 'num': '1'},
-      {'a': 'ٱلۡحَمۡدُ لِلَّهِ رَبِّ ٱلۡعَٰلَمِينَ', 't': '[All] praise is [due] to Allah, Lord of the worlds –', 'num': '2'},
-      {'a': 'ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ', 't': 'The Entirely Merciful, the Especially Merciful,', 'num': '3'},
-      {'a': 'مَٰلِكِ يَوۡمِ ٱلدِّينِ', 't': 'Sovereign of the Day of Recompense.', 'num': '4'},
-      {'a': 'إِيَّاكَ نَعۡبُدُ وَإِيَّاكَ نَسۡتَعِينُ', 't': 'It is You we worship and You we ask for help.', 'num': '5'},
-      {'a': 'ٱهۡدِنَا ٱلصِّرَٰطَ ٱلۡمُسۡتَقِيمَ', 't': 'Guide us to the straight path –', 'num': '6'},
-      {'a': 'صِرَٰطَ ٱلَّذِينَ أَنۡعَمۡتَ عَلَيۡهِمۡ غَيۡرِ ٱلۡمَغۡضُوبِ عَلَيۡهِمۡ وَلَا ٱلضَّآلِّينَ', 't': 'The path of those upon whom You have bestowed favor, not of those who have earned [Your] anger or of those who are astray.', 'num': '7'},
+      {'a': 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ', 't': 'In the name of Allah, the Entirely Merciful, the Especially Merciful.', 'tu': 'اللہ کے نام سے جو بہت بڑا مہربان نہایت رحم والا ہے', 'num': '1'},
+      {'a': 'ٱلۡحَمۡدُ لِلَّهِ رَبِّ ٱلۡعَٰلَمِينَ', 't': '[All] praise is [due] to Allah, Lord of the worlds –', 'tu': 'سب تعریفیں اللہ ہی کے لیے ہیں جو تمام جہانوں کا پالنے والا ہے', 'num': '2'},
+      {'a': 'ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ', 't': 'The Entirely Merciful, the Especially Merciful,', 'tu': 'بہت بڑا مہربان نہایت رحم والا ہے', 'num': '3'},
+      {'a': 'مَٰلِكِ يَوۡمِ ٱلدِّينِ', 't': 'Sovereign of the Day of Recompense.', 'tu': 'روزِ جزا کا مالک ہے', 'num': '4'},
+      {'a': 'إِيَّاكَ نَعۡبُدُ وَإِيَّاكَ نَسۡتَعِينُ', 't': 'It is You we worship and You we ask for help.', 'tu': 'ہم تیری ہی عبادت کرتے ہیں اور تجھ ہی سے مدد چاہتے ہیں', 'num': '5'},
+      {'a': 'ٱهۡدِنَا ٱلصِّرَٰطَ ٱلۡمُسۡتَقِيمَ', 't': 'Guide us to the straight path –', 'tu': 'ہمیں سیدھی راہ دکھا', 'num': '6'},
+      {'a': 'صِرَٰطَ ٱلَّذِينَ أَنۡعَمۡتَ عَلَيۡهِمۡ غَيۡرِ ٱلۡمَغۡضُوبِ عَلَيۡهِمۡ وَلَا ٱلضَّآلِّينَ', 't': 'The path of those upon whom You have bestowed favor, not of those who have earned [Your] anger or of those who are astray.', 'tu': 'ان لوگوں کی راہ جن پر تو نے انعام کیا نہ کہ ان کی جن پر غضب کیا گیا اور نہ گمراہوں کی', 'num': '7'},
     ],
     36: [
       {'a': 'يسٓ', 't': 'Ya, Seen.', 'num': '1'},
@@ -165,31 +165,65 @@ class QuranApiService {
   // CHANGED: quran-uthmani for proper Naskh/Mushaf rendering
   static const String _arabic  = 'quran-uthmani';
   static const String _english = 'en.sahih';
+  static const String _urdu    = 'ur.ahmedali';
   static const String _audio   = 'ar.alafasy';
 
   static Future<List<Map<String, String>>?> getLocalAyahs(int surahNum) async {
     return _LocalData.ayahs[surahNum];
   }
 
+  /// Fetches Arabic + English + Urdu (fast mode now includes both translations)
   static Future<List<Map<String, String>>?> fetchSurah(int num) async {
     try {
       final results = await Future.wait([
         http.get(Uri.parse('$_base/surah/$num/$_arabic')),
         http.get(Uri.parse('$_base/surah/$num/$_english')),
-      ]).timeout(const Duration(seconds: 12));
+        http.get(Uri.parse('$_base/surah/$num/$_urdu')),
+      ]).timeout(const Duration(seconds: 15));
 
-      if (results[0].statusCode != 200 || results[1].statusCode != 200) return null;
+      if (results.any((r) => r.statusCode != 200)) return null;
 
       final arAyahs = jsonDecode(results[0].body)['data']['ayahs'] as List;
       final enAyahs = jsonDecode(results[1].body)['data']['ayahs'] as List;
+      final urAyahs = jsonDecode(results[2].body)['data']['ayahs'] as List;
 
       return List.generate(arAyahs.length, (i) => {
-        'a':   arAyahs[i]['text'] as String,
-        't':   enAyahs[i]['text'] as String,
-        'num': '${arAyahs[i]['numberInSurah']}',
+        'a':     arAyahs[i]['text'] as String,
+        't':     enAyahs[i]['text'] as String,
+        'tu':    urAyahs[i]['text'] as String,
+        'num':   '${arAyahs[i]['numberInSurah']}',
+        'audio': arAyahs[i]['audio'] as String? ?? '',
       });
     } catch (e) {
       debugPrint('fetchSurah error: $e');
+      return null;
+    }
+  }
+
+  /// Fetches Arabic + English + Urdu + audio (3 requests — full mode)
+  static Future<List<Map<String, String>>?> fetchSurahFull(int num) async {
+    try {
+      final results = await Future.wait([
+        http.get(Uri.parse('$_base/surah/$num/$_arabic')),
+        http.get(Uri.parse('$_base/surah/$num/$_english')),
+        http.get(Uri.parse('$_base/surah/$num/$_urdu')),
+      ]).timeout(const Duration(seconds: 15));
+
+      if (results.any((r) => r.statusCode != 200)) return null;
+
+      final arAyahs = jsonDecode(results[0].body)['data']['ayahs'] as List;
+      final enAyahs = jsonDecode(results[1].body)['data']['ayahs'] as List;
+      final urAyahs = jsonDecode(results[2].body)['data']['ayahs'] as List;
+
+      return List.generate(arAyahs.length, (i) => {
+        'a':     arAyahs[i]['text']  as String,
+        't':     enAyahs[i]['text']  as String,
+        'tu':    urAyahs[i]['text']  as String,
+        'num':   '${arAyahs[i]['numberInSurah']}',
+        'audio': arAyahs[i]['audio'] as String? ?? '',
+      });
+    } catch (e) {
+      debugPrint('fetchSurahFull error: $e');
       return null;
     }
   }
@@ -199,17 +233,20 @@ class QuranApiService {
       final results = await Future.wait([
         http.get(Uri.parse('$_base/juz/$juzNum/$_arabic')),
         http.get(Uri.parse('$_base/juz/$juzNum/$_english')),
-      ]).timeout(const Duration(seconds: 15));
+        http.get(Uri.parse('$_base/juz/$juzNum/$_urdu')),
+      ]).timeout(const Duration(seconds: 18));
 
-      if (results[0].statusCode != 200 || results[1].statusCode != 200) return null;
+      if (results.any((r) => r.statusCode != 200)) return null;
 
       final arAyahs = jsonDecode(results[0].body)['data']['ayahs'] as List;
       final enAyahs = jsonDecode(results[1].body)['data']['ayahs'] as List;
+      final urAyahs = jsonDecode(results[2].body)['data']['ayahs'] as List;
 
       final Map<int, _SurahBuf> buf = {};
       for (int i = 0; i < arAyahs.length; i++) {
         final ar      = arAyahs[i];
         final en      = enAyahs[i];
+        final ur      = urAyahs[i];
         final sNum    = ar['surah']['number'] as int;
         final sName   = ar['surah']['englishName'] as String;
         final sArabic = ar['surah']['name'] as String;
@@ -218,6 +255,7 @@ class QuranApiService {
         buf[sNum]!.ayahs.add({
           'a':   ar['text'] as String,
           't':   en['text'] as String,
+          'tu':  ur['text'] as String,
           'num': '${ar['numberInSurah']}',
         });
       }
@@ -238,9 +276,15 @@ class QuranApiService {
     return _LocalData.tafseer[surahNum]?[source];
   }
 
-  static Future<String?> fetchTafseer(int surahNum, int ayahNum, String source) async {
-    const ids = {'Ibn Kathir': 169, "Ma'ariful Quran": 168, 'Al-Jalalayn': 74};
-    final id = ids[source] ?? 169;
+  static Future<String?> fetchTafseer(int surahNum, int ayahNum, String source, {bool isUrdu = false}) async {
+    final Map<String, int> ids = isUrdu 
+      ? {'Ibn Kathir': 159, "Ma'ariful Quran": 161, 'Al-Jalalayn': 74}
+      : {'Ibn Kathir': 169, "Ma'ariful Quran": 168, 'Al-Jalalayn': 74};
+    
+    final id = isUrdu 
+      ? (source == 'Ibn Kathir' ? 159 : (source == "Ma'ariful Quran" ? 161 : 158))
+      : (ids[source] ?? 169);
+    
     try {
       final r = await http.get(
         Uri.parse('https://api.quran.com/api/v4/tafsirs/$id/by_ayah?verse_key=$surahNum:$ayahNum'),
@@ -250,6 +294,38 @@ class QuranApiService {
       final text = jsonDecode(r.body)['tafsir']?['text'] as String?;
       return text?.replaceAll(RegExp(r'<[^>]*>'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
     } catch (_) { return null; }
+  }
+
+  /// Fetches the entire Tafseer for a specific chapter (continuous reading)
+  static Future<List<Map<String, dynamic>>?> fetchChapterTafseer(int surahNum, String source, {bool isUrdu = false}) async {
+    final Map<String, int> ids = isUrdu 
+      ? {'Ibn Kathir': 159, "Ma'ariful Quran": 161, 'Al-Jalalayn': 74}
+      : {'Ibn Kathir': 169, "Ma'ariful Quran": 168, 'Al-Jalalayn': 74};
+    
+    final id = isUrdu 
+      ? (source == 'Ibn Kathir' ? 159 : (source == "Ma'ariful Quran" ? 161 : 158))
+      : (ids[source] ?? 169);
+
+    try {
+      final r = await http.get(
+        Uri.parse('https://api.quran.com/api/v4/tafsirs/$id/by_chapter/$surahNum'),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 20));
+      
+      if (r.statusCode != 200) return null;
+      
+      final data = jsonDecode(r.body);
+      final tafsirs = data['tafsirs'] as List?;
+      if (tafsirs == null) return null;
+
+      return tafsirs.map((t) => {
+        'ayah_key': t['verse_key'],
+        'text': (t['text'] as String).replaceAll(RegExp(r'<[^>]*>'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim(),
+      }).toList();
+    } catch (e) {
+      debugPrint('fetchChapterTafseer error: $e');
+      return null;
+    }
   }
 
   static Future<QuranSurahDetail?> getSurah(int surahNumber) async {

@@ -31,44 +31,73 @@ class _StreaksTabState extends State<StreaksTab> {
     _load();
   }
 
-  Future<void> _load() async {
-    final s = await _svc.getCurrentStreak();
-    
-    // Fetch today's log
-    final today = DateTime.now();
-    final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
-    
-    final doc = await FirebaseFirestore.instance
-        .collection('streaks')
-        .doc(widget.currentUser.uid)
-        .collection('logs')
-        .doc(dateKey)
-        .get();
-        
-    // Fetch user doc to get active custom tasks
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(widget.currentUser.uid)
-        .get();
-        
-    final List<String> activeCustomTasks = List<String>.from(userDoc.data()?['customStreakTasks'] ?? []);
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
-    if (mounted) {
+  Future<void> _load() async {
+    if (!mounted) return;
+    setState(() => _loading = true);
+
+    try {
+      // Use the live streak count from the user document first (real-time sync)
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.currentUser.uid)
+          .get();
+      
+      final userData = userDoc.data();
+      final currentStreakFromDoc = userData?['streakCount'] ?? 0;
+
+      // Recalculate to be sure, and update if different
+      final calculatedStreak = await _svc.getCurrentStreak();
+      
+      if (currentStreakFromDoc != calculatedStreak) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.currentUser.uid)
+            .update({'streakCount': calculatedStreak});
+      }
+
+      if (!mounted) return;
+      
+      // Fetch today's log
+      final today = DateTime.now();
+      final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
+      
+      final doc = await FirebaseFirestore.instance
+          .collection('streaks')
+          .doc(widget.currentUser.uid)
+          .collection('logs')
+          .doc(dateKey)
+          .get();
+
+      final List<String> activeCustomTasks = [];
+      if (userData != null && userData['customStreakTasks'] is List) {
+        activeCustomTasks.addAll(List<String>.from(userData['customStreakTasks']));
+      }
+
       setState(() {
-        _streak = s;
-        _loading = false;
+        _streak = calculatedStreak;
         _customTasks = activeCustomTasks;
         
         if (doc.exists) {
           final data = doc.data()!;
-          _prayers = data['prayers'] ?? false;
-          _quran   = data['quran'] ?? false;
-          _class_  = data['classAttended'] ?? false;
+          _prayers = data['prayers'] == true;
+          _quran   = data['quran'] == true;
+          _class_  = data['classAttended'] == true;
           
-          final Map<String, dynamic> loggedCustom = data['customTasks'] ?? {};
+          final loggedCustom = data['customTasks'];
           _customTasksValues.clear();
-          for (var t in activeCustomTasks) {
-            _customTasksValues[t] = loggedCustom[t] ?? false;
+          if (loggedCustom is Map) {
+            for (var t in activeCustomTasks) {
+              _customTasksValues[t] = loggedCustom[t] == true;
+            }
+          } else {
+            for (var t in activeCustomTasks) {
+              _customTasksValues[t] = false;
+            }
           }
         } else {
           _prayers = false;
@@ -79,48 +108,99 @@ class _StreaksTabState extends State<StreaksTab> {
             _customTasksValues[t] = false;
           }
         }
+        _loading = false;
       });
+    } catch (e) {
+      debugPrint('Error loading streaks: $e');
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _save() async {
-    final today = DateTime.now();
-    final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
-    
-    await FirebaseFirestore.instance
-        .collection('streaks')
-        .doc(widget.currentUser.uid)
-        .collection('logs')
-        .doc(dateKey)
-        .set({
-      'prayers':       _prayers,
-      'quran':         _quran,
-      'classAttended': _class_,
-      'customTasks':   _customTasksValues,
-      'date':          Timestamp.fromDate(today),
-    }, SetOptions(merge: true));
+    try {
+      final today = DateTime.now();
+      final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
+      
+      await FirebaseFirestore.instance
+          .collection('streaks')
+          .doc(widget.currentUser.uid)
+          .collection('logs')
+          .doc(dateKey)
+          .set({
+        'prayers':       _prayers,
+        'quran':         _quran,
+        'classAttended': _class_,
+        'customTasks':   _customTasksValues,
+        'date':          Timestamp.fromDate(today),
+      }, SetOptions(merge: true));
 
-    // Update streak counter on user doc
-    await FirebaseFirestore.instance.collection('users').doc(widget.currentUser.uid).update({
-      'lastActive': FieldValue.serverTimestamp(),
-    });
-    
-    await _load();
+      // Update streak counter on user doc
+      final s = await _svc.getCurrentStreak();
+      await FirebaseFirestore.instance.collection('users').doc(widget.currentUser.uid).update({
+        'lastActive': FieldValue.serverTimestamp(),
+        'streakCount': s,
+      });
+      
+      if (mounted) setState(() => _streak = s);
+    } catch (e) {
+      debugPrint('Error saving streak: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Offline: Progress saved locally. 📶')),
+        );
+      }
+    }
   }
 
   Future<void> _addCustomTask(String task) async {
-    if (task.trim().isEmpty) return;
-    await FirebaseFirestore.instance.collection('users').doc(widget.currentUser.uid).update({
-      'customStreakTasks': FieldValue.arrayUnion([task.trim()])
-    });
-    await _load();
+    final cleanedTask = task.trim();
+    if (cleanedTask.isEmpty) return;
+    
+    try {
+      // 1. Update Firestore
+      await FirebaseFirestore.instance.collection('users').doc(widget.currentUser.uid).update({
+        'customStreakTasks': FieldValue.arrayUnion([cleanedTask])
+      });
+      
+      // 2. Update local state immediately for better UX
+      if (mounted) {
+        setState(() {
+          if (!_customTasks.contains(cleanedTask)) {
+            _customTasks.add(cleanedTask);
+            _customTasksValues[cleanedTask] = false;
+          }
+        });
+      }
+      
+      // 3. Trigger a background reload to be sure
+      _load();
+    } catch (e) {
+      debugPrint('Error adding custom task: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to add task. Please try again.')),
+        );
+      }
+    }
   }
 
   Future<void> _deleteCustomTask(String task) async {
-    await FirebaseFirestore.instance.collection('users').doc(widget.currentUser.uid).update({
-      'customStreakTasks': FieldValue.arrayRemove([task])
-    });
-    await _load();
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(widget.currentUser.uid).update({
+        'customStreakTasks': FieldValue.arrayRemove([task])
+      });
+      
+      if (mounted) {
+        setState(() {
+          _customTasks.remove(task);
+          _customTasksValues.remove(task);
+        });
+      }
+      
+      _load();
+    } catch (e) {
+      debugPrint('Error deleting custom task: $e');
+    }
   }
 
   @override
@@ -182,7 +262,7 @@ class _StreaksTabState extends State<StreaksTab> {
           Container(
             width: 64, height: 64,
             decoration: BoxDecoration(
-              color: AppColors.gold.withOpacity(0.15),
+              color: AppColors.gold.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.local_fire_department_rounded,
@@ -221,10 +301,10 @@ class _StreaksTabState extends State<StreaksTab> {
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: done
-                        ? AppColors.primaryDark
-                        : isToday
-                        ? AppColors.gold
-                        : AppColors.borderLight,
+                         ? AppColors.primaryDark
+                         : isToday
+                         ? AppColors.gold
+                         : AppColors.borderLight,
                   ),
                 ),
                 child: Center(
@@ -320,11 +400,11 @@ class _StreaksTabState extends State<StreaksTab> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: value
-            ? AppColors.primaryDark.withOpacity(0.06)
+            ? AppColors.primaryDark.withValues(alpha: 0.06)
             : AppColors.bgWhite,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: value ? AppColors.primaryDark.withOpacity(0.3) : AppColors.borderLight,
+          color: value ? AppColors.primaryDark.withValues(alpha: 0.3) : AppColors.borderLight,
         ),
       ),
       child: Row(
@@ -417,60 +497,7 @@ class _StreaksTabState extends State<StreaksTab> {
   }
 
   Widget _buildFriendsLeaderboard() {
-    // Placeholder — in production: query top streaks from friends
-    final mock = [
-      ('Zid Abdullah',  '🔥 12 day streak', 'Ibadah'),
-      ('Fatima Malik',  '📖 5 day streak',  'Quran'),
-      ('Umar Farooq',   '🧠 8 day streak',  'Charity'),
-    ];
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Your Circle Streaks', style: TextStyle(
-            fontFamily: 'Cairo', fontSize: 16,
-            fontWeight: FontWeight.w700, color: AppColors.textDark,
-          )),
-          const SizedBox(height: 10),
-          ...mock.map((m) => Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.primaryDark,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryMid,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.person, color: AppColors.textWhite, size: 18),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(m.$1, style: const TextStyle(fontFamily: 'Cairo',
-                          fontSize: 14, fontWeight: FontWeight.w600,
-                          color: AppColors.textWhite)),
-                      Text('${m.$2} • ${m.$3}', style: const TextStyle(
-                          fontFamily: 'Cairo', fontSize: 11,
-                          color: AppColors.textGreenMuted)),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.remove_red_eye_outlined,
-                    color: AppColors.textGreenMuted, size: 16),
-              ],
-            ),
-          )),
-        ],
-      ),
-    );
+    // Hidden leaderboard as requested - focusing on personal streaks
+    return const SizedBox.shrink();
   }
 }

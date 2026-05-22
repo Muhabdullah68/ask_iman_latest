@@ -100,7 +100,7 @@ class AppTheme {
         ),
         trackColor: WidgetStateProperty.resolveWith(
               (states) => states.contains(WidgetState.selected)
-              ? AppColors.gold.withOpacity(0.3)
+              ? AppColors.gold.withValues(alpha: 0.3)
               : AppColors.borderLight,
         ),
       ),

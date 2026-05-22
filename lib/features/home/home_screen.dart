@@ -4,6 +4,8 @@ import '../../core/theme/app_text_styles.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../ibadah/qiblah_screen.dart';
 import '../ibadah/tasbeeh_screen.dart';
+import '../../core/data/daily_data.dart';
+import '../../core/services/community_service.dart';
 
 class HomeScreen extends StatefulWidget {
   // Receives tab-switching callback from MainShell
@@ -19,28 +21,12 @@ class _HomeScreenState extends State<HomeScreen> {
   int _ayahPageIndex = 0;
   final PageController _ayahController =
   PageController(viewportFraction: 0.88);
+  
+  Map<String, double> _soulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
 
-  // ── Dummy Data ─────────────────────────────────────────────────────────────
-  final List<Map<String, String>> _ayahs = [
-    {
-      'arabic':
-      'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ',
-      'translation':
-      '"So remember Me; I will remember you. And be grateful to Me and do not deny Me."',
-      'reference': 'Al-Baqarah 2:152',
-    },
-    {
-      'arabic': 'إِنَّ مَعَ الْعُسْرِ يُسْرًا',
-      'translation': '"For indeed, with hardship will be ease."',
-      'reference': 'Ash-Sharh 94:6',
-    },
-    {
-      'arabic': 'وَمَن يَتَوَكَّلْ عَلَى اللَّهِ فَهُوَ حَسْبُهُ',
-      'translation':
-      '"And whoever relies upon Allah — then He is sufficient for him."',
-      'reference': 'At-Talaq 65:3',
-    },
-  ];
+  // ── Daily Data ─────────────────────────────────────────────────────────────
+  late final List<Map<String, String>> _dailyAyahs;
+  late final List<Map<String, String>> _dailyHadiths;
 
   final List<Map<String, dynamic>> _sacredItems = [
     {'image': 'assets/images/Holy Quran.png',      'label': 'Quran',   'tab': 1},
@@ -51,31 +37,22 @@ class _HomeScreenState extends State<HomeScreen> {
     {'image': 'assets/images/islamic lanterns.png','label': 'Events',  'tab': 3},
   ];
 
-  final List<Map<String, dynamic>> _progress = [
-    {'label': 'Namaz', 'sub': 'WEEKLY', 'value': 0.85, 'display': '85%'},
-    {'label': 'Quran', 'sub': 'WEEKLY', 'value': 0.45, 'display': '45%'},
-    {'label': 'Zikr',  'sub': 'WEEKLY', 'value': 0.60, 'display': '60%'},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _dailyAyahs = DailyData.getDailyAyahs(5);
+    _dailyHadiths = DailyData.getDailyHadiths(5);
+    _loadSoulProgress();
+  }
 
-  final List<Map<String, String>> _inspirations = [
-    {
-      'quote':
-      '"The heart finds its peace only in the remembrance of Allah."',
-      'ref':   'SURAH AR-RA\'D',
-      'image': 'assets/images/mosque interior.png',
-    },
-    {
-      'quote': '"Verily, with hardship comes ease."',
-      'ref':   'SURAH AL-INSHIRAH',
-      'image': 'assets/images/Kaaba.png',
-    },
-    {
-      'quote':
-      '"Allah does not burden a soul beyond that it can bear."',
-      'ref':   'SURAH AL-BAQARAH',
-      'image': 'assets/images/islamic lanterns.png',
-    },
-  ];
+  Future<void> _loadSoulProgress() async {
+    final progress = await CommunityService.instance.getSoulProgress();
+    if (mounted) {
+      setState(() {
+        _soulProgress = progress;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -96,9 +73,34 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.push(context,
             MaterialPageRoute(builder: (_) => const TasbeehScreen()));
         break;
+      case 'Ask AI':
+      case 'Events':
+        _showComingSoon(label);
+        break;
       default:
         _navigateTo(tab);
     }
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.auto_awesome, color: AppColors.gold, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              '$feature is coming soon! 🌙',
+              style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.primaryDarkest,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   Widget _sectionHeader(String title,
@@ -138,6 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 28),
             _buildSoulProgress(),
             const SizedBox(height: 28),
+            _buildStreakSection(),
+            const SizedBox(height: 28),
             _buildDailyInspiration(),
             const SizedBox(height: 40),
           ],
@@ -157,11 +161,10 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 14),
         SizedBox(
           height: 310,
-          child: PageView.builder(
+          child: PageView(
             controller: _ayahController,
             onPageChanged: (i) => setState(() => _ayahPageIndex = i),
-            itemCount: _ayahs.length,
-            itemBuilder: (_, i) => _AyahCard(ayah: _ayahs[i]),
+            children: _dailyAyahs.map((ayah) => _AyahCard(ayah: ayah)).toList(),
           ),
         ),
         const SizedBox(height: 12),
@@ -169,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
-            _ayahs.length,
+            5,
                 (i) => AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -235,18 +238,121 @@ class _HomeScreenState extends State<HomeScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
-            children: _progress.map((p) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _SoulProgressCard(
-                label:   p['label']   as String,
-                sub:     p['sub']     as String,
-                value:   p['value']   as double,
-                display: p['display'] as String,
+            children: [
+              _SoulProgressCard(
+                label: 'Namaz',
+                sub: 'WEEKLY',
+                value: _soulProgress['namaz']!,
+                display: '${(_soulProgress['namaz']! * 100).toInt()}%',
               ),
-            )).toList(),
+              const SizedBox(height: 10),
+              _SoulProgressCard(
+                label: 'Quran',
+                sub: 'WEEKLY',
+                value: _soulProgress['quran']!,
+                display: '${(_soulProgress['quran']! * 100).toInt()}%',
+              ),
+              const SizedBox(height: 10),
+              _SoulProgressCard(
+                label: 'Zikr',
+                sub: 'WEEKLY',
+                value: _soulProgress['zikr']!,
+                display: '${(_soulProgress['zikr']! * 100).toInt()}%',
+              ),
+            ],
           ),
         ),
       ],
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // SECTION 3.5 — Streak Section
+  // ════════════════════════════════════════════════════════════════════════════
+  Widget _buildStreakSection() {
+    return StreamBuilder<AppUser?>(
+      stream: CommunityService.instance.watchCurrentUser(),
+      builder: (context, snapshot) {
+        final streak = snapshot.data?.streakCount ?? 0;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.primaryDark, AppColors.primaryMid],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryDark.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.local_fire_department_rounded, 
+                    color: AppColors.gold, size: 32),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Current Streak',
+                        style: TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textGreenMuted,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Text(
+                        '$streak Days',
+                        style: const TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textWhite,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                  ),
+                  child: const Text(
+                    'KEEP IT UP!',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.gold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -260,17 +366,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _sectionHeader('Daily Inspiration'),
         const SizedBox(height: 14),
         SizedBox(
-          height: 270,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.only(left: 16),
+          height: 310, // Match Ayah card height
+          child: PageView(
             physics: const BouncingScrollPhysics(),
-            itemCount: _inspirations.length,
-            itemBuilder: (_, i) => _InspirationCard(
-              quote: _inspirations[i]['quote']!,
-              ref:   _inspirations[i]['ref']!,
-              image: _inspirations[i]['image']!,
-            ),
+            children: _dailyHadiths.map((hadith) => _AyahCard(ayah: hadith)).toList(),
           ),
         ),
       ],
@@ -283,112 +382,64 @@ class _HomeScreenState extends State<HomeScreen> {
 // ══════════════════════════════════════════════════════════════════════════════
 class _AyahCard extends StatelessWidget {
   final Map<String, String> ayah;
+
   const _AyahCard({required this.ayah});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 6),
-      child: ClipPath(
-        clipper: _MosqueDomeClipper(),
-        child: Container(
-          decoration: const BoxDecoration(color: AppColors.primaryDarkest),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Full background — mosque interior photo
-              Image.asset(
-                'assets/images/mosque interior.png',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    Container(color: AppColors.primaryDark),
-              ),
-
-              // Dark green gradient overlay — keeps text readable
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xCC0D2818), // dark green 80% at top
-                      Color(0xBB1B4332), // primaryDark 73% mid
-                      Color(0xEE0A1A10), // near-black 93% at bottom
-                    ],
-                    stops: [0.0, 0.45, 1.0],
-                  ),
-                ),
-              ),
-
-              // Content column
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Arabic
-                    Flexible(
-                      child: Text(
-                        ayah['arabic']!,
-                        textAlign: TextAlign.center,
-                        textDirection: TextDirection.rtl,
-                        style: const TextStyle(
-                          fontFamily: 'Amiri',
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textWhite,
-                          height: 2.0,
-                        ),
-                      ),
-                    ),
-
-                    // Translation
-                    Text(
-                      ayah['translation']!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: AppColors.textCream,
-                        height: 1.6,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    // REFLECT pill button
-                    SizedBox(
-                      height: 36,
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.gold, width: 1),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 28),
-                          foregroundColor: AppColors.gold,
-                          // No splash outside — clean
-                          splashFactory: InkRipple.splashFactory,
-                        ),
-                        child: const Text(
-                          'REFLECT',
-                          style: TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.gold,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+    return ClipPath(
+      clipper: _MosqueDomeClipper(),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: const BoxDecoration(
+          color: AppColors.primaryDark,
+          image: DecorationImage(
+            image: AssetImage('assets/images/mosque interior.png'),
+            fit: BoxFit.cover,
+            opacity: 0.15,
           ),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              ayah['arabic'] ?? '',
+              textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
+              style: const TextStyle(
+                fontFamily: 'Amiri',
+                fontSize: 22,
+                color: AppColors.gold,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              ayah['translation'] ?? ayah['text'] ?? '',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 14,
+                color: Colors.white,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              ayah['reference'] ?? ayah['book'] ?? '',
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 12,
+                color: AppColors.gold,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -502,7 +553,7 @@ class _SacredJourneyTile extends StatelessWidget {
               Image.asset(
                 image,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
+                errorBuilder: (_, _, _) =>
                     Container(color: AppColors.primaryMid),
               ),
 
@@ -624,100 +675,6 @@ class _SoulProgressCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                       color: AppColors.gold,
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// WIDGET — Daily Inspiration Card (arch-top, photo bg)
-// ══════════════════════════════════════════════════════════════════════════════
-class _InspirationCard extends StatelessWidget {
-  final String quote;
-  final String ref;
-  final String image;
-
-  const _InspirationCard({
-    required this.quote,
-    required this.ref,
-    required this.image,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cardW = MediaQuery.of(context).size.width * 0.68;
-
-    return Container(
-      width: cardW,
-      margin: const EdgeInsets.only(right: 12),
-      // Arch shape via BorderRadius — tall top radius mimics arch
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft:     Radius.circular(84),
-          topRight:    Radius.circular(84),
-          bottomLeft:  Radius.circular(16),
-          bottomRight: Radius.circular(16),
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Background image — fills card
-          Image.asset(
-            image,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                Container(color: AppColors.primaryDark),
-          ),
-
-          // Dark overlay — stronger at bottom for text
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0x44000000), Color(0xEE000000)],
-              ),
-            ),
-          ),
-
-          // Text — bottom aligned, never overflows
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  quote,
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textWhite,
-                    height: 1.5,
-                  ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  ref,
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.gold,
-                    letterSpacing: 1.0,
                   ),
                 ),
               ],

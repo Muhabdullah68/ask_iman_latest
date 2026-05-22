@@ -197,7 +197,7 @@ class _CharityTabState extends State<CharityTab> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.gold.withOpacity(0.9),
+                        color: AppColors.gold.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Row(
@@ -324,16 +324,16 @@ class _CharityTabState extends State<CharityTab> {
               final val = double.tryParse(amountCtrl.text) ?? 0.0;
               if (val > 0) {
                 await _svc.contributeToCharity(c.id, val);
-                if (ctx.mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('JazakAllah! Thank you for donating \$${val.toStringAsFixed(0)} to ${c.title}.',
-                          style: const TextStyle(fontFamily: 'Cairo', color: Colors.white)),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                }
+                if (!ctx.mounted) return;
+                Navigator.pop(ctx);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('JazakAllah! Thank you for donating \$${val.toStringAsFixed(0)} to ${c.title}.',
+                        style: const TextStyle(fontFamily: 'Cairo', color: Colors.white)),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
               }
             },
             child: const Text('Contribute', style: TextStyle(fontFamily: 'Cairo', color: AppColors.gold, fontWeight: FontWeight.bold)),
@@ -341,6 +341,29 @@ class _CharityTabState extends State<CharityTab> {
         ],
       ),
     );
+  }
+
+  Future<void> _submitCampaign(Map<String, dynamic> data) async {
+    try {
+      await _svc.submitCharity(
+        title: data['title'],
+        description: data['description'],
+        category: data['category'],
+        goal: data['goal'],
+      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Campaign submitted for review!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit: $e')),
+        );
+      }
+    }
   }
 
   void _showCreateCharitySheet(BuildContext context) {
@@ -383,7 +406,7 @@ class _CharityTabState extends State<CharityTab> {
               _sheetField('Fundraising Goal (\$)', goalCtrl),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
-                value: category,
+                initialValue: category,
                 decoration: InputDecoration(
                   filled: true, fillColor: AppColors.bgWhite,
                   border: OutlineInputBorder(
@@ -404,15 +427,15 @@ class _CharityTabState extends State<CharityTab> {
                 width: double.infinity,
                 child: GestureDetector(
                   onTap: () async {
-                    final goal = double.tryParse(goalCtrl.text) ?? 0;
-                    await _svc.submitCharity(
-                      title: titleCtrl.text.trim(),
-                      description: descCtrl.text.trim(),
-                      category: category,
-                      goal: goal,
-                    );
-                    if (ctx2.mounted) Navigator.pop(ctx2);
-                  },
+                      final goalText = goalCtrl.text.trim();
+                      if (titleCtrl.text.trim().isEmpty || goalText.isEmpty) return;
+                      _submitCampaign({
+                        'title': titleCtrl.text.trim(),
+                        'description': descCtrl.text.trim(),
+                        'goal': double.tryParse(goalText) ?? 0.0,
+                        'category': category,
+                      });
+                    },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(

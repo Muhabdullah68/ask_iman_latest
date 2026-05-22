@@ -1,11 +1,18 @@
 // lib/shared/widgets/main_shell.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/quran/quran_screen.dart';
 import '../../features/ibadah/ibadah_screen.dart';
-import '../../features/community/community_auth_screen.dart';
+// import '../../features/community/community_auth_screen.dart';
 import '../../features/profile/profile_screen.dart';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../features/community/streaks/streaks_tab.dart';
+import '../../core/services/community_service.dart';
+
+import '../../features/community/community_auth_screen.dart'; // Needed for CommunityGate if applicable
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -16,34 +23,99 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  final List<int> _history = [0];
 
-  void _changeTab(int index) => setState(() => _currentIndex = index);
+  void _changeTab(int index) {
+    if (_currentIndex == index) return;
+    setState(() {
+      _currentIndex = index;
+      _history.add(index);
+    });
+    
+    // Auto-show Quran preferences only when navigating to the Quran tab
+    if (index == 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        QuranScreen.screenKey.currentState?.showPreferencesAutomatically();
+      });
+    }
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_history.length > 1) {
+      setState(() {
+        _history.removeLast();
+        _currentIndex = _history.last;
+      });
+      return false;
+    }
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
     final screens = [
       HomeScreen(onNavigateToTab: _changeTab),
-      const QuranScreen(),
+      QuranScreen(key: QuranScreen.screenKey),
       const IbadahScreen(),
-      // CommunityGate handles:
-      //   • No Firebase Auth session → shows login/register UI
-      //   • No Firestore profile    → shows role-chooser (first-time registration)
-      //   • role == admin           → AdminDashboard
-      //   • role == teacher, pending approval → _TeacherPendingScreen
-      //   • role == teacher/student, approved → CommunityScreen with currentUser
-      const CommunityGate(),
+      _buildStreaksGate(),
       const ProfileScreen(),
     ];
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _onWillPop();
+        if (shouldPop && context.mounted) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: screens,
+        ),
+        bottomNavigationBar: _BottomNav(
+          currentIndex: _currentIndex,
+          onTap: _changeTab,
+        ),
       ),
-      bottomNavigationBar: _BottomNav(
-        currentIndex: _currentIndex,
-        onTap: _changeTab,
-      ),
+    );
+  }
+
+  Widget _buildStreaksGate() {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (ctx, authSnap) {
+        if (authSnap.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        if (authSnap.data == null) {
+          return const CommunityGate(); // Redirect to login if not authenticated
+        }
+        return StreamBuilder<AppUser?>(
+          stream: CommunityService.instance.watchCurrentUser(),
+          builder: (ctx2, profileSnap) {
+            if (profileSnap.connectionState == ConnectionState.waiting) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+            final user = profileSnap.data;
+            if (user == null) {
+              return const CommunityGate(); // Redirect to setup profile if missing
+            }
+            return Scaffold(
+              backgroundColor: Colors.white,
+              appBar: AppBar(
+                backgroundColor: AppColors.primaryDark,
+                title: const Text('Deen Streaks', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, color: Colors.white)),
+                centerTitle: true,
+                elevation: 0,
+              ),
+              body: StreaksTab(currentUser: user),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -59,7 +131,7 @@ class _BottomNav extends StatelessWidget {
       _NavItem(icon: Icons.home_outlined,        activeIcon: Icons.home,        label: 'Home'),
       _NavItem(icon: Icons.menu_book_outlined,    activeIcon: Icons.menu_book,    label: 'Quran'),
       _NavItem(icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome, label: 'Ibadah'),
-      _NavItem(icon: Icons.people_outline,        activeIcon: Icons.people,       label: 'Community'),
+      _NavItem(icon: Icons.local_fire_department_outlined, activeIcon: Icons.local_fire_department, label: 'Streaks'),
       _NavItem(icon: Icons.person_outline,        activeIcon: Icons.person,       label: 'Me'),
     ];
 

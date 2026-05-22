@@ -7,8 +7,7 @@
 //      • API returns Bismillah as ayah 1 for most surahs → we strip it and
 //        render it once in the dedicated Bismillah banner.
 //      • Surah 1 (Al-Fatihah): ayah 1 IS the Bismillah (it is part of Fatihah),
-//        so we show the Bismillah banner AND keep ayah 1 in the block — but the
-//        banner text already covers it, so we skip ayah 1 from the flowing block.
+//        so we show the Bismillah banner AND remove ayah 1 from the flowing block.
 //      • Surah 9 (At-Tawbah): no Bismillah shown at all (per Ijma).
 //
 //   2. Mushaf / Hamariweb-style flowing Quran text:
@@ -31,9 +30,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/surahs_data.dart';
 import '../data/quran_api_service.dart';
+import 'tafseer_tab.dart';
 
 // ── Shared Juz metadata ───────────────────────────────────────────────────────
 class JuzMeta {
@@ -81,7 +82,7 @@ const kJuzList = [
 // ── Arabic font helper ────────────────────────────────────────────────────────
 // Uses ScheherazadeNew if available in assets, else falls back to Amiri.
 // To enable ScheherazadeNew: add font asset in pubspec.yaml (see header).
-const _kQuranicFont = 'ScheherazadeNew';   // swap to 'Amiri' if not added yet
+const _kQuranicFont = 'Amiri'; // Amiri is the available Quranic font in pubspec
 
 // ── Bismillah text (Uthmani script) ──────────────────────────────────────────
 const _kBismillah = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
@@ -90,14 +91,17 @@ const _kBismillah = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلر
 // The API returns Bismillah as ayah 1 for most surahs (stripped of tashkeel
 // variation). We compare normalised.
 bool _isBismillahText(String text) {
-  // Normalise: remove tatweel, strip diacritics range, collapse spaces
-  String _norm(String s) => s
-      .replaceAll('\u0640', '')                        // tatweel
-      .replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '') // tashkeel
+  // Normalise: remove tatweel, strip diacritics range (including Uthmani specific), collapse spaces, and normalise Alefs
+  String norm(String s) => s
+      .replaceAll(RegExp(r'[ٱأإآ]'), 'ا')                  // Normalise Alef variants
+      .replaceAll('\u0640', '')                             // tatweel
+      .replaceAll(RegExp(r'[\u064B-\u065F\u0670\u06D6-\u06ED]'), '') // tashkeel + Uthmani markers
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
-  const _bCore = 'بسم الله الرحمن الرحيم';
-  return _norm(text).startsWith(_norm(_bCore).substring(0, 10));
+  const bCore = 'بسم الله الرحمن الرحيم';
+  final nText = norm(text);
+  final nCore = norm(bCore);
+  return nText.startsWith(nCore) || nText.contains(nCore);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -105,7 +109,9 @@ bool _isBismillahText(String text) {
 // ══════════════════════════════════════════════════════════════════════════════
 class TalawatTab extends StatefulWidget {
   final String searchQuery;
-  const TalawatTab({super.key, this.searchQuery = ''});
+  final bool useUrduFont;
+  final String? arabicFont;
+  const TalawatTab({super.key, this.searchQuery = '', this.useUrduFont = false, this.arabicFont});
   @override
   State<TalawatTab> createState() => _TalawatTabState();
 }
@@ -131,12 +137,25 @@ class _TalawatTabState extends State<TalawatTab>
     return Column(children: [
       SharedSubTabBar(controller: _sub),
       Expanded(
-        child: TabBarView(
-          controller: _sub,
-          children: [
-            _SurahListView(mode: ReadMode.talawat, searchQuery: widget.searchQuery),
-            _JuzListView(mode: ReadMode.talawat,   searchQuery: widget.searchQuery),
-          ],
+        child: Container(
+          color: Colors.white,
+          child: TabBarView(
+            controller: _sub,
+            children: [
+              _SurahListView(
+                mode: ReadMode.talawat,
+                searchQuery: widget.searchQuery,
+                useUrduFont: widget.useUrduFont,
+                arabicFont: widget.arabicFont,
+              ),
+              _JuzListView(
+                mode: ReadMode.talawat,
+                searchQuery: widget.searchQuery,
+                useUrduFont: widget.useUrduFont,
+                arabicFont: widget.arabicFont,
+              ),
+            ],
+          ),
         ),
       ),
     ]);
@@ -148,17 +167,17 @@ class _TalawatTabState extends State<TalawatTab>
 // ══════════════════════════════════════════════════════════════════════════════
 class SharedSubTabBar extends StatelessWidget {
   final TabController controller;
-  const SharedSubTabBar({required this.controller});
+  const SharedSubTabBar({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.quranBgLightGreen,
+      color: Colors.white,
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
-          color: AppColors.gold,
+          color: AppColors.primaryDark,
           borderRadius: BorderRadius.circular(24),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
@@ -167,7 +186,7 @@ class SharedSubTabBar extends StatelessWidget {
             fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w700),
         unselectedLabelStyle: const TextStyle(
             fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w400),
-        labelColor: AppColors.primaryDarkest,
+        labelColor: Colors.white,
         unselectedLabelColor: AppColors.textGrey,
         dividerColor: Colors.transparent,
         splashFactory: NoSplash.splashFactory,
@@ -179,19 +198,69 @@ class SharedSubTabBar extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 // Reading mode
 // ══════════════════════════════════════════════════════════════════════════════
-enum ReadMode { talawat, tarjuma }
+enum ReadMode { talawat, tarjuma, tafseer }
+
+class TalawatSubListView extends StatelessWidget {
+  final ReadMode mode;
+  final String searchQuery;
+  final bool useUrduFont;
+  final String? arabicFont;
+  final bool isJuz;
+  final void Function(Map<String, dynamic>)? onSurahTap;
+
+  const TalawatSubListView({
+    super.key,
+    required this.mode,
+    this.searchQuery = '',
+    this.useUrduFont = false,
+    this.arabicFont,
+    required this.isJuz,
+    this.onSurahTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isJuz) {
+      return _JuzListView(
+        mode: mode,
+        searchQuery: searchQuery,
+        useUrduFont: useUrduFont,
+        arabicFont: arabicFont,
+      );
+    } else {
+      return _SurahListView(
+        mode: mode,
+        searchQuery: searchQuery,
+        useUrduFont: useUrduFont,
+        arabicFont: arabicFont,
+        onTap: onSurahTap,
+      );
+    }
+  }
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // Surah list
 // ══════════════════════════════════════════════════════════════════════════════
-class _SurahListView extends StatelessWidget {
+class _SurahListView extends StatefulWidget {
   final ReadMode mode;
   final String searchQuery;
-  const _SurahListView({required this.mode, this.searchQuery = ''});
+  final bool useUrduFont;
+  final String? arabicFont;
+  final void Function(Map<String, dynamic>)? onTap;
+  const _SurahListView({required this.mode, this.searchQuery = '', this.useUrduFont = false, this.arabicFont, this.onTap});
+
+  @override
+  State<_SurahListView> createState() => _SurahListViewState();
+}
+
+class _SurahListViewState extends State<_SurahListView> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   List<Map<String, dynamic>> get _filtered {
-    if (searchQuery.isEmpty) return SurahsData.surahs;
-    final q = searchQuery.toLowerCase();
+    if (widget.searchQuery.isEmpty) return SurahsData.surahs;
+    final q = widget.searchQuery.toLowerCase();
     return SurahsData.surahs.where((s) =>
     (s['name'] as String).toLowerCase().contains(q) ||
         '${s['num']}'.contains(q) ||
@@ -201,8 +270,9 @@ class _SurahListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final list = _filtered;
-    if (list.isEmpty) return _EmptySearchState(query: searchQuery);
+    if (list.isEmpty) return _EmptySearchState(query: widget.searchQuery);
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -211,10 +281,28 @@ class _SurahListView extends StatelessWidget {
         final s = list[i];
         return SharedSurahCard(
           surah: s,
-          onTap: () => Navigator.push(context, MaterialPageRoute(
-              builder: (_) => ArabicReadScreen(
-                  surah: s,
-                  showTranslation: mode == ReadMode.tarjuma))),
+          useUrduFont: widget.useUrduFont,
+          arabicFont: widget.arabicFont,
+          onTap: () {
+            if (widget.onTap != null) {
+              widget.onTap!(s);
+            } else if (widget.mode == ReadMode.tafseer) {
+              Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => TafseerReaderScreen(
+                    surah: s, 
+                    book: const {'name': 'Ibn Kathir', 'arabic': 'تفسير ابن كثير'}, 
+                    isUrdu: widget.useUrduFont,
+                    arabicFont: widget.arabicFont,
+                  )));
+            } else {
+              Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => ArabicReadScreen(
+                      surah: s,
+                      showTranslation: widget.mode == ReadMode.tarjuma,
+                      useUrduFont: widget.useUrduFont,
+                      arabicFont: widget.arabicFont)));
+            }
+          },
         );
       },
     );
@@ -224,14 +312,24 @@ class _SurahListView extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 // Juz list
 // ══════════════════════════════════════════════════════════════════════════════
-class _JuzListView extends StatelessWidget {
+class _JuzListView extends StatefulWidget {
   final ReadMode mode;
   final String searchQuery;
-  const _JuzListView({required this.mode, this.searchQuery = ''});
+  final bool useUrduFont;
+  final String? arabicFont;
+  const _JuzListView({required this.mode, this.searchQuery = '', this.useUrduFont = false, this.arabicFont});
+
+  @override
+  State<_JuzListView> createState() => _JuzListViewState();
+}
+
+class _JuzListViewState extends State<_JuzListView> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   List<JuzMeta> get _filtered {
-    if (searchQuery.isEmpty) return kJuzList;
-    final q = searchQuery.toLowerCase();
+    if (widget.searchQuery.isEmpty) return kJuzList;
+    final q = widget.searchQuery.toLowerCase();
     return kJuzList.where((j) =>
     j.name.toLowerCase().contains(q) ||
         j.ar.contains(q) ||
@@ -242,18 +340,29 @@ class _JuzListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final list = _filtered;
-    if (list.isEmpty) return _EmptySearchState(query: searchQuery);
+    if (list.isEmpty) return _EmptySearchState(query: widget.searchQuery);
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: list.length,
       itemBuilder: (_, i) => SharedJuzCard(
         meta: list[i],
-        onTap: () => Navigator.push(context, MaterialPageRoute(
-            builder: (_) => ArabicReadScreen.juz(
-                meta: list[i],
-                showTranslation: mode == ReadMode.tarjuma))),
+        useUrduFont: widget.useUrduFont,
+        arabicFont: widget.arabicFont,
+        onTap: () {
+          if (widget.mode == ReadMode.tafseer) {
+            // Juz tafseer logic can be added here if needed
+          } else {
+            Navigator.push(context, MaterialPageRoute(
+                builder: (_) => ArabicReadScreen.juz(
+                    meta: list[i],
+                    showTranslation: widget.mode == ReadMode.tarjuma,
+                    useUrduFont: widget.useUrduFont,
+                    arabicFont: widget.arabicFont)));
+          }
+        },
       ),
     );
   }
@@ -290,21 +399,24 @@ class _EmptySearchState extends StatelessWidget {
 class SharedSurahCard extends StatelessWidget {
   final Map<String, dynamic> surah;
   final VoidCallback onTap;
-  const SharedSurahCard({super.key, required this.surah, required this.onTap});
+  final bool useUrduFont;
+  final String? arabicFont;
+  const SharedSurahCard({super.key, required this.surah, required this.onTap, this.useUrduFont = false, this.arabicFont});
 
   @override
   Widget build(BuildContext context) {
     final isMakki = surah['type'] == 'MAKKI';
+    final actualArabicFont = arabicFont ?? (useUrduFont ? 'NotoNastaliq' : _kQuranicFont);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         decoration: BoxDecoration(
-          color: AppColors.quranBgLightGreen,
+          color: AppColors.bgWhite,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.gold.withOpacity(0.55), width: 1.2),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.35), width: 1.2),
           boxShadow: [
-            BoxShadow(color: AppColors.gold.withOpacity(0.07),
+            BoxShadow(color: AppColors.gold.withValues(alpha: 0.07),
                 blurRadius: 6, offset: const Offset(0, 2)),
           ],
         ),
@@ -337,13 +449,13 @@ class SharedSurahCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: isMakki
-                          ? AppColors.gold.withOpacity(0.18)
-                          : AppColors.primaryLight.withOpacity(0.15),
+                          ? AppColors.gold.withValues(alpha: 0.18)
+                          : AppColors.primaryLight.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
                           color: isMakki
-                              ? AppColors.gold.withOpacity(0.4)
-                              : AppColors.primaryLight.withOpacity(0.3)),
+                              ? AppColors.gold.withValues(alpha: 0.4)
+                              : AppColors.primaryLight.withValues(alpha: 0.3)),
                     ),
                     child: Text(surah['type'] as String,
                         style: TextStyle(fontFamily: 'Cairo', fontSize: 9,
@@ -361,8 +473,8 @@ class SharedSurahCard extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text(surah['arabic'] as String,
                   textDirection: TextDirection.rtl,
-                  style: const TextStyle(fontFamily: _kQuranicFont,
-                      fontSize: 20, color: AppColors.textDark)),
+                  style: TextStyle(fontFamily: actualArabicFont,
+                      fontSize: useUrduFont ? 16 : 20, color: AppColors.textDark)),
               Text((surah['meaning'] as String).split(' ').take(2).join(' '),
                   style: const TextStyle(fontFamily: 'Cairo', fontSize: 9,
                       color: AppColors.textGrey)),
@@ -380,20 +492,23 @@ class SharedSurahCard extends StatelessWidget {
 class SharedJuzCard extends StatelessWidget {
   final JuzMeta meta;
   final VoidCallback onTap;
-  const SharedJuzCard({super.key, required this.meta, required this.onTap});
+  final bool useUrduFont;
+  final String? arabicFont;
+  const SharedJuzCard({super.key, required this.meta, required this.onTap, this.useUrduFont = false, this.arabicFont});
 
   @override
   Widget build(BuildContext context) {
+    final actualArabicFont = arabicFont ?? (useUrduFont ? 'NotoNastaliq' : _kQuranicFont);
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         decoration: BoxDecoration(
-          color: AppColors.quranBgLightGreen,
+          color: AppColors.bgWhite,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.gold.withOpacity(0.55), width: 1.2),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.35), width: 1.2),
           boxShadow: [
-            BoxShadow(color: AppColors.gold.withOpacity(0.07),
+            BoxShadow(color: AppColors.gold.withValues(alpha: 0.07),
                 blurRadius: 6, offset: const Offset(0, 2)),
           ],
         ),
@@ -426,9 +541,9 @@ class SharedJuzCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
-                      color: AppColors.gold.withOpacity(0.12),
+                      color: AppColors.gold.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: AppColors.gold.withOpacity(0.3))),
+                      border: Border.all(color: AppColors.gold.withValues(alpha: 0.3))),
                   child: Text('${meta.start} → ${meta.end}',
                       style: const TextStyle(fontFamily: 'Cairo', fontSize: 10,
                           color: AppColors.goldDark)),
@@ -437,8 +552,8 @@ class SharedJuzCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 14),
             child: Text(meta.ar, textDirection: TextDirection.rtl,
-                style: const TextStyle(fontFamily: _kQuranicFont,
-                    fontSize: 18, color: AppColors.goldDark)),
+                style: TextStyle(fontFamily: actualArabicFont,
+                    fontSize: useUrduFont ? 14 : 18, color: AppColors.goldDark)),
           ),
         ]),
       ),
@@ -454,19 +569,24 @@ class ArabicReadScreen extends StatefulWidget {
   final JuzMeta? juzMeta;
   final bool isJuzMode;
   final bool showTranslation;
+  final bool useUrduFont;
+  final String? arabicFont;
 
   const ArabicReadScreen({
     super.key,
-    required Map<String, dynamic> surah,
+    required this.surah,
     required this.showTranslation,
-  })  : surah = surah,
-        juzMeta = null,
+    this.useUrduFont = false,
+    this.arabicFont,
+  })  : juzMeta = null,
         isJuzMode = false;
 
   const ArabicReadScreen.juz({
     super.key,
     required JuzMeta meta,
     required this.showTranslation,
+    this.useUrduFont = false,
+    this.arabicFont,
   })  : juzMeta = meta,
         surah = null,
         isJuzMode = true;
@@ -480,15 +600,42 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   List<Map<String, String>>? _surahAyahs;
   bool _loading = true;
   String? _error;
-  double _fontSize = 26; // slightly larger default for Mushaf style
+  double _fontSize = 26;
+  bool _showUrdu = false; // EN/UR toggle for translation mode
+  late String _currentArabicFont;
+
+  // Audio
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _playingAyahNum;
+  bool _audioLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _currentArabicFont = widget.arabicFont ?? (widget.useUrduFont ? 'NotoNastaliq' : _kQuranicFont);
+    _showUrdu = widget.useUrduFont; // Initialize with preference
     _load();
   }
 
+  @override
+  void didUpdateWidget(ArabicReadScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.useUrduFont != oldWidget.useUrduFont || widget.arabicFont != oldWidget.arabicFont) {
+      setState(() {
+        _currentArabicFont = widget.arabicFont ?? (widget.useUrduFont ? 'NotoNastaliq' : _kQuranicFont);
+        _showUrdu = widget.useUrduFont;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() { _loading = true; _error = null; });
     try {
       if (widget.isJuzMode) {
@@ -498,9 +645,9 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
         setState(() { _juzGroups = data; _loading = false; });
       } else {
         final num = widget.surah!['num'] as int;
-        // Try local first (instant), then network
-        List<Map<String, String>>? data =
-        await QuranApiService.getLocalAyahs(num);
+        // Local cache first (instant), then fetch full (Arabic+EN+UR+audio)
+        List<Map<String, String>>? data = await QuranApiService.getLocalAyahs(num);
+        data ??= await QuranApiService.fetchSurahFull(num);
         data ??= await QuranApiService.fetchSurah(num);
         if (!mounted) return;
         if (data == null) throw Exception();
@@ -514,6 +661,24 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
         });
       }
     }
+  }
+
+  Future<void> _playAudio(String url, String ayahNum) async {
+    if (url.isEmpty) return;
+    if (_playingAyahNum == ayahNum) {
+      await _audioPlayer.stop();
+      setState(() { _playingAyahNum = null; });
+      return;
+    }
+    setState(() { _playingAyahNum = ayahNum; _audioLoading = true; });
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.play(UrlSource(url));
+      _audioPlayer.onPlayerComplete.listen((_) {
+        if (mounted) setState(() { _playingAyahNum = null; });
+      });
+    } catch (_) {}
+    if (mounted) setState(() { _audioLoading = false; });
   }
 
   @override
@@ -542,7 +707,7 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
         ? 'Juz ${widget.juzMeta!.num} — ${widget.juzMeta!.name}'
         : widget.surah!['name'] as String;
     final subtitle = widget.isJuzMode
-        ? (widget.showTranslation ? 'Arabic + English' : 'Uthmani Script')
+        ? (widget.showTranslation ? 'Arabic + Translation' : 'Uthmani Script')
         : '${widget.surah!['ayahs']} Ayahs • ${widget.surah!['type']}';
 
     return Container(
@@ -554,7 +719,7 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
           child: Container(
             width: 36, height: 36,
             decoration: BoxDecoration(
-                color: AppColors.primaryMid.withOpacity(0.6),
+                color: AppColors.primaryMid.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(10)),
             child: const Icon(Icons.arrow_back_ios_new,
                 color: AppColors.textWhite, size: 14),
@@ -568,12 +733,97 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
               Text(subtitle, style: const TextStyle(fontFamily: 'Cairo',
                   fontSize: 11, color: AppColors.textGreenMuted)),
             ])),
+        // EN / UR toggle — only in translation mode
+        if (widget.showTranslation) ...[
+          _langBtn('EN', !_showUrdu),
+          const SizedBox(width: 4),
+          _langBtn('اردو', _showUrdu),
+          const SizedBox(width: 8),
+        ],
+        // Font selector button
+        GestureDetector(
+          onTap: _showFontPicker,
+          child: Container(
+            width: 34, height: 34,
+            decoration: BoxDecoration(
+                color: AppColors.primaryMid,
+                borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.text_fields, color: AppColors.gold, size: 18),
+          ),
+        ),
+        const SizedBox(width: 6),
         _fontBtn('−', () { if (_fontSize > 18) setState(() => _fontSize -= 2); }),
         const SizedBox(width: 6),
         _fontBtn('+', () { if (_fontSize < 42) setState(() => _fontSize += 2); }),
       ]),
     );
   }
+
+  void _showFontPicker() {
+    final fonts = [
+      {'name': 'Indo-Pak (Al Qalam)', 'id': 'AlQalam'},
+      {'name': 'Uthmani (Amiri)', 'id': 'Amiri'},
+      {'name': 'Modern (Cairo)', 'id': 'Cairo'},
+      {'name': 'Urdu (Noto)', 'id': 'NotoNastaliq'},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppColors.bgWhite,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Choose Arabic Font', style: TextStyle(fontFamily: 'Cairo', fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: fonts.map((f) {
+                final isSel = _currentArabicFont == f['id'];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => _currentArabicFont = f['id']!);
+                    Navigator.pop(ctx);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSel ? AppColors.gold : AppColors.primaryDark.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(f['name']!, style: TextStyle(fontFamily: 'Cairo', fontWeight: isSel ? FontWeight.w700 : FontWeight.w500)),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _langBtn(String label, bool active) => GestureDetector(
+    onTap: () => setState(() => _showUrdu = (label == 'اردو')),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: active ? AppColors.gold : AppColors.primaryMid,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(label, style: TextStyle(
+        fontFamily: 'Cairo', fontSize: 10, fontWeight: FontWeight.w800,
+        color: active ? AppColors.primaryDarkest : AppColors.textGreenMuted,
+      )),
+    ),
+  );
 
   Widget _fontBtn(String label, VoidCallback fn) => GestureDetector(
     onTap: fn,
@@ -643,13 +893,10 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
       final isApiPrepended = first['num'] == '0' ||
           (first['num'] == '1' && _isBismillahText(first['a'] ?? ''));
 
-      if (isApiPrepended && surahNum != 1) {
+      if (isApiPrepended) {
         // Remove the prepended bismillah — it will be shown by the banner
         displayAyahs = ayahs.sublist(1);
       }
-      // Surah 1: ayah 1 IS the Bismillah AND part of Fatihah — keep it in the
-      // flowing block (Fatihah is recited with it). We still show the standalone
-      // banner above, but DON'T remove it from the block.
     }
 
     return SingleChildScrollView(
@@ -663,8 +910,12 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
 
         // ── Ayah content ──────────────────────────────────────────────────
         if (widget.showTranslation)
-          ...displayAyahs.map((a) =>
-              _buildAyahCard(a['a']!, a['t']!, a['num']!, surahNum))
+          ...displayAyahs.map((a) => _buildAyahCard(
+            a['a']!, a['t']!, a['num']!, surahNum,
+            urduTrans: a['tu'] ?? '',
+            audioUrl:  a['audio'] ?? '',
+            showUrdu: _showUrdu, // Fixed: use _showUrdu state
+          ))
         else
           _buildMushaafBlock(displayAyahs),
       ]),
@@ -680,7 +931,7 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
     List<Map<String, String>> displayAyahs = g.ayahs;
     if (hasBismillah && startsFromAyah1 && g.ayahs.isNotEmpty) {
       final first = g.ayahs.first;
-      if (_isBismillahText(first['a'] ?? '') && g.surahNum != 1) {
+      if (_isBismillahText(first['a'] ?? '')) {
         displayAyahs = g.ayahs.sublist(1);
       }
     }
@@ -694,7 +945,7 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
           gradient: const LinearGradient(
               colors: [AppColors.primaryDark, AppColors.primaryDarkest]),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.gold.withOpacity(0.4)),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.4)),
         ),
         child: Row(children: [
           Container(
@@ -711,7 +962,7 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
               color: AppColors.textWhite)),
           const Spacer(),
           Text(g.surahArabic, textDirection: TextDirection.rtl,
-              style: const TextStyle(fontFamily: _kQuranicFont,
+              style: TextStyle(fontFamily: _currentArabicFont,
                   fontSize: 20, color: AppColors.gold)),
         ]),
       ),
@@ -729,8 +980,12 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
 
       // Ayah content
       if (widget.showTranslation)
-        ...displayAyahs.map((a) =>
-            _buildAyahCard(a['a']!, a['t']!, a['num']!, g.surahNum))
+        ...displayAyahs.map((a) => _buildAyahCard(
+          a['a']!, a['t']!, a['num']!, g.surahNum,
+          urduTrans: a['tu'] ?? '',
+          audioUrl:  a['audio'] ?? '',
+          showUrdu: _showUrdu, // Fixed: use _showUrdu state
+        ))
       else
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -743,15 +998,16 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   // BISMILLAH BANNER — centred, standalone bordered box (matches screenshot)
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildBismillahBanner() {
+    final isAlQalam = _currentArabicFont == 'AlQalam';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
         color: AppColors.bgWhite,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.gold.withOpacity(0.6), width: 1.3),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.6), width: 1.3),
         boxShadow: [
-          BoxShadow(color: AppColors.gold.withOpacity(0.08),
+          BoxShadow(color: AppColors.gold.withValues(alpha: 0.08),
               blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
@@ -760,10 +1016,10 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
         textDirection: TextDirection.rtl,
         textAlign: TextAlign.center,
         style: TextStyle(
-          fontFamily: _kQuranicFont,
-          fontSize: _fontSize + 2, // slightly larger than body
+          fontFamily: _currentArabicFont,
+          fontSize: isAlQalam ? _fontSize * 1.4 : (_currentArabicFont == 'NotoNastaliq' ? _fontSize - 4 : _fontSize + 2),
           color: AppColors.primaryDark,
-          height: 1.8,
+          height: isAlQalam ? 1.4 : 1.8,
         ),
       ),
     );
@@ -781,22 +1037,26 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
       if (i > 0) {
         spans.add(const TextSpan(text: '\u200C')); // zero-width non-joiner spacing
       }
+      
+      final isAlQalam = _currentArabicFont == 'AlQalam';
+      
       // Ayah text
       spans.add(TextSpan(
         text: ayahs[i]['a']!,
         style: TextStyle(
-          fontFamily: _kQuranicFont,
-          fontSize: _fontSize,
+          fontFamily: _currentArabicFont,
+          fontSize: isAlQalam ? _fontSize * 1.3 : (_currentArabicFont == 'NotoNastaliq' ? _fontSize - 4 : _fontSize),
           color: AppColors.textDark,
-          height: 2.2,
+          height: isAlQalam ? 1.6 : 2.2,
+          letterSpacing: isAlQalam ? 0.5 : 0,
         ),
       ));
       // Ayah number marker  ﴿n﴾  in gold
       spans.add(TextSpan(
         text: ' \u06DD${ayahs[i]['num']!}\u0020',
         style: TextStyle(
-          fontFamily: _kQuranicFont,
-          fontSize: _fontSize * 0.80,
+          fontFamily: isAlQalam ? 'Amiri' : _currentArabicFont, // Use standard font for markers if AlQalam is too ornate
+          fontSize: (isAlQalam ? _fontSize : (_currentArabicFont == 'NotoNastaliq' ? _fontSize - 4 : _fontSize)) * 0.70,
           color: AppColors.goldDark,
           fontWeight: FontWeight.w700,
           height: 2.2,
@@ -810,9 +1070,9 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
       decoration: BoxDecoration(
         color: AppColors.bgWhite,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.gold.withOpacity(0.55), width: 1.3),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.55), width: 1.3),
         boxShadow: [
-          BoxShadow(color: AppColors.gold.withOpacity(0.06),
+          BoxShadow(color: AppColors.gold.withValues(alpha: 0.06),
               blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
@@ -827,13 +1087,20 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   // ══════════════════════════════════════════════════════════════════════════
   // AYAH CARD — translation mode (individual cards, unchanged UX)
   // ══════════════════════════════════════════════════════════════════════════
-  Widget _buildAyahCard(String arabic, String trans, String num, int surahNum) {
+  Widget _buildAyahCard(String arabic, String trans, String num, int surahNum, {String urduTrans = '', String audioUrl = '', bool showUrdu = false}) {
+    final isPlaying  = _playingAyahNum == num;
+    final displayTrans = (showUrdu && urduTrans.isNotEmpty) ? urduTrans : trans;
+    final isUrdu     = showUrdu && urduTrans.isNotEmpty;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: AppColors.bgWhite,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gold.withOpacity(0.55), width: 1.3),
+        border: Border.all(
+          color: isPlaying ? AppColors.gold : AppColors.gold.withValues(alpha: 0.35),
+          width: isPlaying ? 2.0 : 1.0,
+        ),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         // Arabic text row
@@ -855,12 +1122,13 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
               child: Text(
                 '$arabic \u06DD$num\u0020',
                 textDirection: TextDirection.rtl,
-                textAlign: TextAlign.justify,
+                textAlign: TextAlign.right, // Standardized right alignment for Arabic
                 style: TextStyle(
-                  fontFamily: _kQuranicFont,
-                  fontSize: _fontSize,
+                  fontFamily: _currentArabicFont,
+                  fontSize: _currentArabicFont == 'AlQalam' ? _fontSize * 1.3 : (_currentArabicFont == 'NotoNastaliq' ? _fontSize - 4 : _fontSize),
                   color: AppColors.textDark,
-                  height: 2.0,
+                  height: _currentArabicFont == 'AlQalam' ? 1.6 : 2.0,
+                  letterSpacing: _currentArabicFont == 'AlQalam' ? 0.5 : 0,
                 ),
               ),
             ),
@@ -868,21 +1136,55 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Container(height: 1, color: AppColors.gold.withOpacity(0.25)),
+          child: Container(height: 1, color: AppColors.gold.withValues(alpha: 0.25)),
         ),
-        // Translation
+        // Translation row
         Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('$surahNum:$num ',
                 style: const TextStyle(fontFamily: 'Cairo', fontSize: 10,
                     fontWeight: FontWeight.w700, color: AppColors.goldDark)),
-            Expanded(child: Text(trans, style: const TextStyle(
-                fontFamily: 'Cairo', fontSize: 13,
-                color: AppColors.textGrey, height: 1.6,
-                fontStyle: FontStyle.italic))),
+            Expanded(child: Text(
+              displayTrans,
+              textDirection: isUrdu ? TextDirection.rtl : TextDirection.ltr,
+              style: TextStyle(
+                  fontFamily: isUrdu ? 'NotoNastaliq' : 'Cairo',
+                  fontSize: isUrdu ? 13 : 13,
+                  color: AppColors.textGrey, height: 1.6,
+                  fontStyle: isUrdu ? FontStyle.normal : FontStyle.italic),
+            )),
           ]),
         ),
+        // Audio play row
+        if (audioUrl.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 2, 14, 10),
+            child: GestureDetector(
+              onTap: () => _playAudio(audioUrl, num),
+              child: Row(children: [
+                Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    color: isPlaying ? AppColors.gold : AppColors.primaryDark,
+                    shape: BoxShape.circle,
+                  ),
+                  child: _audioLoading && isPlaying
+                      ? const Padding(padding: EdgeInsets.all(8),
+                          child: CircularProgressIndicator(color: AppColors.textWhite, strokeWidth: 2))
+                      : Icon(isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                          color: isPlaying ? AppColors.primaryDarkest : AppColors.gold, size: 18),
+                ),
+                const SizedBox(width: 8),
+                Text(isPlaying ? 'Stop Recitation' : 'Play Recitation',
+                    style: TextStyle(
+                      fontFamily: 'Cairo', fontSize: 11,
+                      color: isPlaying ? AppColors.gold : AppColors.textGrey,
+                      fontWeight: FontWeight.w600,
+                    )),
+              ]),
+            ),
+          ),
       ]),
     );
   }
@@ -906,7 +1208,7 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
             gradient: const LinearGradient(
                 colors: [AppColors.primaryDark, AppColors.primaryMid]),
             borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: AppColors.gold.withOpacity(0.4)),
+            border: Border.all(color: AppColors.gold.withValues(alpha: 0.4)),
           ),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             const Text('Next Juz', style: TextStyle(fontFamily: 'Cairo',

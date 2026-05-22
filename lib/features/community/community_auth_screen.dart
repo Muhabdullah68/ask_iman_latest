@@ -24,8 +24,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/community_service.dart';
-import 'community_screen.dart';
-import 'admin/admin_dashboard.dart';
+import 'streaks/streaks_tab.dart';
+// import 'community_screen.dart';
+// import 'admin/admin_dashboard.dart';
 
 // ── Admin email pattern ───────────────────────────────────────────────────────
 bool _isAdminEmail(String email) =>
@@ -60,22 +61,23 @@ class CommunityGate extends StatelessWidget {
 
             final user = profileSnap.data;
 
-            // No profile yet → registration (or auto-admin seed)
+            // No profile yet → registration
             if (user == null) {
               return _FirstTimeRegistration(
                   firebaseUser: authSnap.data!);
             }
 
-            // Route by role/status
-            if (user.role == UserRole.admin) return const AdminDashboard();
-
-            if (user.role == UserRole.teacher && !user.isApproved) {
-              return const _TeacherPendingScreen();
-            }
-
-            if (user.isBlocked) return const _BlockedScreen();
-
-            return CommunityScreen(currentUser: user);
+            // Always show streaks for now
+            return Scaffold(
+              backgroundColor: Colors.white,
+              appBar: AppBar(
+                backgroundColor: AppColors.primaryDark,
+                title: const Text('Deen Streaks', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, color: Colors.white)),
+                centerTitle: true,
+                elevation: 0,
+              ),
+              body: StreaksTab(currentUser: user),
+            );
           },
         );
       },
@@ -248,7 +250,7 @@ class _LoginScreenState extends State<_LoginScreen> {
                   fontFamily: 'Cairo',
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.gold,
+//                   color: AppColors.gold,
                   letterSpacing: 2)),
           const SizedBox(height: 16),
           Text(
@@ -338,7 +340,7 @@ class _LoginScreenState extends State<_LoginScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.primaryDark.withOpacity(0.06),
+        color: AppColors.primaryDark.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderLight),
       ),
@@ -432,14 +434,15 @@ class _FirstTimeRegistrationState extends State<_FirstTimeRegistration> {
   }
 
   Future<void> _submit() async {
-    if (_nameCtrl.text.trim().isEmpty) {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) {
       setState(() => _error = 'Please enter your name.');
       return;
     }
     setState(() { _loading = true; _error = null; });
     try {
       await CommunityService.instance.createUserProfile(
-        name:           _nameCtrl.text.trim(),
+        name:           name,
         email:          widget.firebaseUser.email ?? '',
         role:           _selectedRole!,
         bio:            _bioCtrl.text.trim(),
@@ -448,7 +451,9 @@ class _FirstTimeRegistrationState extends State<_FirstTimeRegistration> {
       );
       // StreamBuilder in CommunityGate auto-navigates on profile creation
     } catch (e) {
-      setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) {
+        setState(() { _error = e.toString(); _loading = false; });
+      }
     }
   }
 
@@ -566,7 +571,7 @@ class _FirstTimeRegistrationState extends State<_FirstTimeRegistration> {
           border: Border.all(color: AppColors.borderLight),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 8,
             ),
           ],
@@ -647,10 +652,10 @@ class _FirstTimeRegistrationState extends State<_FirstTimeRegistration> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.gold.withOpacity(0.1),
+                color: AppColors.gold.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border:
-                Border.all(color: AppColors.gold.withOpacity(0.3)),
+                Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
               ),
               child: const Row(
                 children: [
@@ -745,130 +750,31 @@ class _FirstTimeRegistrationState extends State<_FirstTimeRegistration> {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SUPPORT SCREENS
+// SUPPORT SCREENS (Placeholder classes for now)
 // ══════════════════════════════════════════════════════════════════════════════
 
-class _TeacherPendingScreen extends StatelessWidget {
-  const _TeacherPendingScreen();
+// Placeholder classes for screens to be implemented later:
+// class _TeacherPendingScreen extends StatelessWidget {
+//   const _TeacherPendingScreen();
+//   @override
+//   Widget build(BuildContext context) => const SizedBox.shrink();
+// }
+//
+// class _BlockedScreen extends StatelessWidget {
+//   const _BlockedScreen();
+//   @override
+//   Widget build(BuildContext context) => const SizedBox.shrink();
+// }
 
+class AdminDashboard extends StatelessWidget {
+  const AdminDashboard({super.key});
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgCream,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.hourglass_top_rounded,
-                      color: AppColors.gold, size: 40),
-                ),
-                const SizedBox(height: 24),
-                const Text('Application Under Review',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textDark,
-                    )),
-                const SizedBox(height: 12),
-                const Text(
-                  'Your teacher application is being reviewed. You will gain access once approved. JazakAllah Khair for your patience.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 14,
-                    color: AppColors.textGrey,
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                GestureDetector(
-                  onTap: () => FirebaseAuth.instance.signOut(),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.borderLight),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text('Sign out',
-                        style: TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 13,
-                            color: AppColors.textGrey)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
-class _BlockedScreen extends StatelessWidget {
-  const _BlockedScreen();
-
+class CommunityScreen extends StatelessWidget {
+  final AppUser currentUser;
+  const CommunityScreen({super.key, required this.currentUser});
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgCream,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.block_rounded,
-                    color: AppColors.error, size: 64),
-                const SizedBox(height: 24),
-                const Text(
-                  'Account Restricted',
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Your account has been restricted by the admin. Please contact support.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 14,
-                    color: AppColors.textGrey,
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                GestureDetector(
-                  onTap: () => FirebaseAuth.instance.signOut(),
-                  child: const Text('Sign out',
-                      style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 13,
-                          color: AppColors.gold)),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }

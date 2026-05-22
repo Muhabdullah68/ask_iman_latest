@@ -18,6 +18,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 // ── Role enum ─────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ class AppUser {
   final List<String> friends;
   final List<String> groups;
   final int reportCount;
+  final int streakCount;
 
   const AppUser({
     required this.uid,
@@ -54,6 +56,7 @@ class AppUser {
     this.friends = const [],
     this.groups = const [],
     this.reportCount = 0,
+    this.streakCount = 0,
   });
 
   factory AppUser.fromDoc(DocumentSnapshot doc) {
@@ -72,6 +75,7 @@ class AppUser {
       friends:        List<String>.from(d['friends'] ?? []),
       groups:         List<String>.from(d['groups']  ?? []),
       reportCount:    d['reportCount']    ?? 0,
+      streakCount:    d['streakCount']    ?? 0,
     );
   }
 
@@ -96,6 +100,7 @@ class AppUser {
     'friends':        friends,
     'groups':         groups,
     'reportCount':    reportCount,
+    'streakCount':    streakCount,
   };
 }
 
@@ -351,7 +356,7 @@ class CommunityService {
       final uploadTask = await ref.putFile(file);
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
-      print('Error uploading image: $e');
+      debugPrint('Error uploading image: $e');
       return null;
     }
   }
@@ -545,45 +550,119 @@ class CommunityService {
     }, SetOptions(merge: true));
 
     // Update streak counter on user doc
+    final newStreak = await getStreakForUser(_uid);
     await _db.collection('users').doc(_uid).update({
       'lastActive': FieldValue.serverTimestamp(),
+      'streakCount': newStreak,
     });
   }
 
   Future<int> getCurrentStreak() async {
-    int streak = 0;
-    final now = DateTime.now();
-    for (int i = 0; i < 365; i++) {
-      final d = now.subtract(Duration(days: i));
-      final key = '${d.year}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}';
-      final doc = await _db
-          .collection('streaks').doc(_uid)
-          .collection('logs').doc(key).get();
-      if (doc.exists) {
-        streak++;
-      } else {
-        break;
+    return getStreakForUser(_uid);
+  }
+
+  Future<Map<String, double>> getSoulProgress() async {
+    if (_uid.isEmpty) return {'namaz': 0, 'quran': 0, 'zikr': 0};
+    
+    try {
+      final now = DateTime.now();
+      final sevenDaysAgo = now.subtract(const Duration(days: 7));
+      
+      final snapshot = await _db
+          .collection('streaks')
+          .doc(_uid)
+          .collection('logs')
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(sevenDaysAgo))
+          .get();
+
+      if (snapshot.docs.isEmpty) return {'namaz': 0, 'quran': 0, 'zikr': 0};
+
+      int namazCount = 0;
+      int quranCount = 0;
+      int zikrCount = 0;
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        if (data['prayers'] == true) namazCount++;
+        if (data['quran'] == true) quranCount++;
+        
+        // Zikr: check if any custom task is done or if "zikr" specifically is done
+        final custom = data['customTasks'];
+        if (custom is Map) {
+          bool done = false;
+          custom.forEach((key, value) {
+            if (key.toString().toLowerCase().contains('zikr') && value == true) done = true;
+            if (value == true) done = true; // any custom task counts for demo
+          });
+          if (done) zikrCount++;
+        }
       }
+
+      return {
+        'namaz': namazCount / 7,
+        'quran': quranCount / 7,
+        'zikr': zikrCount / 7,
+      };
+    } catch (e) {
+      debugPrint('Error getting soul progress: $e');
+      return {'namaz': 0, 'quran': 0, 'zikr': 0};
     }
-    return streak;
   }
 
   Future<int> getStreakForUser(String userId) async {
-    int streak = 0;
-    final now = DateTime.now();
-    for (int i = 0; i < 365; i++) {
-      final d = now.subtract(Duration(days: i));
-      final key = '${d.year}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}';
-      final doc = await _db
-          .collection('streaks').doc(userId)
-          .collection('logs').doc(key).get();
-      if (doc.exists) {
-        streak++;
-      } else {
-        break;
+    if (userId.isEmpty) return 0;
+    
+    try {
+      final now = DateTime.now();
+      final oneYearAgo = now.subtract(const Duration(days: 365));
+      
+      final snapshot = await _db
+          .collection('streaks')
+          .doc(userId)
+          .collection('logs')
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(oneYearAgo))
+          .orderBy('date', descending: true)
+          .limit(400) // Optimized: Limit to approx 1 year of docs
+          .get();
+
+      if (snapshot.docs.isEmpty) return 0;
+
+      int streak = 0;
+      DateTime checkDate = DateTime(now.year, now.month, now.day);
+      
+      // If today isn't logged yet, check if yesterday was logged to continue streak
+      final latestDocDate = (snapshot.docs.first.data()['date'] as Timestamp).toDate();
+      final latestDate = DateTime(latestDocDate.year, latestDocDate.month, latestDocDate.day);
+      
+      if (latestDate.isBefore(checkDate.subtract(const Duration(days: 1)))) {
+        // Streak broken (more than 1 day since last log)
+        return 0;
       }
+      
+      if (latestDate.isBefore(checkDate)) {
+        // Today hasn't been logged yet, but yesterday was. 
+        // We start counting from yesterday.
+        checkDate = latestDate;
+      }
+
+      for (var doc in snapshot.docs) {
+        final docDateRaw = (doc.data()['date'] as Timestamp).toDate();
+        final docDate = DateTime(docDateRaw.year, docDateRaw.month, docDateRaw.day);
+        
+        if (docDate.isAtSameMomentAs(checkDate)) {
+          streak++;
+          checkDate = checkDate.subtract(const Duration(days: 1));
+        } else if (docDate.isBefore(checkDate)) {
+          // Gap found, streak ends here
+          break;
+        }
+      }
+      
+      return streak;
+    } catch (e) {
+      debugPrint('Error calculating streak: $e');
+      return 0;
     }
-    return streak;
   }
 
   // ── Classes ────────────────────────────────────────────────────────────────
@@ -886,6 +965,19 @@ class CommunityService {
 
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  Future<void> updateUserProfile({
+    required String name,
+    required String bio,
+    String? photoUrl,
+  }) async {
+    if (_uid.isEmpty) return;
+    await _db.collection('users').doc(_uid).update({
+      'name': name,
+      'bio': bio,
+      if (photoUrl != null) 'photoUrl': photoUrl,
+    });
   }
 
   // Live list of approved teachers (for student Featured Teachers section)

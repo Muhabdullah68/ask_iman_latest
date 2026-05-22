@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/services/prayer_service.dart';
+import '../../shared/widgets/ask_iman_app_bar.dart';
 
 class QiblahScreen extends StatefulWidget {
   const QiblahScreen({super.key});
@@ -11,70 +15,212 @@ class QiblahScreen extends StatefulWidget {
   State<QiblahScreen> createState() => _QiblahScreenState();
 }
 
-class _QiblahScreenState extends State<QiblahScreen> {
+class _QiblahScreenState extends State<QiblahScreen>
+    with SingleTickerProviderStateMixin {
+  // ─── State ───────────────────────────────────────────────────────────────────
   Position? _currentPosition;
-  double? _compassHeading;
-  bool _hasPermission = false;
+  double _compassHeading = 0;
   bool _isLoading = true;
   String _errorMessage = '';
-  StreamSubscription<CompassEvent>? _compassSubscription;
 
-  // Kaaba coordinates
-  static const double kaabaLat = 21.4225;
-  static const double kaabaLon = 39.8262;
+  StreamSubscription<CompassEvent>? _compassSubscription;
+  StreamSubscription<Position>? _locationSubscription;
+
+  // ─── Smooth rendering angles (what the Transform.rotate widgets use) ─────────
+  double _displayNeedleAngle = 0;
+  double _displayQiblahAngle = 0;
+
+  // ─── Target angles (updated immediately on every compass/location event) ──────
+  double _targetNeedleAngle = 0;
+  double _targetQiblahAngle = 0;
+
+  // ─── Whether we have received at least one compass reading ───────────────────
+  bool _compassInitialized = false;
+
+  /// Drives 60 fps smooth interpolation without an AnimationController.
+  late Ticker _ticker;
+
+  // ─── Prayer times ─────────────────────────────────────────────────────────────
+  Map<String, dynamic>? _prayerTimes;
+
+  // ─── Kaaba coordinates ────────────────────────────────────────────────────────
+  static const double _kaabaLat = 21.4225;
+  static const double _kaabaLon = 39.8262;
+
+  /// Cached bearing to Kaaba (degrees, [0, 360)).
+  /// Updated whenever position changes so the Qiblah icon immediately
+  /// reflects the new location.
+  double _qiblahBearing = 0;
+
+  // ─── THEME ───────────────────────────────────────────────────────────────────
+  static const Color _bg     = Color(0xFF0A1F16);
+  static const Color _border = Color(0xFF1D4533);
+  static const Color _gold   = Color(0xFFC9A84C);
+  static const Color _green  = Color(0xFF2D6A4F);
+  static const Color _white  = Color(0xFFFFFFFF);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  LIFECYCLE
+  // ═══════════════════════════════════════════════════════════════════════════
 
   @override
   void initState() {
     super.initState();
+    _ticker = createTicker(_onTick);
     _initialize();
+    PrayerService().addListener(_onPrayerServiceUpdate);
+    if (PrayerService().prayerTimes == null && !PrayerService().isLoading) {
+      PrayerService().refresh();
+    }
+    _loadPrayerTimes();
   }
 
   @override
   void dispose() {
+    PrayerService().removeListener(_onPrayerServiceUpdate);
+    _ticker.dispose();
     _compassSubscription?.cancel();
+    _locationSubscription?.cancel();
     super.dispose();
   }
 
+  void _onPrayerServiceUpdate() {
+    if (mounted) _loadPrayerTimes();
+  }
+
+  void _loadPrayerTimes() {
+    final service = PrayerService();
+    final next = service.nextPrayerInfo;
+    if (next != null) {
+      final mins = next.minutesUntil();
+      final hrs  = mins ~/ 60;
+      final rem  = mins % 60;
+      final countdownText =
+      hrs > 0 ? '${hrs}h ${rem}m remaining' : '${mins}m remaining';
+      setState(() {
+        _prayerTimes = {
+          'nextPrayerName': next.name,
+          'nextPrayerTime': next.timeFormatted,
+          'remainingTime': countdownText,
+        };
+      });
+    } else {
+      setState(() => _prayerTimes = null);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  SMOOTH ANIMATION — ticker callback (~60 fps)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  void _onTick(Duration _) {
+    if (!mounted) return;
+
+    final newNeedle = _lerpAngle(_displayNeedleAngle, _targetNeedleAngle, 0.10);
+    final newQiblah = _lerpAngle(_displayQiblahAngle, _targetQiblahAngle, 0.10);
+
+    final needleMoved =
+        _shortestAngularDiff(newNeedle, _displayNeedleAngle).abs() > 0.01;
+    final qiblahMoved =
+        _shortestAngularDiff(newQiblah, _displayQiblahAngle).abs() > 0.01;
+
+    if (needleMoved || qiblahMoved) {
+      setState(() {
+        _displayNeedleAngle = newNeedle;
+        _displayQiblahAngle = newQiblah;
+      });
+    }
+  }
+
+  /// Lerp that always takes the shortest path around the circle.
+  double _lerpAngle(double from, double to, double t) {
+    return from + _shortestAngularDiff(to, from) * t;
+  }
+
+  /// Returns the signed shortest difference from [from] to [to] in (−180, 180].
+  double _shortestAngularDiff(double to, double from) {
+    double diff = ((to - from) % 360 + 360) % 360;
+    if (diff > 180) diff -= 360;
+    return diff;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  INITIALIZATION
+  // ═══════════════════════════════════════════════════════════════════════════
+
   Future<void> _initialize() async {
-    await _checkLocationPermission();
+    // 1. Try to get last known position first (instant)
+    final lastPos = await Geolocator.getLastKnownPosition();
+    if (lastPos != null && mounted) {
+      setState(() {
+        _currentPosition = lastPos;
+        _qiblahBearing = _calculateQiblahBearing();
+        _targetQiblahAngle = _qiblahBearing - _compassHeading;
+        _isLoading = false;
+      });
+    }
+
+    // 2. Start sensors immediately (they don't strictly require high-accuracy location to begin rendering the dial)
     _startCompass();
+    _startLocationUpdates();
+
+    // 3. Handle permissions and fresh location in background
+    _checkLocationPermission();
   }
 
   Future<void> _checkLocationPermission() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      setState(() {
-        _errorMessage = 'Location services are disabled';
-        _isLoading = false;
-      });
-      return;
-    }
-
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        setState(() {
-          _errorMessage = 'Location permission denied';
-          _isLoading = false;
-        });
+    try {
+      // Check service and permission
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted && _currentPosition == null) {
+          setState(() => _errorMessage = 'Location services are disabled.');
+        }
         return;
       }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      setState(() {
-        _errorMessage = 'Location permissions are permanently denied';
-        _isLoading = false;
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted && _currentPosition == null) {
+            setState(() => _errorMessage = 'Location permissions are denied.');
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted && _currentPosition == null) {
+          setState(() => _errorMessage = 'Location permissions are permanently denied.');
+        }
+        return;
+      }
+
+      // 3. Get fresh position in background (might take time)
+      Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium, // Faster than high
+        timeLimit: const Duration(seconds: 5),
+      ).then((pos) {
+        if (mounted) {
+          setState(() {
+            _currentPosition = pos;
+            _qiblahBearing = _calculateQiblahBearing();
+            _targetQiblahAngle = _qiblahBearing - _compassHeading;
+            _isLoading = false;
+          });
+        }
+      }).catchError((e) {
+        if (mounted && _currentPosition == null) {
+          setState(() => _isLoading = false);
+        }
       });
-      return;
+
+    } catch (e) {
+      if (mounted && _currentPosition == null) {
+        setState(() => _errorMessage = 'Error initializing location: $e');
+      }
     }
-
-    setState(() {
-      _hasPermission = true;
-    });
-
-    await _getCurrentLocation();
   }
 
   Future<void> _getCurrentLocation() async {
@@ -82,508 +228,774 @@ class _QiblahScreenState extends State<QiblahScreen> {
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-
+      if (!mounted) return;
       setState(() {
-        _currentPosition = position;
-        _isLoading = false;
+        _currentPosition   = position;
+        _qiblahBearing     = _calculateQiblahBearing();
+        // FIX: always recompute with the live compass heading so the icon
+        // doesn't jump when location resolves after several compass events.
+        _targetQiblahAngle = _qiblahBearing - _compassHeading;
+        _isLoading         = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorMessage = 'Failed to get location: $e';
-        _isLoading = false;
+        _isLoading    = false;
       });
     }
   }
 
-  void _startCompass() {
-    _compassSubscription = FlutterCompass.events?.listen((CompassEvent event) {
+  void _startLocationUpdates() {
+    _locationSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10, // metres — only recalculate after moving 10 m
+      ),
+    ).listen((Position position) {
+      if (!mounted) return;
       setState(() {
-        _compassHeading = event.heading;
+        _currentPosition   = position;
+        _qiblahBearing     = _calculateQiblahBearing();
+        // FIX: recompute with the CURRENT live compass heading every time
+        // the location updates, so the Qiblah icon stays accurate.
+        _targetQiblahAngle = _qiblahBearing - _compassHeading;
+        _isLoading         = false;
       });
     });
   }
 
-  double _calculateDistance() {
-    if (_currentPosition == null) return 0;
+  void _startCompass() {
+    final compassStream = FlutterCompass.events;
+    if (compassStream == null) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Your device does not support compass sensors.';
+          _isLoading    = false;
+        });
+      }
+      return;
+    }
 
+    _compassSubscription = compassStream.listen(
+          (CompassEvent event) {
+        if (!mounted) return;
+
+        final double? rawHeading = event.heading;
+        if (rawHeading == null) return;
+
+        // Normalize to [0, 360)
+        final double heading = (rawHeading % 360 + 360) % 360;
+
+        // ── Update target angles ────────────────────────────────────────────
+        // The compass DIAL rotates opposite to the phone heading so that N
+        // always points to screen-top.
+        final double needleTarget = -heading;
+
+        // The Qiblah ICON angle = absolute Qiblah bearing minus current heading.
+        // This keeps the icon fixed on the Kaaba regardless of phone orientation.
+        final double qiblahTarget = _qiblahBearing - heading;
+
+        if (!_compassInitialized) {
+          // Snap display angles to the first real reading so there is no
+          // "spin from 0" artifact on startup.
+          _displayNeedleAngle = needleTarget;
+          _displayQiblahAngle = qiblahTarget;
+          _compassInitialized = true;
+          if (!_ticker.isActive) _ticker.start();
+        }
+
+        _targetNeedleAngle = needleTarget;
+        _targetQiblahAngle = qiblahTarget;
+
+        setState(() {
+          _compassHeading = heading;
+          _isLoading      = false;
+        });
+      },
+      onError: (Object e) {
+        if (mounted) {
+          setState(() => _errorMessage = 'Compass error: $e');
+        }
+      },
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  CALCULATIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  double _calculateDistance() {
+    if (_currentPosition == null) return 5432;
     return Geolocator.distanceBetween(
       _currentPosition!.latitude,
       _currentPosition!.longitude,
-      kaabaLat,
-      kaabaLon,
-    ) / 1000; // Convert to km
+      _kaabaLat,
+      _kaabaLon,
+    ) /
+        1000;
   }
 
+  /// Great-circle initial bearing from the current position to the Kaaba.
   double _calculateQiblahBearing() {
     if (_currentPosition == null) return 0;
 
-    final lat1 = _currentPosition!.latitude * math.pi / 180;
+    final lat1 = _currentPosition!.latitude  * math.pi / 180;
     final lon1 = _currentPosition!.longitude * math.pi / 180;
-    final lat2 = kaabaLat * math.pi / 180;
-    final lon2 = kaabaLon * math.pi / 180;
-
+    final lat2 = _kaabaLat * math.pi / 180;
+    final lon2 = _kaabaLon * math.pi / 180;
     final dLon = lon2 - lon1;
 
     final y = math.sin(dLon) * math.cos(lat2);
     final x = math.cos(lat1) * math.sin(lat2) -
         math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
 
-    final bearing = math.atan2(y, x);
-    final degrees = (bearing * 180 / math.pi + 360) % 360;
-
-    return degrees;
+    return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
   }
 
-  String _formatDirection(double degrees) {
-    if (degrees >= 337.5 || degrees < 22.5) return '${degrees.toStringAsFixed(0)}° N';
-    if (degrees >= 22.5 && degrees < 67.5) return '${degrees.toStringAsFixed(0)}° NE';
-    if (degrees >= 67.5 && degrees < 112.5) return '${degrees.toStringAsFixed(0)}° E';
-    if (degrees >= 112.5 && degrees < 157.5) return '${degrees.toStringAsFixed(0)}° SE';
-    if (degrees >= 157.5 && degrees < 202.5) return '${degrees.toStringAsFixed(0)}° S';
-    if (degrees >= 202.5 && degrees < 247.5) return '${degrees.toStringAsFixed(0)}° SW';
-    if (degrees >= 247.5 && degrees < 292.5) return '${degrees.toStringAsFixed(0)}° W';
-    return '${degrees.toStringAsFixed(0)}° NW';
+  String _getDirectionLabel(double degrees) {
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    return dirs[((degrees + 22.5) / 45).floor() % 8];
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  BUILD
+  // ═══════════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
+    // ── Loading ──────────────────────────────────────────────────────────────
     if (_isLoading) {
       return Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFB4B9FF),
-                Color(0xFFFFD1D1),
+        backgroundColor: _bg,
+        body: const Center(
+          child: CircularProgressIndicator(color: _white),
+        ),
+      );
+    }
+
+    // ── Permission / sensor error ─────────────────────────────────────────────
+    if (_errorMessage.isNotEmpty && _currentPosition == null) {
+      return Scaffold(
+        backgroundColor: _bg,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.location_off_rounded,
+                    color: AppColors.gold, size: 64),
+                const SizedBox(height: 24),
+                Text(
+                  _errorMessage,
+                  style: const TextStyle(
+                    color: _white,
+                    fontFamily: 'Cairo',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Make sure your GPS is on and you have granted location permissions.',
+                  style: TextStyle(
+                    color: AppColors.textGrey,
+                    fontFamily: 'Cairo',
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.gold,
+                      foregroundColor: _bg,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    onPressed: _initialize,
+                    child: const Text(
+                      'RETRY INITIALIZATION',
+                      style: TextStyle(
+                          fontFamily: 'Cairo',
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
-          child: const Center(
-            child: CircularProgressIndicator(color: Colors.white),
           ),
         ),
       );
     }
 
-    if (!_hasPermission || _errorMessage.isNotEmpty) {
-      return Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF5D5D5D)),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFB4B9FF),
-                Color(0xFFFFD1D1),
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+    // ── Main screen ───────────────────────────────────────────────────────────
+    final qiblahBearing = _qiblahBearing;
+    final heading       = _compassHeading;
+    final relativeAngle =
+        (_shortestAngularDiff(qiblahBearing, heading) + 360) % 360;
+    final distance      = _calculateDistance();
+    final isFacingQiblah = relativeAngle < 5 || relativeAngle > 355;
+
+    return Scaffold(
+      backgroundColor: _bg,
+      appBar: const AskImanAppBar(showBackButton: true),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+
+            // ── Info card ──────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(20),
+                  border:
+                  Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    const Icon(
-                      Icons.location_off,
-                      size: 80,
-                      color: Color(0xFF5D5D5D),
+                    _buildInfoItem(
+                      'Distance',
+                      '${distance.toStringAsFixed(0)} km',
+                      Icons.location_on_outlined,
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      _errorMessage,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF4A4A4A),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    ElevatedButton(
-                      onPressed: _initialize,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5A67B1),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Enable Location',
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
+                    Container(
+                        width: 1,
+                        height: 40,
+                        color: Colors.white.withValues(alpha: 0.1)),
+                    _buildInfoItem(
+                      'Qibla',
+                      '${qiblahBearing.toStringAsFixed(1)}°',
+                      Icons.explore_outlined,
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-        ),
-      );
-    }
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF5D5D5D)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'Qibla',
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF5D5D5D),
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFB4B9FF),
-              Color(0xFFFFD1D1),
-            ],
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Mountain Background at bottom
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: CustomPaint(
-                size: Size(MediaQuery.of(context).size.width, 100),
-                painter: MountainPainter(),
+            const Spacer(flex: 2),
+            _buildCompassView(),
+            const Spacer(flex: 1),
+
+            // ── Heading label ──────────────────────────────────────────────
+            Text(
+              '${heading.toStringAsFixed(0)}° ${_getDirectionLabel(heading)}',
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 42,
+                fontWeight: FontWeight.w800,
+                color: _white,
               ),
             ),
-            SafeArea(
-              child: Column(
-                children: [
-                  const Spacer(),
-                  _buildCompass(context),
-                  const Spacer(),
-                  _buildDirectionInfo(),
-                  const SizedBox(height: 60),
-                ],
+            const SizedBox(height: 4),
+
+            // ── Facing label ───────────────────────────────────────────────
+            Opacity(
+              opacity: isFacingQiblah ? 1.0 : 0.7,
+              child: Text(
+                isFacingQiblah
+                    ? 'Facing Kaaba'
+                    : 'Turn ${relativeAngle < 180 ? 'Right' : 'Left'}',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 18,
+                  fontWeight: isFacingQiblah
+                      ? FontWeight.w800
+                      : FontWeight.w600,
+                  color: isFacingQiblah
+                      ? const Color(0xFF52B788)
+                      : _white.withValues(alpha: 0.7),
+                ),
               ),
             ),
+
+            const SizedBox(height: 12),
+
+            // ── Coordinates ────────────────────────────────────────────────
+            Text(
+              _currentPosition == null
+                  ? 'Acquiring Location...'
+                  : '${_currentPosition!.latitude.toStringAsFixed(2)}°, '
+                  '${_currentPosition!.longitude.toStringAsFixed(2)}°',
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: _white.withValues(alpha: 0.5),
+              ),
+            ),
+
+            // ── Next-prayer card ───────────────────────────────────────────
+            if (_prayerTimes != null)
+              Flexible(
+                child: _buildPrayerCard(
+                  _prayerTimes!['nextPrayerName'] as String,
+                  _prayerTimes!['nextPrayerTime'] as String,
+                  _prayerTimes!['remainingTime'] as String,
+                ),
+              ),
+
+            const Spacer(flex: 3),
+
+            // ── Accuracy progress bar ──────────────────────────────────────
+            Padding(
+              padding:
+              const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+              child: Container(
+                height: 14,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D281C),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: isFacingQiblah
+                      ? 1.0
+                      : (1 -
+                      (relativeAngle > 180
+                          ? 360 - relativeAngle
+                          : relativeAngle) /
+                          180)
+                      .clamp(0.1, 1.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isFacingQiblah
+                          ? const Color(0xFF52B788)
+                          : _gold,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDirectionInfo() {
-    final qiblahBearing = _calculateQiblahBearing();
-    final directionText = _formatDirection(qiblahBearing);
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  WIDGETS
+  // ═══════════════════════════════════════════════════════════════════════════
 
+  Widget _buildInfoItem(String label, String value, IconData icon) {
     return Column(
       children: [
-        Text(
-          directionText,
-          style: const TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 28,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF4A4A4A),
-          ),
+        Row(
+          children: [
+            Icon(icon, size: 14, color: _white.withValues(alpha: 0.7)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 12,
+                color: _white.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 4),
         Text(
-          _currentPosition == null
-              ? 'Unable to get your location'
-              : 'Distance: ${_calculateDistance().toStringAsFixed(0)} km',
+          value,
           style: const TextStyle(
             fontFamily: 'Cairo',
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF5D5D5D),
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: _white,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCompass(BuildContext context) {
-    final double size = MediaQuery.of(context).size.width * 0.75;
-    final double heading = _compassHeading ?? 0;
-    final double qiblahBearing = _calculateQiblahBearing();
+  Widget _buildPrayerCard(String name, String time, String remaining) {
+    final loc = _currentPosition != null
+        ? '${_currentPosition!.latitude.toStringAsFixed(2)}°, '
+        '${_currentPosition!.longitude.toStringAsFixed(2)}°'
+        : 'Current Location';
 
-    return Center(
-      child: SizedBox(
-        width: size + 80, // Extra space for Kaaba icon
-        height: size + 80,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Rotating Compass Disk
-            AnimatedRotation(
-              turns: -heading / 360,
-              duration: const Duration(milliseconds: 200),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1E3D28), Color(0xFF122018)],
+        ),
+        border: Border.all(color: _border),
+      ),
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'NEXT PRAYER',
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 2,
+              color: _gold,
+              fontFamily: 'Cairo',
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: 40,
+              fontFamily: 'Cairo',
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$time  •  $loc',
+            style: const TextStyle(
+              fontSize: 13,
+              color: _green,
+              fontFamily: 'Cairo',
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(20),
+              border:
+              Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.access_time_rounded,
+                    color: _gold, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  remaining,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFFB8D4BE),
+                    fontFamily: 'Cairo',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── COMPASS VIEW ──────────────────────────────────────────────────────────
+  //
+  // Layer order (bottom → top):
+  //   1. Static outer ring / background   — never moves
+  //   2. Static dial                       — never moves
+  //        • tick marks
+  //        • star rose (N/S/E/W points + labels)
+  //   3. Rotating needle                  — rotates by _displayNeedleAngle (-heading)
+  //        • needle (green N half, dark S half)
+  //   4. Qiblah icon                      — rotates by _displayQiblahAngle (_qiblahBearing - heading)
+  //        • orbits on the rim, always pointing toward Mecca
+  //   5. Center pivot cap                 — static decoration
+  //
+  Widget _buildCompassView() {
+    final size       = MediaQuery.of(context).size.width * 0.78;
+    const markerSize = 60.0;
+
+    return SizedBox(
+      width: size + markerSize,
+      height: size + markerSize,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // ── 1. Static outer ring ─────────────────────────────────────────
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const RadialGradient(
+                colors: [Color(0xFF1E3328), Color(0xFF0F1A14)],
+                center: Alignment(-0.3, -0.3),
+              ),
+              border: Border.all(color: _border, width: 1.5),
+            ),
+          ),
+
+          // ── 2. Static Dial with Tick Marks and Star Rose ──────────────────
+          RepaintBoundary(
+            child: CustomPaint(
+              size: Size(size, size),
+              painter: _TickMarkPainter(),
+            ),
+          ),
+          RepaintBoundary(
+            child: CustomPaint(
+              size: Size(size * 0.7, size * 0.7),
+              painter: _StarRosePainter(),
+            ),
+          ),
+
+          // ── 3. Rotating Compass Needle ────────────────────────────────────
+          // The needle rotates independently to point to physical North/South
+          Transform.rotate(
+            angle: _displayNeedleAngle * math.pi / 180,
+            child: RepaintBoundary(
+              child: CustomPaint(
+                size: Size(size * 0.55, size * 0.55),
+                painter: _NeedlePainter(),
+              ),
+            ),
+          ),
+
+          // ── 4. Qiblah icon ───────────────────────────────────────────────
+          // Rotates independently — angle = qiblahBearing - compassHeading,
+          // so the icon stays fixed on Mecca as the phone turns.
+          Transform.rotate(
+            angle: _displayQiblahAngle * math.pi / 180,
+            child: SizedBox(
+              width: size + markerSize,
+              height: size + markerSize,
               child: Stack(
                 alignment: Alignment.center,
-                clipBehavior: Clip.none,
                 children: [
-                  // The Compass Disk itself
-                  Container(
-                    width: size,
-                    height: size,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 15,
-                          offset: Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: CustomPaint(
-                      painter: CompassDiskPainter(),
-                    ),
-                  ),
-                  // Kaaba Icon positioned at the Qibla bearing
-                  Transform.rotate(
-                    angle: qiblahBearing * (math.pi / 180),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned(
-                          top: -size * 0.15, // Positioned on the edge
-                          child: Column(
-                            children: [
-                              Image.asset(
-                                'assets/images/Kaaba.png',
-                                width: 50,
-                                height: 50,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.mosque,
-                                  size: 40,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              // Small triangle pointer
-                              CustomPaint(
-                                size: const Size(12, 8),
-                                painter: TrianglePainter(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                  Positioned(
+                    top: 0,
+                    child: RepaintBoundary(
+                      child: Image.asset(
+                        'assets/images/qiblah_icon.png',
+                        width: markerSize,
+                        height: markerSize,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+          ),
 
-class CompassDiskPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    final paint = Paint()
-      ..color = const Color(0xFFD1D1D1)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    // Draw outer circle
-    canvas.drawCircle(center, radius, paint);
-
-    // Draw degree markers
-    for (int i = 0; i < 360; i += 2) {
-      final double angle = i * (math.pi / 180);
-      final bool isMajor = i % 45 == 0;
-      final bool isMinor = i % 10 == 0;
-
-      final double startRadius = radius - (isMajor ? 15 : (isMinor ? 10 : 5));
-      final Offset start = Offset(
-        center.dx + startRadius * math.cos(angle - math.pi / 2),
-        center.dy + startRadius * math.sin(angle - math.pi / 2),
-      );
-      final Offset end = Offset(
-        center.dx + radius * math.cos(angle - math.pi / 2),
-        center.dy + radius * math.sin(angle - math.pi / 2),
-      );
-
-      paint.color = isMajor ? const Color(0xFF8E8E8E) : const Color(0xFFD1D1D1);
-      paint.strokeWidth = isMajor ? 1.5 : 1;
-      canvas.drawLine(start, end, paint);
-
-      // Draw degree numbers for major markers
-      if (isMajor) {
-        final textPainter = TextPainter(
-          text: TextSpan(
-            text: '$i',
-            style: const TextStyle(
-              color: Color(0xFF8E8E8E),
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
+          // ── 5. Center pivot cap ───────────────────────────────────────────
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _bg,
+              border: Border.all(color: _gold, width: 1.5),
+            ),
+            child: const Center(
+              child: CircleAvatar(
+                radius: 3,
+                backgroundColor: _gold,
+              ),
             ),
           ),
-          textDirection: TextDirection.ltr,
-        )..layout();
+        ],
+      ),
+    );
+  }
+}
 
-        final double textRadius = radius - 25;
-        final Offset textPos = Offset(
-          center.dx + textRadius * math.cos(angle - math.pi / 2) - textPainter.width / 2,
-          center.dy + textRadius * math.sin(angle - math.pi / 2) - textPainter.height / 2,
-        );
-        textPainter.paint(canvas, textPos);
-      }
+// ═══════════════════════════════════════════════════════════════════════════════
+//  PAINTERS  (shouldRepaint = false — Transform.rotate handles all motion)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _TickMarkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r  = size.width / 2 - 2;
+
+    for (int i = 0; i < 360; i += 5) {
+      final angle   = (i - 90) * math.pi / 180;
+      final major   = i % 45 == 0;
+      final mid     = i % 15 == 0;
+      final len     = major ? 14.0 : mid ? 9.0 : 5.0;
+      final strokeW = major ? 1.5 : 0.8;
+      final color   = major
+          ? const Color(0xFFC9A84C).withValues(alpha: 0.5)
+          : const Color(0xFF7AAB85).withValues(alpha: 0.2);
+
+      canvas.drawLine(
+        Offset(cx + (r - 1)   * math.cos(angle), cy + (r - 1)   * math.sin(angle)),
+        Offset(cx + (r - len) * math.cos(angle), cy + (r - len) * math.sin(angle)),
+        Paint()
+          ..color       = color
+          ..strokeWidth = strokeW
+          ..strokeCap   = StrokeCap.round,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter _) => false;
+}
+
+class _StarRosePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r  = size.width / 2;
+
+    void drawPoint(double angleDeg, double length, double width, Color color) {
+      final angle     = (angleDeg - 90) * math.pi / 180;
+      final perpAngle = angle + math.pi / 2;
+      final tip   = Offset(cx + length * math.cos(angle), cy + length * math.sin(angle));
+      final base1 = Offset(cx + width  * math.cos(perpAngle), cy + width  * math.sin(perpAngle));
+      final base2 = Offset(cx - width  * math.cos(perpAngle), cy - width  * math.sin(perpAngle));
+
+      canvas.drawPath(
+        Path()
+          ..moveTo(tip.dx, tip.dy)
+          ..lineTo(base1.dx, base1.dy)
+          ..lineTo(cx, cy)
+          ..lineTo(base2.dx, base2.dy)
+          ..close(),
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill,
+      );
     }
 
-    // Draw cardinal needles
-    _drawNeedle(canvas, center, radius * 0.6, 0, const Color(0xFF2E7D32)); // N - Green
-    _drawNeedle(canvas, center, radius * 0.6, 180, const Color(0xFF1565C0)); // S - Blue
-    
-    // Draw cardinal labels
-    _drawCardinalLetter(canvas, center, radius * 0.35, 0, 'N');
-    _drawCardinalLetter(canvas, center, radius * 0.35, 180, 'S');
-    _drawCardinalLetter(canvas, center, radius * 0.8, 90, 'E', color: const Color(0xFF8E8E8E));
-    _drawCardinalLetter(canvas, center, radius * 0.8, 270, 'W', color: const Color(0xFF8E8E8E));
-  }
+    // Cardinal points (large)
+    drawPoint(  0, r * 0.85, r * 0.08, const Color(0xFFC9A84C)); // N — gold
+    drawPoint(180, r * 0.85, r * 0.08, const Color(0xFF2E5038)); // S
+    drawPoint( 90, r * 0.85, r * 0.08, const Color(0xFF2E5038)); // E
+    drawPoint(270, r * 0.85, r * 0.08, const Color(0xFF2E5038)); // W
 
-  void _drawNeedle(Canvas canvas, Offset center, double length, double degrees, Color color) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
+    // Diagonal points (smaller)
+    for (final a in [45.0, 135.0, 225.0, 315.0]) {
+      drawPoint(a, r * 0.6, r * 0.045,
+          const Color(0xFF3A5A42).withValues(alpha: 0.7));
+    }
 
-    final double angle = degrees * (math.pi / 180) - math.pi / 2;
-    final path = Path();
-    path.moveTo(center.dx, center.dy);
-    path.lineTo(
-      center.dx + 12 * math.cos(angle + math.pi / 2),
-      center.dy + 12 * math.sin(angle + math.pi / 2),
+    // N/S/E/W text labels
+    const textStyle = TextStyle(
+      fontFamily: 'Cairo',
+      fontSize: 12,
+      fontWeight: FontWeight.w700,
     );
-    path.lineTo(
-      center.dx + length * math.cos(angle),
-      center.dy + length * math.sin(angle),
-    );
-    path.lineTo(
-      center.dx + 12 * math.cos(angle - math.pi / 2),
-      center.dy + 12 * math.sin(angle - math.pi / 2),
-    );
-    path.close();
-    canvas.drawPath(path, paint);
-  }
 
-  void _drawCardinalLetter(Canvas canvas, Offset center, double distance, double degrees, String text, {Color color = Colors.white}) {
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          color: color,
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'Cairo',
+    void drawLabel(String text, double angleDeg, Color color) {
+      final angle  = (angleDeg - 90) * math.pi / 180;
+      final labelR = r * 0.68;
+      final tp     = TextPainter(
+        text: TextSpan(text: text, style: textStyle.copyWith(color: color)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(
+        canvas,
+        Offset(
+          cx + labelR * math.cos(angle) - tp.width  / 2,
+          cy + labelR * math.sin(angle) - tp.height / 2,
         ),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
+      );
+    }
 
-    final double angle = degrees * (math.pi / 180) - math.pi / 2;
-    final Offset pos = Offset(
-      center.dx + distance * math.cos(angle) - textPainter.width / 2,
-      center.dy + distance * math.sin(angle) - textPainter.height / 2,
+    drawLabel('N',   0, const Color(0xFFC9A84C));
+    drawLabel('S', 180, const Color(0xFF7AAB85));
+    drawLabel('E',  90, const Color(0xFF7AAB85));
+    drawLabel('W', 270, const Color(0xFF7AAB85));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter _) => false;
+}
+
+class _NeedlePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final h  = size.height / 2;
+    final w  = size.width  / 12;
+
+    // North half — bright emerald green (points UP on the rotated dial,
+    // which always corresponds to geographic north on screen)
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx, cy - h * 0.98)
+        ..lineTo(cx + w * 0.8, cy)
+        ..lineTo(cx - w * 0.8, cy)
+        ..close(),
+      Paint()
+        ..color = const Color(0xFF2ECC71)
+        ..style = PaintingStyle.fill,
     );
-    textPainter.paint(canvas, pos);
+
+    // Center-line highlight
+    canvas.drawLine(
+      Offset(cx, cy - h * 0.98),
+      Offset(cx, cy),
+      Paint()
+        ..color       = Colors.white.withValues(alpha: 0.3)
+        ..strokeWidth = 1.0,
+    );
+
+    // South half — dark slate
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx, cy + h * 0.98)
+        ..lineTo(cx + w * 0.8, cy)
+        ..lineTo(cx - w * 0.8, cy)
+        ..close(),
+      Paint()
+        ..color = const Color(0xFF2C3E50)
+        ..style = PaintingStyle.fill,
+    );
+
+    // South depth shading
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx, cy + h * 0.95)
+        ..lineTo(cx + w, cy)
+        ..lineTo(cx, cy)
+        ..close(),
+      Paint()..color = Colors.black.withValues(alpha: 0.1),
+    );
+
+    // Center pivot cap
+    canvas.drawCircle(
+      Offset(cx, cy),
+      w * 0.6,
+      Paint()
+        ..color = const Color(0xFF0F1A14)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawCircle(
+      Offset(cx, cy),
+      w * 0.6,
+      Paint()
+        ..color       = const Color(0xFFC9A84C)
+        ..style       = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
-
-class TrianglePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF4A4A4A)
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    path.moveTo(0, size.height);
-    path.lineTo(size.width / 2, 0);
-    path.lineTo(size.width, size.height);
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
-
-class MountainPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF5A67B1) // Darker blue for back mountains
-      ..style = PaintingStyle.fill;
-
-    final path1 = Path();
-    path1.moveTo(0, size.height);
-    path1.lineTo(size.width * 0.1, size.height * 0.6);
-    path1.lineTo(size.width * 0.3, size.height * 0.8);
-    path1.lineTo(size.width * 0.5, size.height * 0.4);
-    path1.lineTo(size.width * 0.7, size.height * 0.7);
-    path1.lineTo(size.width * 0.9, size.height * 0.5);
-    path1.lineTo(size.width, size.height);
-    path1.close();
-    canvas.drawPath(path1, paint);
-
-    paint.color = const Color(0xFF7B88D1); // Lighter blue for front mountains
-    final path2 = Path();
-    path2.moveTo(0, size.height);
-    path2.lineTo(size.width * 0.2, size.height * 0.7);
-    path2.lineTo(size.width * 0.4, size.height * 0.9);
-    path2.lineTo(size.width * 0.6, size.height * 0.6);
-    path2.lineTo(size.width * 0.8, size.height * 0.85);
-    path2.lineTo(size.width, size.height * 0.75);
-    path2.lineTo(size.width, size.height);
-    path2.close();
-    canvas.drawPath(path2, paint);
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter _) => false;
 }

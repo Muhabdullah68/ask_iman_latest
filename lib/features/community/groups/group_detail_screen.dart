@@ -33,29 +33,39 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
   }
 
   Future<void> _sendGroupMessage(String text, {Map<String, dynamic>? alertData}) async {
-    if (text.trim().isEmpty && alertData == null) return;
+    final msg = text.trim();
+    if (msg.isEmpty && alertData == null) return;
     setState(() => _sending = true);
     
-    await _db
-        .collection('groups')
-        .doc(widget.group.id)
-        .collection('messages')
-        .add({
-      'senderId': widget.currentUser.uid,
-      'senderName': widget.currentUser.name,
-      'text': text.trim(),
-      'alert': alertData,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    try {
+      await _db
+          .collection('groups')
+          .doc(widget.group.id)
+          .collection('messages')
+          .add({
+        'senderId': widget.currentUser.uid,
+        'senderName': widget.currentUser.name,
+        'text': msg,
+        'alert': alertData,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
-    _msgCtrl.clear();
-    setState(() => _sending = false);
+      _msgCtrl.clear();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
   Future<void> _pushAlert(String type, String message) async {
     final alertMap = {
       'type': type, // namaz | tasbeeh | quran
-      'title': type == 'namaz' ? '🕋 Namaz Reminder' : type == 'tasbeeh' ? '📿 Tasbeeh Reminder' : '📖 Quran Study Circle',
+      'title': type == 'namaz' ? 'ðŸ•‹ Namaz Reminder' : type == 'tasbeeh' ? 'ðŸ“¿ Tasbeeh Reminder' : 'ðŸ“– Quran Study Circle',
       'message': message,
       'pushedBy': widget.currentUser.name,
     };
@@ -100,7 +110,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
     );
   }
 
-  // ── Reminders & Chat Tab ───────────────────────────────────────────────────
+  // â”€â”€ Reminders & Chat Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildChatTab() {
     return Column(
       children: [
@@ -115,11 +125,11 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
               const SizedBox(height: 6),
               Row(
                 children: [
-                  _alertBtn('🕋 Namaz', () => _showPushAlertModal('namaz')),
+                  _alertBtn('ðŸ•‹ Namaz', () => _showPushAlertModal('namaz')),
                   const SizedBox(width: 8),
-                  _alertBtn('📿 Tasbeeh', () => _showPushAlertModal('tasbeeh')),
+                  _alertBtn('ðŸ“¿ Tasbeeh', () => _showPushAlertModal('tasbeeh')),
                   const SizedBox(width: 8),
-                  _alertBtn('📖 Quran', () => _showPushAlertModal('quran')),
+                  _alertBtn('ðŸ“– Quran', () => _showPushAlertModal('quran')),
                 ],
               ),
             ],
@@ -146,7 +156,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.mark_chat_unread_outlined, size: 48, color: AppColors.textLightGrey.withOpacity(0.5)),
+                      Icon(Icons.mark_chat_unread_outlined, size: 48, color: AppColors.textLightGrey.withValues(alpha: 0.5)),
                       const SizedBox(height: 12),
                       const Text('No messages or reminders yet', style: TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey)),
                     ],
@@ -226,9 +236,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.primaryDark.withOpacity(0.06),
+            color: AppColors.primaryDark.withValues(alpha: 0.06),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.primaryDark.withOpacity(0.25)),
+            border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.25)),
           ),
           child: Center(
             child: Text(label, style: const TextStyle(fontFamily: 'Cairo', fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primaryDark)),
@@ -263,8 +273,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
       decoration: BoxDecoration(
         color: AppColors.primaryDark,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.6), width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 4)],
+        border: Border.all(color: color.withValues(alpha: 0.6), width: 1.5),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -378,7 +388,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
     );
   }
 
-  // ── Streaks Leaderboard Tab ────────────────────────────────────────────────
+  // â”€â”€ Streaks Leaderboard Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildStreaksTab() {
     return StreamBuilder<QuerySnapshot>(
       stream: _db.collection('users').where(FieldPath.documentId, whereIn: widget.group.members).snapshots(),
@@ -406,7 +416,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
                   Container(
                     width: 38, height: 38,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryDark.withOpacity(0.08),
+                      color: AppColors.primaryDark.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.person, color: AppColors.primaryDark),
@@ -429,7 +439,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.gold.withOpacity(0.12),
+                          color: AppColors.gold.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -452,7 +462,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
     );
   }
 
-  // ── Settings Tab ───────────────────────────────────────────────────────────
+  // â”€â”€ Settings Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _buildSettingsTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -486,14 +496,20 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
             ),
             onPressed: () async {
-              await _db.collection('groups').doc(widget.group.id).update({
-                'members': FieldValue.arrayRemove([widget.currentUser.uid])
-              });
-              await _db.collection('users').doc(widget.currentUser.uid).update({
-                'groups': FieldValue.arrayRemove([widget.group.id])
-              });
-              if (mounted) {
-                Navigator.pop(context);
+              try {
+                await _db.collection('groups').doc(widget.group.id).update({
+                  'members': FieldValue.arrayRemove([widget.currentUser.uid])
+                });
+                await _db.collection('users').doc(widget.currentUser.uid).update({
+                  'groups': FieldValue.arrayRemove([widget.group.id])
+                });
+                if (mounted) Navigator.pop(context);
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to leave group: $e')),
+                  );
+                }
               }
             },
             child: const Text('Leave Group', style: TextStyle(fontFamily: 'Cairo', fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
@@ -509,7 +525,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> with SingleTicker
       builder: (ctx, setSwitchState) => SwitchListTile(
         title: Text(label, style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textDark)),
         value: val,
-        activeColor: AppColors.gold,
+        activeThumbColor: AppColors.gold,
         activeTrackColor: AppColors.primaryDark,
         onChanged: (v) => setSwitchState(() => val = v),
       ),

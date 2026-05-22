@@ -1,10 +1,7 @@
 // lib/features/quran/tabs/ahadees_tab.dart
 // ─────────────────────────────────────────────────────────────────────────────
-// AHADEES TAB — Working API: api.hadith.gading.dev (no key required)
-// 4 Books: Sahih Bukhari, Sahih Muslim, Jami Tirmidhi, Sunan Abu Dawud
-// - Hadith of the Day banner (deterministic daily pick)
-// - 4 book cards → "Read Full Book" (paginates via API)
-// - "Filter by Topic" (local curated data)
+// AHADEES TAB — Working API: hadith-api-six.vercel.app (Fallback to local if fail)
+// 6 Books: Bukhari, Muslim, Tirmidhi, Abu Dawud, Nasa'i, Ibn Majah
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'dart:convert';
@@ -13,29 +10,34 @@ import 'package:http/http.dart' as http;
 import '../../../core/theme/app_colors.dart';
 import '../data/ahadees_data.dart';
 
-// ── API base ──────────────────────────────────────────────────────────────────
+// ── Stable API base (Original) ────────────────────────────────────────────────
 const _kBase = 'https://api.hadith.gading.dev';
 
-// ── Book slugs for api.hadith.gading.dev ─────────────────────────────────────
+// ── Book slugs ───────────────────────────────────────────────────────────────
 class _BookInfo {
-  final String slug;     // gading.dev slug
+  final String slug;
   final String name;
   final String arabic;
-  final int    total;
+  final int total;
   final String grade;
   const _BookInfo(this.slug, this.name, this.arabic, this.total, this.grade);
 }
 
+// Mapped to api.hadith.gading.dev identifiers
 const _books = [
-  _BookInfo('bukhari',   'Sahih al-Bukhari', 'صحيح البُخاري', 7563, 'SAHIH'),
-  _BookInfo('muslim',    'Sahih Muslim',     'صحيح مُسلم',    3032, 'SAHIH'),
-  _BookInfo('tirmidhi',  'Jami at-Tirmidhi', 'جامع الترمذي',  3956, 'SAHIH'),
-  _BookInfo('abu-dawud', 'Sunan Abu Dawud',  'سنن أبي داود',  4341, 'SAHIH'),
+  _BookInfo('bukhari', 'Sahih al-Bukhari', 'صحيح البُخاري', 6638, 'SAHIH'),
+  _BookInfo('muslim', 'Sahih Muslim', 'صحيح مُسلم', 4930, 'SAHIH'),
+  _BookInfo('tirmidzi', 'Jami at-Tirmidhi', 'جامع الترمذي', 3625, 'SAHIH'),
+  _BookInfo('abu-daud', 'Sunan Abu Dawud', 'سنن أبي داود', 4419, 'SAHIH'),
+  _BookInfo('nasai', 'Sunan an-Nasa\'i', 'سنن النسائي', 5364, 'SAHIH'),
+  _BookInfo('ibnu-majah', 'Sunan Ibn Majah', 'سنن ابن ماجه', 4285, 'SAHIH'),
 ];
 
 const _topics = [
-  'All', 'Faith', 'Prayer', 'Charity', 'Fasting',
-  'Patience', 'Marriage', 'Character', 'Knowledge',
+  'All', 'Character', 'Faith', 'Prayer', 'Charity', 'Fasting',
+  'Patience', 'Marriage', 'Knowledge', 'Parents',
+  'Modesty', 'Truthfulness', 'Anger', 'Jealousy', 'Jihad',
+  'Kindness', 'Hospitality', 'Brotherhood', 'Repentance', 'Paradise',
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -43,11 +45,14 @@ const _topics = [
 // ══════════════════════════════════════════════════════════════════════════════
 class AhadeesTab extends StatefulWidget {
   final String searchQuery;
-  const AhadeesTab({super.key, this.searchQuery = ''});
+  final String? arabicFont; // Added to sync font
+  final bool useUrduFont; // Added for language preference
+  const AhadeesTab({super.key, this.searchQuery = '', this.arabicFont, this.useUrduFont = false});
   @override State<AhadeesTab> createState() => _AhadeesTabState();
 }
 
-class _AhadeesTabState extends State<AhadeesTab> {
+class _AhadeesTabState extends State<AhadeesTab> with SingleTickerProviderStateMixin {
+  late TabController _tc;
   int _view = 0; // 0=home, 1=book reader, 2=topic filter
   _BookInfo? _selectedBook;
   String _selectedTopic = 'All';
@@ -56,23 +61,31 @@ class _AhadeesTabState extends State<AhadeesTab> {
   bool _loadingDaily = true;
 
   @override
-  void initState() { super.initState(); _fetchDailyHadith(); }
+  void initState() { 
+    super.initState(); 
+    _tc = TabController(length: 2, vsync: this);
+    _fetchDailyHadith(); 
+  }
 
-  // ── Daily hadith — deterministic by day of year ────────────────────────────
+  @override
+  void dispose() {
+    _tc.dispose();
+    super.dispose();
+  }
+
   Future<void> _fetchDailyHadith() async {
     setState(() => _loadingDaily = true);
     try {
-      final day = DateTime.now()
-          .difference(DateTime(DateTime.now().year, 1, 1)).inDays + 1;
+      final day = DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays + 1;
       final num = (day % 100) + 1;
-      // GET /books/bukhari/{num}
+      // Using gading hadith api
       final r = await http
           .get(Uri.parse('$_kBase/books/bukhari/$num'))
           .timeout(const Duration(seconds: 8));
       if (r.statusCode == 200) {
         final data = jsonDecode(r.body)['data'];
         if (data != null && mounted) {
-          setState(() { _dailyHadith = data as Map<String, dynamic>; _loadingDaily = false; });
+          setState(() { _dailyHadith = data; _loadingDaily = false; });
           return;
         }
       }
@@ -84,7 +97,10 @@ class _AhadeesTabState extends State<AhadeesTab> {
   Widget build(BuildContext context) {
     if (_view == 1 && _selectedBook != null) {
       return _BookReadScreen(
-          book: _selectedBook!, onBack: () => setState(() => _view = 0));
+          book: _selectedBook!, 
+          arabicFont: widget.arabicFont, // Pass font down
+          useUrduFont: widget.useUrduFont,
+          onBack: () => setState(() => _view = 0));
     }
     if (_view == 2) {
       return _TopicFilterScreen(
@@ -92,7 +108,50 @@ class _AhadeesTabState extends State<AhadeesTab> {
           onBack: () => setState(() => _view = 0),
           onTopicChanged: (t) => setState(() => _selectedTopic = t));
     }
-    return _buildHome();
+
+    return Column(
+      children: [
+        _buildSubTabBar(),
+        Expanded(
+          child: TabBarView(
+            controller: _tc,
+            children: [
+              _buildHome(),
+              _TopicFilterScreen(
+                topic: _selectedTopic,
+                onBack: () {}, // No back needed in tab view
+                onTopicChanged: (t) => setState(() => _selectedTopic = t),
+                isTabView: true,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubTabBar() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: TabBar(
+        controller: _tc,
+        indicator: BoxDecoration(
+          color: AppColors.primaryDark,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        tabs: const [Tab(text: 'Books'), Tab(text: 'Search Topics')],
+        labelStyle: const TextStyle(
+            fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(
+            fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w400),
+        labelColor: Colors.white,
+        unselectedLabelColor: AppColors.textGrey,
+        dividerColor: Colors.transparent,
+        splashFactory: NoSplash.splashFactory,
+      ),
+    );
   }
 
   Widget _buildHome() {
@@ -101,20 +160,59 @@ class _AhadeesTabState extends State<AhadeesTab> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         _buildDailyBanner(),
         _buildBookListHeader(),
-        ..._books.map(_buildBookCard),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.8,
+            ),
+            itemCount: _books.length,
+            itemBuilder: (context, index) => _buildGridBookCard(_books[index]),
+          ),
+        ),
         const SizedBox(height: 32),
       ]),
     );
   }
 
+  Widget _buildGridBookCard(_BookInfo book) {
+    return GestureDetector(
+      onTap: () => setState(() { _selectedBook = book; _view = 1; }),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.primaryDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.gold.withValues(alpha: 0.2)),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(book.arabic, textDirection: TextDirection.rtl,
+                style: TextStyle(fontFamily: widget.arabicFont ?? 'Amiri', fontSize: 16, color: AppColors.gold)),
+            const SizedBox(height: 8),
+            Text(book.name, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textWhite)),
+            const SizedBox(height: 4),
+            Text('${book.total} Hadiths', 
+                style: const TextStyle(fontFamily: 'Cairo', fontSize: 11, color: AppColors.textGreenMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Hadith of the Day banner ───────────────────────────────────────────────
   Widget _buildDailyBanner() {
-    // api.hadith.gading.dev returns: {id, arab, id} — 'id' is the English/Indonesian text
     String displayText = '"The best among you are those who have the best manners."';
     String sourceText  = 'Sahih Bukhari';
 
     if (!_loadingDaily && _dailyHadith != null) {
-      // Try English field first, then arabic as fallback
       final eng = _dailyHadith!['id'] as String? ?? '';
       final ar  = _dailyHadith!['arab'] as String? ?? '';
       if (eng.isNotEmpty) {
@@ -136,7 +234,7 @@ class _AhadeesTabState extends State<AhadeesTab> {
           child: Stack(fit: StackFit.expand, children: [
             Image.asset('assets/images/mosque interior.png',
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: AppColors.primaryDarkest)),
+                errorBuilder: (_, _, _) => Container(color: AppColors.primaryDarkest)),
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -182,110 +280,23 @@ class _AhadeesTabState extends State<AhadeesTab> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Hadith Books', style: TextStyle(fontFamily: 'Cairo',
             fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textDark)),
-        Text('4 Authentic Collections', style: TextStyle(
+        Text('6 Authentic Collections', style: TextStyle(
             fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey)),
       ]),
     );
   }
 
-  Widget _buildBookCard(_BookInfo book) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      decoration: BoxDecoration(
-        color: AppColors.bgWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
-            blurRadius: 8, offset: const Offset(0, 2))],
-      ),
-      child: Column(children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            color: AppColors.primaryDark,
-            borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16), topRight: Radius.circular(16)),
-          ),
-          child: Row(children: [
-            Container(
-              width: 70, height: 52,
-              decoration: BoxDecoration(
-                color: AppColors.gold.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.gold.withOpacity(0.3)),
-              ),
-              child: Center(child: Text(book.arabic, textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontFamily: 'Amiri', fontSize: 13,
-                      color: AppColors.gold, height: 1.4))),
-            ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(book.name, style: const TextStyle(fontFamily: 'Cairo',
-                  fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textWhite)),
-              Text('${book.total} Hadiths', style: const TextStyle(
-                  fontFamily: 'Cairo', fontSize: 12, color: AppColors.textGreenMuted)),
-            ])),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8)),
-              child: Text(book.grade, style: const TextStyle(fontFamily: 'Cairo',
-                  fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.success)),
-            ),
-          ]),
-        ),
-        // Action buttons
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(children: [
-            Expanded(child: _actionBtn(
-              icon: Icons.menu_book_rounded, label: 'Read Full Book', dark: true,
-              onTap: () => setState(() { _selectedBook = book; _view = 1; }),
-            )),
-            const SizedBox(width: 10),
-            Expanded(child: _actionBtn(
-              icon: Icons.filter_list, label: 'Filter by Topic', dark: false,
-              onTap: () => setState(() { _selectedBook = book; _view = 2; }),
-            )),
-          ]),
-        ),
-      ]),
-    );
-  }
-
-  Widget _actionBtn({required IconData icon, required String label,
-    required bool dark, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: dark ? AppColors.primaryDark : Colors.transparent,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: dark ? AppColors.primaryDark : AppColors.borderLight),
-        ),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, size: 16, color: dark ? AppColors.textWhite : AppColors.textGrey),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(fontFamily: 'Cairo', fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: dark ? AppColors.textWhite : AppColors.textGrey)),
-        ]),
-      ),
-    );
-  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// BOOK READ SCREEN — paginated via api.hadith.gading.dev/books/{slug}?range=1-20
+// BOOK READ SCREEN — paginated via vercel hadith api
 // ══════════════════════════════════════════════════════════════════════════════
 class _BookReadScreen extends StatefulWidget {
   final _BookInfo book;
+  final String? arabicFont;
+  final bool useUrduFont;
   final VoidCallback onBack;
-  const _BookReadScreen({required this.book, required this.onBack});
+  const _BookReadScreen({required this.book, this.arabicFont, this.useUrduFont = false, required this.onBack});
   @override State<_BookReadScreen> createState() => _BookReadScreenState();
 }
 
@@ -295,8 +306,8 @@ class _BookReadScreenState extends State<_BookReadScreen> {
   bool _loadingMore = false;
   String? _error;
   int _rangeStart = 1;
-  bool _hasMore = true;
   static const int _perPage = 20;
+  bool _hasMore = true;
 
   final ScrollController _scroll = ScrollController();
 
@@ -315,52 +326,56 @@ class _BookReadScreenState extends State<_BookReadScreen> {
   @override
   void dispose() { _scroll.dispose(); super.dispose(); }
 
-  // GET /books/{slug}?range=1-20
   Future<void> _fetch() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final url = '$_kBase/books/${widget.book.slug}'
-          '?range=$_rangeStart-${_rangeStart + _perPage - 1}';
+      final rangeEnd = _rangeStart + _perPage - 1;
+      final url = '$_kBase/books/${widget.book.slug}?range=$_rangeStart-$rangeEnd';
       final r = await http.get(Uri.parse(url))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 12));
       if (r.statusCode == 200) {
         final body = jsonDecode(r.body);
-        // gading.dev returns: {data: {hadiths: [{arab, id, number}]}}
-        final list = (body['data']?['hadiths'] as List?) ?? [];
-        if (mounted) setState(() {
+        final list = (body['data']['hadiths'] as List?) ?? [];
+        if (mounted) {
+          setState(() {
           _hadiths = list;
           _loading = false;
-          _rangeStart = _perPage + 1;
+          _rangeStart += _perPage;
           _hasMore = list.length >= _perPage;
         });
+        }
         return;
       }
     } catch (e) {
       debugPrint('_fetch error: $e');
     }
-    if (mounted) setState(() {
+    if (mounted) {
+      setState(() {
       _loading = false;
       _error = 'Could not load hadiths.\nCheck your connection and try again.';
     });
+    }
   }
 
   Future<void> _fetchMore() async {
     if (_loadingMore || !_hasMore) return;
     setState(() => _loadingMore = true);
     try {
-      final end = _rangeStart + _perPage - 1;
-      final url = '$_kBase/books/${widget.book.slug}?range=$_rangeStart-$end';
+      final rangeEnd = _rangeStart + _perPage - 1;
+      final url = '$_kBase/books/${widget.book.slug}?range=$_rangeStart-$rangeEnd';
       final r = await http.get(Uri.parse(url))
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 12));
       if (r.statusCode == 200) {
         final body = jsonDecode(r.body);
-        final list = (body['data']?['hadiths'] as List?) ?? [];
-        if (mounted) setState(() {
+        final list = (body['data']['hadiths'] as List?) ?? [];
+        if (mounted) {
+          setState(() {
           _hadiths.addAll(list);
-          _rangeStart = end + 1;
+          _rangeStart += _perPage;
           _hasMore = list.length >= _perPage;
           _loadingMore = false;
         });
+        }
         return;
       }
     } catch (_) {}
@@ -392,7 +407,12 @@ class _BookReadScreenState extends State<_BookReadScreen> {
                       color: AppColors.gold, strokeWidth: 2)),
                 );
               }
-              return _HadithCard(hadith: _hadiths[i], bookName: widget.book.name);
+              return _HadithCard(
+                hadith: _hadiths[i], 
+                bookName: widget.book.name,
+                arabicFont: widget.arabicFont,
+                useUrduFont: widget.useUrduFont,
+              );
             },
           )),
       ])),
@@ -409,7 +429,7 @@ class _BookReadScreenState extends State<_BookReadScreen> {
           child: Container(
             width: 36, height: 36,
             decoration: BoxDecoration(
-                color: AppColors.primaryMid.withOpacity(0.6),
+                color: AppColors.primaryMid.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(10)),
             child: const Icon(Icons.arrow_back_ios_new, color: AppColors.textWhite, size: 14),
           ),
@@ -422,7 +442,7 @@ class _BookReadScreenState extends State<_BookReadScreen> {
               fontFamily: 'Cairo', fontSize: 11, color: AppColors.textGreenMuted)),
         ])),
         Text(widget.book.arabic, textDirection: TextDirection.rtl,
-            style: const TextStyle(fontFamily: 'Amiri', fontSize: 20, color: AppColors.gold)),
+            style: TextStyle(fontFamily: widget.arabicFont ?? 'Amiri', fontSize: 20, color: AppColors.gold)),
       ]),
     );
   }
@@ -433,6 +453,8 @@ class _BookReadScreenState extends State<_BookReadScreen> {
       const SizedBox(height: 12),
       Text(_error!, textAlign: TextAlign.center,
           style: const TextStyle(fontFamily: 'Cairo', fontSize: 14, color: AppColors.textGrey)),
+      const SizedBox(height: 10),
+      Text('Book: ${widget.book.slug}', style: const TextStyle(fontSize: 10, color: AppColors.textLightGrey)),
       const SizedBox(height: 20),
       GestureDetector(
         onTap: _fetch,
@@ -451,11 +473,12 @@ class _BookReadScreenState extends State<_BookReadScreen> {
 class _HadithCard extends StatelessWidget {
   final dynamic hadith;
   final String bookName;
-  const _HadithCard({required this.hadith, required this.bookName});
+  final String? arabicFont;
+  final bool useUrduFont;
+  const _HadithCard({required this.hadith, required this.bookName, this.arabicFont, this.useUrduFont = false});
 
   @override
   Widget build(BuildContext context) {
-    // gading.dev fields: number, arab, id (Indonesian/English text)
     final num    = hadith['number']?.toString() ?? '';
     final arabic = hadith['arab']   as String? ?? '';
     final eng    = hadith['id']     as String? ?? '';
@@ -483,30 +506,32 @@ class _HadithCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.2),
+                color: AppColors.success.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(6)),
             child: const Text('SAHIH', style: TextStyle(fontFamily: 'Cairo',
                 fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.success)),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.share_outlined, size: 16, color: AppColors.textGreenMuted),
-          const SizedBox(width: 10),
-          const Icon(Icons.bookmark_outline, size: 16, color: AppColors.textGreenMuted),
         ]),
         // Arabic
         if (arabic.isNotEmpty) ...[
           const SizedBox(height: 14),
           Text(arabic, textDirection: TextDirection.rtl, textAlign: TextAlign.right,
-              style: const TextStyle(fontFamily: 'Amiri', fontSize: 20,
+              style: TextStyle(fontFamily: arabicFont ?? 'Amiri', fontSize: 20,
                   color: AppColors.textWhite, height: 2.0)),
-          Container(height: 1, color: AppColors.primaryMid.withOpacity(0.5)),
+          const SizedBox(height: 8),
+          Container(height: 1, color: AppColors.primaryMid.withValues(alpha: 0.5)),
         ],
-        // English/text
+        // English/Urdu/text
         if (eng.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text('"$eng"', style: const TextStyle(fontFamily: 'Cairo', fontSize: 14,
-              fontStyle: FontStyle.italic, fontWeight: FontWeight.w500,
-              color: AppColors.textWhite, height: 1.6)),
+          if (useUrduFont)
+            const Text('(Urdu translation for Hadiths coming soon)', 
+                style: TextStyle(fontFamily: 'Cairo', fontSize: 11, 
+                    color: AppColors.textGreenMuted, fontStyle: FontStyle.italic))
+          else
+            Text('"$eng"', style: const TextStyle(fontFamily: 'Cairo', fontSize: 14,
+                fontStyle: FontStyle.italic, fontWeight: FontWeight.w500,
+                color: AppColors.textWhite, height: 1.6)),
         ],
       ]),
     );
@@ -520,8 +545,9 @@ class _TopicFilterScreen extends StatefulWidget {
   final String topic;
   final VoidCallback onBack;
   final ValueChanged<String> onTopicChanged;
+  final bool isTabView;
   const _TopicFilterScreen({
-    required this.topic, required this.onBack, required this.onTopicChanged});
+    required this.topic, required this.onBack, required this.onTopicChanged, this.isTabView = false});
   @override State<_TopicFilterScreen> createState() => _TopicFilterScreenState();
 }
 
@@ -536,9 +562,9 @@ class _TopicFilterScreenState extends State<_TopicFilterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgCream,
+      backgroundColor: Colors.white,
       body: SafeArea(child: Column(children: [
-        _buildHeader(),
+        if (!widget.isTabView) _buildHeader(),
         _buildTopicChips(),
         Expanded(child: _filtered.isEmpty
             ? const Center(child: Text('No hadiths found for this topic.',
@@ -562,7 +588,7 @@ class _TopicFilterScreenState extends State<_TopicFilterScreen> {
           child: Container(
             width: 36, height: 36,
             decoration: BoxDecoration(
-                color: AppColors.primaryMid.withOpacity(0.6),
+                color: AppColors.primaryMid.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(10)),
             child: const Icon(Icons.arrow_back_ios_new,
                 color: AppColors.textWhite, size: 14),
@@ -589,13 +615,13 @@ class _TopicFilterScreenState extends State<_TopicFilterScreen> {
               margin: const EdgeInsets.only(right: 8),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
               decoration: BoxDecoration(
-                color: active ? AppColors.gold : Colors.transparent,
+                color: active ? AppColors.primaryDark : Colors.transparent,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: active ? AppColors.gold : AppColors.borderLight),
+                border: Border.all(color: active ? AppColors.primaryDark : AppColors.borderLight),
               ),
               child: Text(t, style: TextStyle(fontFamily: 'Cairo', fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: active ? AppColors.primaryDarkest : AppColors.textGrey)),
+                  color: active ? Colors.white : AppColors.textGrey)),
             ),
           );
         }).toList()),
@@ -625,7 +651,7 @@ class _LocalHadithCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: (isSahih ? AppColors.success : AppColors.warning).withOpacity(0.2),
+              color: (isSahih ? AppColors.success : AppColors.warning).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(hadith['grade']!, style: TextStyle(fontFamily: 'Cairo',
@@ -642,13 +668,13 @@ class _LocalHadithCard extends StatelessWidget {
             fontStyle: FontStyle.italic, fontWeight: FontWeight.w600,
             color: AppColors.textWhite, height: 1.6)),
         const SizedBox(height: 14),
-        Container(height: 1, color: AppColors.primaryMid.withOpacity(0.5)),
+        Container(height: 1, color: AppColors.primaryMid.withValues(alpha: 0.5)),
         const SizedBox(height: 10),
         Row(children: [
           Container(
             width: 22, height: 22,
             decoration: BoxDecoration(
-                color: AppColors.gold.withOpacity(0.18), shape: BoxShape.circle),
+                color: AppColors.gold.withValues(alpha: 0.18), shape: BoxShape.circle),
             child: const Icon(Icons.person, size: 12, color: AppColors.gold),
           ),
           const SizedBox(width: 8),

@@ -1,6 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/services/community_service.dart';
+import '../../core/services/prayer_service.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
+import '../ibadah/ibadah_screen.dart';
 
 // ─── PROFILE SCREEN ──────────────────────────────────────────────────────────
 class ProfileScreen extends StatelessWidget {
@@ -8,829 +15,699 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgCream,
-      appBar: const AskImanAppBar(),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildProfileCard(context),
-            _buildDeenStreaks(),
-            _buildAskScholar(context),
-            _buildAskAI(),
-            _buildPrivacyBanner(),
-            _buildAppSettings(context),
-            _buildReportsSafety(),
-            _buildHelpSupport(),
-            _buildLogout(),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+    return StreamBuilder<AppUser?>(
+      stream: CommunityService.instance.watchCurrentUser(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: AppColors.bgCream,
+            body: Center(child: CircularProgressIndicator(color: AppColors.gold)),
+          );
+        }
+
+        final user = snapshot.data;
+        if (user == null) {
+          return Scaffold(
+            backgroundColor: AppColors.bgCream,
+            appBar: const AskImanAppBar(),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Please log in to view your profile',
+                      style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => FirebaseAuth.instance.signOut(),
+                    child: const Text('Go to Login'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: AppColors.bgCream,
+          appBar: const AskImanAppBar(),
+          body: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              children: [
+                _buildProfileHeader(context, user),
+                const SizedBox(height: 12),
+                _buildActionSection(context),
+                _buildSupportSection(context),
+                _buildLogout(context),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildProfileCard(BuildContext context) {
+  Widget _buildProfileHeader(BuildContext context, AppUser user) {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [AppColors.primaryDark, AppColors.primaryDarkest],
         ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        children: [
-          // Hexagon-ish avatar (diamond shape)
-          Container(
-            width: 80, height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.gold, width: 2),
-            ),
-            child: ClipOval(
-              child: Container(
-                color: AppColors.primaryMid,
-                child: const Icon(Icons.person, size: 44, color: AppColors.textCream),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text('Asfa Rani', style: TextStyle(
-            fontFamily: 'Cairo', fontSize: 20,
-            fontWeight: FontWeight.w800, color: AppColors.textWhite,
-          )),
-          const Text('Stay consistent in your Deen 🌙', style: TextStyle(
-            fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGreenMuted,
-          )),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _statBadge('🔥 7 DAY STREAK'),
-              const SizedBox(width: 8),
-              _statBadge('📖 QURAN 75%'),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _statBadge('🕌 NAMAZ 92%'),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.gold),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text('EDIT PROFILE', style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 13,
-                fontWeight: FontWeight.w700, color: AppColors.gold,
-                letterSpacing: 0.8,
-              )),
-            ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDark.withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _statBadge(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.primaryMid,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(text, style: const TextStyle(
-        fontFamily: 'Cairo', fontSize: 12,
-        fontWeight: FontWeight.w600, color: AppColors.textWhite,
-      )),
-    );
-  }
-
-  Widget _buildDeenStreaks() {
-    final days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-    final done = [true, true, true, true, true, false, false];
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.bgWhite,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Text('Deen Streaks 🔥', style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 17,
-                fontWeight: FontWeight.w700, color: AppColors.textDark,
-              )),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(7, (i) => Column(
-              children: [
-                Text(days[i], style: const TextStyle(
-                  fontFamily: 'Cairo', fontSize: 10, color: AppColors.textGrey,
-                )),
-                const SizedBox(height: 4),
-                Container(
-                  width: 32, height: 32,
-                  decoration: BoxDecoration(
-                    color: done[i] ? AppColors.primaryDark : AppColors.bgCream,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Icon(
-                      done[i] ? Icons.check : Icons.circle_outlined,
-                      size: 16,
-                      color: done[i] ? AppColors.textWhite : AppColors.borderLight,
-                    ),
-                  ),
-                ),
-              ],
-            )),
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.gold.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text('🔥 7 Day Streak — MashaAllah!', style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 13,
-                fontWeight: FontWeight.w700, color: AppColors.goldDark,
-              )),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            children: ['Namaz', 'Quran', 'Adkar', 'Custom'].map((label) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.bgCream,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.borderLight),
-                ),
-                child: Text(label, style: const TextStyle(
-                  fontFamily: 'Cairo', fontSize: 12, color: AppColors.textGrey,
-                )),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('View Full Streaks →', style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 13,
-                fontWeight: FontWeight.w600, color: AppColors.primaryDark,
-              )),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAskScholar(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      decoration: BoxDecoration(
-        color: AppColors.bgWhite,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(
-              children: [
-                const Text('Ask a Scholar\n(Human Verified)', style: TextStyle(
-                  fontFamily: 'Cairo', fontSize: 16,
-                  fontWeight: FontWeight.w800, color: AppColors.textDark,
-                )),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryDark,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text('Authentic\nAnswers', textAlign: TextAlign.center,
-                    style: TextStyle(fontFamily: 'Cairo', fontSize: 9,
-                      fontWeight: FontWeight.w700, color: AppColors.textWhite,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.bgCream,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.person, color: AppColors.gold, size: 20),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Expert Verifications', style: TextStyle(
-                        fontFamily: 'Cairo', fontSize: 13,
-                        fontWeight: FontWeight.w700, color: AppColors.textDark,
-                      )),
-                      Text('One authoritative answer • No debates allowed', style: TextStyle(
-                        fontFamily: 'Cairo', fontSize: 11, color: AppColors.textGrey,
-                      )),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.bgCream,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.gold.withOpacity(0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('"Is it permissible to trade digital assets in Shariah?"',
-                    style: TextStyle(fontFamily: 'Cairo', fontSize: 12,
-                      color: AppColors.textGrey, fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.verified, size: 14, color: AppColors.gold),
-                      const SizedBox(width: 4),
-                      const Text('SHEIKH ABDULLAH', style: TextStyle(
-                        fontFamily: 'Cairo', fontSize: 11,
-                        fontWeight: FontWeight.w700, color: AppColors.primaryDark,
-                      )),
-                      const SizedBox(width: 4),
-                      const Text('Q&R SCHOLAR', style: TextStyle(
-                        fontFamily: 'Cairo', fontSize: 10, color: AppColors.textGrey,
-                      )),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAskAI() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primaryDark, AppColors.primaryDarkest],
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Bismillah. Here is what the Quran says about patience (Sabr): "O you who have believed, seek help through patience and prayer. Indeed, Allah is with the patient." [2:153]',
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textCream, height: 1.5),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primaryMid,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Text('Ayat Al-Baqarah', style: TextStyle(
-              fontFamily: 'Cairo', fontSize: 11,
-              fontWeight: FontWeight.w600, color: AppColors.textWhite,
-            )),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primaryMid,
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Text('Type your question...', style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGreenMuted,
-                  )),
-                ),
-                Container(
-                  width: 36, height: 36,
-                  margin: const EdgeInsets.only(right: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.gold,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.send, size: 16, color: AppColors.primaryDarkest),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.gold,
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: const Center(
-              child: Text('ASK AN ISLAMIC AI', style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: AppColors.primaryDarkest, letterSpacing: 0.8,
-              )),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrivacyBanner() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.bgCream,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: const Text(
-        'A message about your privacy\nAsk Iman has a Dedicated Safety-focused approach on tracking and practice.',
-        style: TextStyle(fontFamily: 'Cairo', fontSize: 11, color: AppColors.textGrey, height: 1.5),
-      ),
-    );
-  }
-
-  Widget _buildAppSettings(BuildContext context) {
-    final settings = [
-      {'icon': Icons.notifications_outlined, 'label': 'Notifications', 'badge': ''},
-      {'icon': Icons.language, 'label': 'Language', 'badge': ''},
-      {'icon': Icons.palette_outlined, 'label': 'Theme', 'badge': ''},
-      {'icon': Icons.download_outlined, 'label': 'Downloads', 'badge': ''},
-      {'icon': Icons.access_time, 'label': 'Prayer Calculation', 'badge': ''},
-      {'icon': Icons.calendar_today_outlined, 'label': 'Islamic Calendar', 'badge': 'NEW'},
-    ];
-    return _settingsGroup('APP SETTINGS', settings);
-  }
-
-  Widget _buildReportsSafety() {
-    final settings = [
-      {'icon': Icons.flag_outlined, 'label': 'Report Misuse', 'badge': '!'},
-      {'icon': Icons.shield_outlined, 'label': 'Trust & Safety', 'badge': ''},
-    ];
-    return _settingsGroup('REPORTS & SAFETY', settings);
-  }
-
-  Widget _buildHelpSupport() {
-    final settings = [
-      {'icon': Icons.help_outline, 'label': 'Help Center', 'badge': ''},
-      {'icon': Icons.mail_outline, 'label': 'Contact Support', 'badge': ''},
-    ];
-    return _settingsGroup('HELP & SUPPORT', settings);
-  }
-
-  Widget _settingsGroup(String title, List<Map<String, dynamic>> items) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      decoration: BoxDecoration(
-        color: AppColors.bgWhite,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-            child: Text(title, style: const TextStyle(
-              fontFamily: 'Cairo', fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textLightGrey, letterSpacing: 0.8,
-            )),
-          ),
-          ...items.map((item) => ListTile(
-            dense: true,
-            leading: Icon(item['icon'] as IconData, size: 20, color: AppColors.primaryDark),
-            title: Text(item['label'] as String, style: const TextStyle(
-              fontFamily: 'Cairo', fontSize: 14,
-              fontWeight: FontWeight.w500, color: AppColors.textDark,
-            )),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if ((item['badge'] as String).isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: item['badge'] == 'NEW'
-                          ? AppColors.gold.withOpacity(0.15)
-                          : AppColors.error.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      item['badge'] as String,
-                      style: TextStyle(
-                        fontFamily: 'Cairo', fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: item['badge'] == 'NEW' ? AppColors.gold : AppColors.error,
-                      ),
-                    ),
-                  ),
-                const SizedBox(width: 6),
-                const Icon(Icons.chevron_right, size: 18, color: AppColors.textLightGrey),
-              ],
-            ),
-          )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLogout() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      width: double.infinity,
-      height: 52,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primaryDark, AppColors.primaryDarkest],
-        ),
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: const Center(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('LOGOUT', style: TextStyle(
-              fontFamily: 'Cairo', fontSize: 15,
-              fontWeight: FontWeight.w800, color: AppColors.textWhite,
-              letterSpacing: 1,
-            )),
-            SizedBox(width: 8),
-            Icon(Icons.logout, color: AppColors.textWhite, size: 18),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── EDIT PROFILE SCREEN ──────────────────────────────────────────────────────
-class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
-
-  @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
-}
-
-class _EditProfileScreenState extends State<EditProfileScreen> {
-  bool _publicProfile = true;
-  bool _shareStreaks = true;
-
-  final _nameCtrl = TextEditingController(text: 'Asfa Rani');
-  final _emailCtrl = TextEditingController(text: 'asfa@example.com');
-  final _phoneCtrl = TextEditingController(text: '+971 50 123 4567');
-  final _locationCtrl = TextEditingController(text: 'Dubai, UAE');
-  final _bioCtrl = TextEditingController(
-    text: 'Seeking knowledge and mindfulness through the wisdom of Islam. Avid reader of the Quran and student of Seerah.',
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bgCream,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryDark,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textWhite),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text('Edit Profile', style: TextStyle(
-          fontFamily: 'Cairo', fontSize: 18,
-          fontWeight: FontWeight.w700, color: AppColors.textWhite,
-        )),
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildAvatarSection(),
-            _buildPersonalIdentity(),
-            _buildPrivacyPreferences(),
-            _buildActionButtons(context),
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvatarSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
         children: [
           Stack(
             children: [
               Container(
-                width: 110, height: 110,
+                width: 90, height: 90,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: AppColors.gold, width: 2.5),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10),
+                  ],
                 ),
                 child: ClipOval(
                   child: Container(
                     color: AppColors.primaryMid,
-                    child: const Icon(Icons.person, size: 60, color: AppColors.textCream),
+                    child: user.photoUrl != null
+                        ? Image.network(user.photoUrl!, fit: BoxFit.cover, 
+                            errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 50, color: AppColors.textCream))
+                        : const Icon(Icons.person, size: 50, color: AppColors.textCream),
                   ),
                 ),
               ),
               Positioned(
-                right: 0, bottom: 0,
+                bottom: 0, right: 0,
                 child: Container(
-                  width: 32, height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryDark,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.bgWhite, width: 2),
-                  ),
-                  child: const Icon(Icons.camera_alt, size: 16, color: AppColors.textWhite),
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(color: AppColors.gold, shape: BoxShape.circle),
+                  child: const Icon(Icons.verified_rounded, size: 16, color: AppColors.primaryDarkest),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          const Text('Change Photo', style: TextStyle(
-            fontFamily: 'Cairo', fontSize: 14,
-            fontWeight: FontWeight.w600, color: AppColors.gold,
-          )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPersonalIdentity() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Personal Identity', style: TextStyle(
-            fontFamily: 'Cairo', fontSize: 22,
-            fontWeight: FontWeight.w800, color: AppColors.textDark,
-          )),
-          const SizedBox(height: 4),
-          const Text(
-            'Your identity within the ASK Islam community helps us tailor your spiritual journey.',
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey),
-          ),
-          const SizedBox(height: 20),
-          _fieldLabel('Full Name'),
-          _textField(_nameCtrl, 'Full Name'),
-          _fieldLabel('Email Address'),
-          _textField(_emailCtrl, 'Email'),
-          _fieldLabel('Phone Number'),
-          _textField(_phoneCtrl, 'Phone'),
-          _fieldLabel('Location (City, Country)'),
-          _textFieldWithIcon(_locationCtrl, 'City, Country', Icons.location_on_outlined),
-          _fieldLabel('Bio'),
-          _textArea(_bioCtrl),
-          const SizedBox(height: 12),
-        ],
-      ),
-    );
-  }
-
-  Widget _fieldLabel(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(label, style: const TextStyle(
-        fontFamily: 'Cairo', fontSize: 13,
-        fontWeight: FontWeight.w700, color: AppColors.gold,
-      )),
-    );
-  }
-
-  Widget _textField(TextEditingController ctrl, String hint) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      child: TextField(
-        controller: ctrl,
-        style: const TextStyle(fontFamily: 'Cairo', fontSize: 14, color: AppColors.textWhite),
-        decoration: InputDecoration(
-          hintText: hint,
-          filled: true,
-          fillColor: AppColors.primaryDark,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _textFieldWithIcon(TextEditingController ctrl, String hint, IconData icon) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      child: TextField(
-        controller: ctrl,
-        style: const TextStyle(fontFamily: 'Cairo', fontSize: 14, color: AppColors.textWhite),
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon, color: AppColors.textGreenMuted, size: 18),
-          filled: true,
-          fillColor: AppColors.primaryDark,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _textArea(TextEditingController ctrl) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      child: TextField(
-        controller: ctrl,
-        maxLines: 4,
-        style: const TextStyle(fontFamily: 'Cairo', fontSize: 14, color: AppColors.textWhite),
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: AppColors.primaryDark,
-          contentPadding: const EdgeInsets.all(16),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPrivacyPreferences() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Divider(color: AppColors.borderLight, height: 32),
-          const Text('Privacy & Preferences', style: TextStyle(
-            fontFamily: 'Cairo', fontSize: 22,
-            fontWeight: FontWeight.w800, color: AppColors.textDark,
-          )),
-          const SizedBox(height: 4),
-          const Text(
-            'Control how your progress and profile are shared with the community.',
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey),
-          ),
           const SizedBox(height: 16),
-          _toggleRow(
-            'Public Profile',
-            'Allow others to find you in the directory',
-            _publicProfile,
-                (v) => setState(() => _publicProfile = v),
+          Text(user.name, style: const TextStyle(
+            fontFamily: 'Cairo', fontSize: 22,
+            fontWeight: FontWeight.w800, color: AppColors.textWhite,
+            letterSpacing: 0.5,
+          )),
+          const SizedBox(height: 4),
+          Text(user.bio.isEmpty ? 'Stay consistent in your Deen 🌙' : user.bio,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGreenMuted,
+              )),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _headerStat('🔥', '${user.streakCount}', 'STREAK'),
+              _verticalDivider(),
+              _headerStat('📖', '75%', 'QURAN'),
+              _verticalDivider(),
+              _headerStat('🕌', '92%', 'NAMAZ'),
+            ],
           ),
-          const SizedBox(height: 8),
-          _toggleRow(
-            'Share Streaks',
-            'Show your daily activity streaks on your profile',
-            _shareStreaks,
-                (v) => setState(() => _shareStreaks = v),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _toggleRow(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.bgWhite,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(
-                  fontFamily: 'Cairo', fontSize: 14,
-                  fontWeight: FontWeight.w700, color: AppColors.textDark,
-                )),
-                Text(subtitle, style: const TextStyle(
-                  fontFamily: 'Cairo', fontSize: 12, color: AppColors.textGrey,
-                )),
-              ],
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => EditProfileScreen(user: user)),
             ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: AppColors.gold,
-            activeTrackColor: AppColors.gold.withOpacity(0.3),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.gold,
-              borderRadius: BorderRadius.circular(26),
-            ),
-            child: const Center(
-              child: Text('Save Changes', style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.gold,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(color: AppColors.gold.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4)),
+                ],
+              ),
+              child: const Text('EDIT PROFILE', style: TextStyle(
+                fontFamily: 'Cairo', fontSize: 13,
                 fontWeight: FontWeight.w800, color: AppColors.primaryDarkest,
+                letterSpacing: 1.0,
               )),
             ),
           ),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: double.infinity,
-              height: 52,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.borderLight),
-                borderRadius: BorderRadius.circular(26),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerStat(String emoji, String value, String label) {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 4),
+            Text(value, style: const TextStyle(
+              fontFamily: 'Cairo', fontSize: 16,
+              fontWeight: FontWeight.w800, color: AppColors.textWhite,
+            )),
+          ],
+        ),
+        Text(label, style: const TextStyle(
+          fontFamily: 'Cairo', fontSize: 9,
+          fontWeight: FontWeight.w700, color: AppColors.textGreenMuted,
+          letterSpacing: 0.5,
+        )),
+      ],
+    );
+  }
+
+  Widget _verticalDivider() => Container(
+    height: 30, width: 1,
+    margin: const EdgeInsets.symmetric(horizontal: 16),
+    color: AppColors.textGreenMuted.withValues(alpha: 0.2),
+  );
+
+  Widget _buildActionSection(BuildContext context) => _glassSection('Personal Journey', [
+    _actionRow(Icons.auto_awesome_outlined, 'Ask Iman AI', 'Coming Soon', isComingSoon: true),
+    _actionRow(Icons.chat_bubble_outline_rounded, 'Ask a Scholar', 'Coming Soon', isComingSoon: true),
+    _actionRow(Icons.history_rounded, 'My Questions', 'Coming Soon', isComingSoon: true),
+    _actionRow(Icons.notifications_active_outlined, 'Notifications', 'Manage Adhan alerts', 
+        onTap: () => _showNotifSettings(context)),
+  ]);
+
+  Widget _buildSupportSection(BuildContext context) => _glassSection('Support & Safety', [
+    _actionRow(Icons.report_gmailerrorred_rounded, 'Report an Issue', 'Technical or content feedback', 
+        onTap: () => _showReportDialog(context)),
+    _actionRow(Icons.help_outline_rounded, 'Help Centre', 'FAQs and contact support', 
+        onTap: () => _showHelpCentre(context)),
+    _actionRow(Icons.privacy_tip_outlined, 'Privacy Policy', 'Data protection and usage', 
+        onTap: () => _showPrivacyPolicy(context)),
+    _actionRow(Icons.info_outline_rounded, 'About Ask Iman', 'Version 1.0.4 (Stable)', 
+        onTap: () => _showAboutDialog(context)),
+    _actionRow(Icons.language_rounded, 'App Language', 'Coming Soon', isComingSoon: true),
+    _actionRow(Icons.dark_mode_outlined, 'Appearance', 'Coming Soon', isComingSoon: true),
+  ]);
+
+  Widget _glassSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          child: Text(title.toUpperCase(), style: const TextStyle(
+            fontFamily: 'Cairo', fontSize: 11,
+            fontWeight: FontWeight.w800, color: AppColors.primaryDark,
+            letterSpacing: 1.5,
+          )),
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.bgWhite,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.borderLight),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+
+  Widget _actionRow(IconData icon, String title, String sub, {VoidCallback? onTap, bool isComingSoon = false}) {
+    return ListTile(
+      onTap: isComingSoon ? null : onTap,
+      leading: Container(
+        width: 42, height: 42,
+        decoration: BoxDecoration(
+          color: isComingSoon ? AppColors.bgCream : AppColors.primaryDark.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: isComingSoon ? AppColors.textLightGrey : AppColors.primaryDark, size: 20),
+      ),
+      title: Text(title, style: TextStyle(
+        fontFamily: 'Cairo', fontSize: 14,
+        fontWeight: FontWeight.w700, color: isComingSoon ? AppColors.textLightGrey : AppColors.textDark,
+      )),
+      subtitle: Text(sub, style: TextStyle(
+        fontFamily: 'Cairo', fontSize: 12, color: AppColors.textGrey,
+      )),
+      trailing: isComingSoon 
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: AppColors.bgCream, borderRadius: BorderRadius.circular(6)),
+              child: const Text('SOON', style: TextStyle(fontFamily: 'Cairo', fontSize: 8, fontWeight: FontWeight.w800, color: AppColors.textGrey)),
+            )
+          : const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textLightGrey),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    );
+  }
+
+  void _showReportDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgCream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Row(
+          children: [
+            Icon(Icons.report_gmailerrorred_rounded, color: AppColors.error),
+            SizedBox(width: 10),
+            Text('Report an Issue', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Found a bug or incorrect content? Please reach out to our team immediately:',
+                style: TextStyle(fontFamily: 'Cairo', fontSize: 14, color: AppColors.textDark)),
+            const SizedBox(height: 20),
+            _contactTile(Icons.email_outlined, 'askiman78@gmail.com', () => _launch('mailto:askiman78@gmail.com')),
+            const SizedBox(height: 12),
+            _contactTile(Icons.phone_outlined, '+92 336 9479196', () => _launch('tel:+923369479196')),
+            const SizedBox(height: 12),
+            _contactTile(Icons.chat_outlined, 'WhatsApp Support', () => _launch('https://wa.me/923369479196')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700))),
+        ],
+      ),
+    );
+  }
+
+  Widget _contactTile(IconData icon, String text, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.bgWhite,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primaryDark, size: 18),
+            const SizedBox(width: 12),
+            Expanded(child: Text(text, style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark))),
+            const Icon(Icons.open_in_new_rounded, size: 14, color: AppColors.textLightGrey),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showHelpCentre(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: const BoxDecoration(
+          color: AppColors.bgCream,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.borderLight, borderRadius: BorderRadius.circular(2))),
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('Help Centre', style: TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                children: [
+                  _faqItem('How do I track my streaks?', 'Streaks are automatically tracked when you log your prayers, Quran reading, or community activity in the Streaks tab.'),
+                  _faqItem('Is my data private?', 'Yes, your spiritual progress and personal data are encrypted and never shared with third parties.'),
+                  _faqItem('How to use Ask Iman AI?', 'Ask Iman AI is currently in beta. Once released, you can ask any religious questions for instant context.'),
+                  _faqItem('Can I contact a real scholar?', 'Yes, through the "Ask a Scholar" feature (Coming Soon), you will be connected to verified Islamic teachers.'),
+                  const SizedBox(height: 20),
+                  const Text('Still need help?', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+                  const SizedBox(height: 12),
+                  _contactTile(Icons.email_outlined, 'askiman78@gmail.com', () => _launch('mailto:askiman78@gmail.com')),
+                  const SizedBox(height: 10),
+                  _contactTile(Icons.phone_outlined, '+92 336 9479196', () => _launch('tel:+923369479196')),
+                  const SizedBox(height: 32),
+                ],
               ),
-              child: const Center(
-                child: Text('Cancel', style: TextStyle(
-                  fontFamily: 'Cairo', fontSize: 16,
-                  fontWeight: FontWeight.w600, color: AppColors.textDark,
-                )),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPrivacyPolicy(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: const BoxDecoration(
+          color: AppColors.bgCream,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.borderLight, borderRadius: BorderRadius.circular(2))),
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('Privacy Policy', style: TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                children: [
+                  const Text(
+                    'At Ask Iman, we value your privacy and spiritual journey. Your data is handled with the utmost care and in accordance with Islamic principles of trust (Amanah).',
+                    style: TextStyle(fontFamily: 'Cairo', fontSize: 14, color: AppColors.textDark, height: 1.6),
+                  ),
+                  const SizedBox(height: 20),
+                  _policySection('Data Collection', 'We only collect data necessary to provide you with a personalized spiritual experience, such as your prayer logs, Quran progress, and profile information.'),
+                  _policySection('Data Usage', 'Your data is used solely to enhance your experience, track your streaks, and provide AI-powered insights. We do not sell or share your personal information with third parties.'),
+                  _policySection('Security', 'We use industry-standard encryption and security measures to protect your data from unauthorized access.'),
+                  const SizedBox(height: 20),
+                  const Text('Questions or Concerns?', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+                  const SizedBox(height: 12),
+                  _contactTile(Icons.email_outlined, 'askiman78@gmail.com', () => _launch('mailto:askiman78@gmail.com')),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _policySection(String title, String content) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontFamily: 'Cairo', fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+          const SizedBox(height: 6),
+          Text(content, style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey, height: 1.5)),
+        ],
+      ),
+    );
+  }
+
+  Widget _faqItem(String q, String a) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.bgWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.borderLight)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(q, style: const TextStyle(fontFamily: 'Cairo', fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+          const SizedBox(height: 8),
+          Text(a, style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey, height: 1.5)),
+        ],
+      ),
+    );
+  }
+
+  void _showAboutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Image.asset('assets/images/applogo.png', height: 70, 
+                errorBuilder: (_, __, ___) => const Icon(Icons.mosque, color: AppColors.gold, size: 60)),
+            const SizedBox(height: 16),
+            const Text('Ask Iman', style: TextStyle(fontFamily: 'Cairo', fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
+            const Text('v1.0.4 (Stable)', style: TextStyle(fontFamily: 'Cairo', fontSize: 12, color: AppColors.goldDark, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 20),
+            const Text(
+              'Ask Iman is a comprehensive spiritual companion designed to empower your Islamic lifestyle. From real-time prayer tracking and Quranic study to AI-powered guidance, we are here to support your journey to Allah.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey, height: 1.6),
+            ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 12),
+            const Text('Contact Us', style: TextStyle(fontFamily: 'Cairo', fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+            const SizedBox(height: 8),
+            Text('askiman78@gmail.com', style: TextStyle(fontFamily: 'Cairo', fontSize: 12, color: AppColors.primaryDark.withValues(alpha: 0.7))),
+            Text('+92 336 9479196', style: TextStyle(fontFamily: 'Cairo', fontSize: 12, color: AppColors.primaryDark.withValues(alpha: 0.7))),
+            const SizedBox(height: 16),
+            const Text('Made with ❤️ for the Ummah', style: TextStyle(fontFamily: 'Cairo', fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textLightGrey)),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNotifSettings(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.bgCream,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: NotifSettingsSheet(service: PrayerService()),
+      ),
+    );
+  }
+
+  Future<void> _launch(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  Widget _buildLogout(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: GestureDetector(
+        onTap: () async {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Log Out', style: TextStyle(fontFamily: 'Cairo')),
+              content: const Text('Are you sure you want to log out?', style: TextStyle(fontFamily: 'Cairo')),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text('Log Out', style: TextStyle(color: AppColors.error)),
+                ),
+              ],
+            ),
+          );
+          if (confirm == true) await FirebaseAuth.instance.signOut();
+        },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: AppColors.error.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.error.withValues(alpha: 0.1)),
+          ),
+          child: const Center(
+            child: Text('Log Out', style: TextStyle(
+              fontFamily: 'Cairo', fontSize: 15,
+              fontWeight: FontWeight.w700, color: AppColors.error,
+            )),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── EDIT PROFILE SCREEN ─────────────────────────────────────────────────────
+class EditProfileScreen extends StatefulWidget {
+  final AppUser user;
+  const EditProfileScreen({super.key, required this.user});
+  @override State<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends State<EditProfileScreen> {
+  late TextEditingController _nameCtrl;
+  late TextEditingController _bioCtrl;
+  File? _imageFile;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.user.name);
+    _bioCtrl = TextEditingController(text: widget.user.bio);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _bioCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (picked != null) setState(() => _imageFile = File(picked.path));
+  }
+
+  Future<void> _submit() async {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name cannot be empty')));
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      String? photoUrl = widget.user.photoUrl;
+      if (_imageFile != null) photoUrl = await CommunityService.instance.uploadImage(_imageFile!, 'profiles/${widget.user.uid}');
+      await CommunityService.instance.updateUserProfile(name: name, bio: _bioCtrl.text.trim(), photoUrl: photoUrl);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bgCream,
+      appBar: const AskImanAppBar(showBackButton: true),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                _buildAvatarEdit(),
+                const SizedBox(height: 32),
+                _input('Full Name', _nameCtrl),
+                const SizedBox(height: 20),
+                _input('Bio / Status', _bioCtrl, lines: 3),
+                const SizedBox(height: 32),
+                _buildActionButtons(),
+              ],
+            ),
+          ),
+          if (_loading) Container(color: Colors.black26, child: const Center(child: CircularProgressIndicator(color: AppColors.gold))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarEdit() {
+    return Center(
+      child: Stack(
+        children: [
+          Container(
+            width: 110, height: 110,
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.gold, width: 3)),
+            child: ClipOval(
+              child: Container(
+                color: AppColors.primaryMid,
+                child: _imageFile != null
+                    ? Image.file(_imageFile!, fit: BoxFit.cover)
+                    : widget.user.photoUrl != null
+                        ? Image.network(widget.user.photoUrl!, fit: BoxFit.cover)
+                        : const Icon(Icons.person, size: 60, color: AppColors.textCream),
               ),
             ),
           ),
+          Positioned(bottom: 0, right: 0, child: GestureDetector(onTap: _pickImage, child: Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: AppColors.gold, shape: BoxShape.circle), child: const Icon(Icons.camera_alt_rounded, size: 20, color: AppColors.primaryDarkest)))),
         ],
       ),
+    );
+  }
+
+  Widget _input(String label, TextEditingController ctrl, {int lines = 1}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(label.toUpperCase(), 
+            style: const TextStyle(
+              fontFamily: 'Cairo', 
+              fontSize: 11, 
+              fontWeight: FontWeight.w800, 
+              color: AppColors.primaryDark,
+              letterSpacing: 1.0,
+            )
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.primaryDark, 
+            borderRadius: BorderRadius.circular(16), 
+            border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: TextField(
+            controller: ctrl, 
+            maxLines: lines, 
+            style: const TextStyle(
+              fontFamily: 'Cairo', 
+              fontSize: 15, 
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ), 
+            decoration: const InputDecoration(
+              border: InputBorder.none, 
+              contentPadding: EdgeInsets.all(20),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _submit,
+          child: Container(width: double.infinity, height: 56, decoration: BoxDecoration(color: AppColors.primaryDark, borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: AppColors.primaryDark.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 5))]), child: const Center(child: Text('Save Changes', style: TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.gold)))),
+        ),
+        const SizedBox(height: 16),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700, color: AppColors.textGrey))),
+      ],
     );
   }
 }

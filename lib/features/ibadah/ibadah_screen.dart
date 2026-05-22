@@ -88,6 +88,8 @@ class _IbadahScreenState extends State<IbadahScreen> {
               const SizedBox(height: 24),
               _buildSunnahTimes(),
               const SizedBox(height: 20),
+              _buildCalculationMethodStrip(context),
+              const SizedBox(height: 12),
               _buildSettingsStrip(context),
               const SizedBox(height: 40),
             ],
@@ -115,7 +117,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
               'assets/images/mosque interior.png',
               fit: BoxFit.cover,
               alignment: Alignment.topCenter,
-              errorBuilder: (_, __, ___) =>
+              errorBuilder: (_, _, _) =>
                   Container(color: AppColors.primaryDark),
             ),
             Container(
@@ -142,34 +144,38 @@ class _IbadahScreenState extends State<IbadahScreen> {
 
   Widget _buildBannerError() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.location_off_rounded,
-              color: AppColors.textGreenMuted, size: 36),
-          const SizedBox(height: 10),
-          const Text('Enable location for prayer times',
-              style: TextStyle(
-                  fontFamily: 'Cairo', fontSize: 14,
-                  color: AppColors.textCream)),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: _svc.refresh,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 22, vertical: 8),
-              decoration: BoxDecoration(
-                  color: AppColors.gold,
-                  borderRadius: BorderRadius.circular(20)),
-              child: const Text('Allow Location',
-                  style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primaryDarkest,
-                  )),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.location_off_rounded,
+                color: AppColors.textGreenMuted, size: 36),
+            const SizedBox(height: 10),
+            Text(_svc.error ?? 'Enable location for prayer times',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontFamily: 'Cairo', fontSize: 14,
+                    color: AppColors.textCream)),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _svc.refresh,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 22, vertical: 8),
+                decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(20)),
+                child: const Text('Try Again',
+                    style: TextStyle(
+                      fontFamily: 'Cairo', fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primaryDarkest,
+                    )),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -228,9 +234,9 @@ class _IbadahScreenState extends State<IbadahScreen> {
             padding: const EdgeInsets.symmetric(
                 horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
+              color: Colors.white.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
             child: Text(countdownText,
                 style: const TextStyle(
@@ -419,7 +425,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 padding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryDark.withOpacity(0.08),
+                  color: AppColors.primaryDark.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -447,7 +453,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryDarkest.withOpacity(0.35),
+                  color: AppColors.primaryDarkest.withValues(alpha: 0.35),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -507,10 +513,10 @@ class _IbadahScreenState extends State<IbadahScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 5),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.10),
+                              color: Colors.white.withValues(alpha: 0.10),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                  color: Colors.white.withOpacity(0.18)),
+                                  color: Colors.white.withValues(alpha: 0.18)),
                             ),
                             child: Text(
                               DateFormat('EEE, d MMM y')
@@ -538,7 +544,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                       gradient: LinearGradient(
                         colors: [
                           Colors.transparent,
-                          AppColors.gold.withOpacity(0.5),
+                          AppColors.gold.withValues(alpha: 0.5),
                           Colors.transparent,
                         ],
                       ),
@@ -580,7 +586,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                               style: TextStyle(
                                 fontFamily: 'Cairo',
                                 fontSize: 10,
-                                color: Colors.white.withOpacity(0.5),
+                                color: Colors.white.withValues(alpha: 0.5),
                               ),
                             ),
                           ],
@@ -619,7 +625,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                             fontWeight: FontWeight.w700,
                             color: e.key == 5
                                 ? AppColors.gold
-                                : Colors.white.withOpacity(0.45),
+                                : Colors.white.withValues(alpha: 0.45),
                           ),
                         ),
                       ),
@@ -669,9 +675,9 @@ class _IbadahScreenState extends State<IbadahScreen> {
         width: 34,
         height: 34,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.10),
+          color: Colors.white.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withOpacity(0.15)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
         ),
         child: Icon(icon, color: Colors.white, size: 20),
       ),
@@ -697,12 +703,12 @@ class _IbadahScreenState extends State<IbadahScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: occasionName != null
-                ? AppColors.gold.withOpacity(0.60)
-                : Colors.white.withOpacity(0.18),
+                ? AppColors.gold.withValues(alpha: 0.60)
+                : Colors.white.withValues(alpha: 0.18),
             width: occasionName != null ? 1.4 : 1.0,
           ),
         ),
@@ -714,17 +720,17 @@ class _IbadahScreenState extends State<IbadahScreen> {
               height: 46,
               decoration: BoxDecoration(
                 color: occasionName != null
-                    ? AppColors.gold.withOpacity(0.20)
+                    ? AppColors.gold.withValues(alpha: 0.20)
                     : isToday
                     ? AppColors.primaryDark
-                    : Colors.white.withOpacity(0.12),
+                    : Colors.white.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: occasionName != null
                       ? AppColors.gold
                       : isToday
                       ? AppColors.gold
-                      : Colors.white.withOpacity(0.25),
+                      : Colors.white.withValues(alpha: 0.25),
                   width: 1.5,
                 ),
               ),
@@ -783,7 +789,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                     style: TextStyle(
                       fontFamily: 'Cairo',
                       fontSize: 10,
-                      color: Colors.white.withOpacity(0.50),
+                      color: Colors.white.withValues(alpha: 0.50),
                     ),
                   ),
                 ],
@@ -794,10 +800,10 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 padding:
                 const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.gold.withOpacity(0.20),
+                  color: AppColors.gold.withValues(alpha: 0.20),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                      color: AppColors.gold.withOpacity(0.50)),
+                      color: AppColors.gold.withValues(alpha: 0.50)),
                 ),
                 child: const Text(
                   'Today',
@@ -860,7 +866,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 border    = null;
                 fw        = FontWeight.w800;
               } else if (isSelected) {
-                bgColor   = AppColors.gold.withOpacity(0.22);
+                bgColor   = AppColors.gold.withValues(alpha: 0.22);
                 textColor = AppColors.gold;
                 border    = Border.all(color: AppColors.gold, width: 1.5);
                 fw        = FontWeight.w700;
@@ -870,18 +876,18 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 border    = Border.all(color: AppColors.gold, width: 1.5);
                 fw        = FontWeight.w800;
               } else if (isOccasion) {
-                bgColor   = AppColors.gold.withOpacity(0.15);
+                bgColor   = AppColors.gold.withValues(alpha: 0.15);
                 textColor = AppColors.gold;
-                border    = Border.all(color: AppColors.gold.withOpacity(0.55), width: 1.2);
+                border    = Border.all(color: AppColors.gold.withValues(alpha: 0.55), width: 1.2);
                 fw        = FontWeight.w700;
               } else if (isFriday) {
-                bgColor   = Colors.white.withOpacity(0.06);
-                textColor = AppColors.gold.withOpacity(0.85);
+                bgColor   = Colors.white.withValues(alpha: 0.06);
+                textColor = AppColors.gold.withValues(alpha: 0.85);
                 border    = null;
                 fw        = FontWeight.w500;
               } else {
                 bgColor   = Colors.transparent;
-                textColor = Colors.white.withOpacity(0.80);
+                textColor = Colors.white.withValues(alpha: 0.80);
                 border    = null;
               }
 
@@ -947,7 +953,11 @@ class _IbadahScreenState extends State<IbadahScreen> {
       final od = o['day']   as int;
       final isUpcoming = om > today.month ||
           (om == today.month && od >= today.day);
-      if (isUpcoming) upcoming.add(o); else passed.add(o);
+      if (isUpcoming) {
+        upcoming.add(o);
+      } else {
+        passed.add(o);
+      }
     }
 
     // Always-shown = first 2 upcoming; rest shown when expanded
@@ -974,7 +984,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.gold.withOpacity(0.12),
+                color: AppColors.gold.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -1023,21 +1033,21 @@ class _IbadahScreenState extends State<IbadahScreen> {
               color: isFirst
                   ? null
                   : isNear
-                  ? AppColors.primaryDark.withOpacity(0.06)
+                  ? AppColors.primaryDark.withValues(alpha: 0.06)
                   : AppColors.bgWhite,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isFirst
-                    ? AppColors.gold.withOpacity(0.35)
+                    ? AppColors.gold.withValues(alpha: 0.35)
                     : isNear
-                    ? AppColors.primaryDark.withOpacity(0.25)
+                    ? AppColors.primaryDark.withValues(alpha: 0.25)
                     : AppColors.borderLight,
                 width: isFirst ? 1.2 : 1.0,
               ),
               boxShadow: isFirst
                   ? [
                 BoxShadow(
-                  color: AppColors.primaryDarkest.withOpacity(0.18),
+                  color: AppColors.primaryDarkest.withValues(alpha: 0.18),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 )
@@ -1054,7 +1064,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                     height: 46,
                     decoration: BoxDecoration(
                       color: isFirst
-                          ? AppColors.gold.withOpacity(0.18)
+                          ? AppColors.gold.withValues(alpha: 0.18)
                           : isNear
                           ? AppColors.primaryDark
                           : AppColors.bgCream,
@@ -1091,7 +1101,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                             fontFamily: 'Cairo',
                             fontSize: 11,
                             color: isFirst
-                                ? Colors.white.withOpacity(0.55)
+                                ? Colors.white.withValues(alpha: 0.55)
                                 : AppColors.textGrey,
                           ),
                         ),
@@ -1122,7 +1132,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 9, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.gold.withOpacity(0.15),
+                        color: AppColors.gold.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Text(
@@ -1311,7 +1321,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
             children: [
               Image.asset(imagePath,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox()),
+                  errorBuilder: (_, _, _) => const SizedBox()),
               Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -1402,7 +1412,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primaryMid.withOpacity(0.5),
+        color: AppColors.primaryMid.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -1422,6 +1432,72 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 fontWeight: FontWeight.w700, color: AppColors.textWhite,
               )),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCalculationMethodStrip(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.bgWhite,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Calculation Method',
+                style: TextStyle(
+                  fontFamily: 'Cairo', fontSize: 15,
+                  fontWeight: FontWeight.w700, color: AppColors.textDark,
+                )),
+            const SizedBox(height: 14),
+            _settingRow(
+              icon: Icons.calculate_outlined,
+              label: 'Method',
+              value: _svc.calculationMethodName,
+              onTap: () => _showMethodPicker(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMethodPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Select Calculation Method',
+                style: TextStyle(
+                  fontFamily: 'Cairo', fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                )),
+            const SizedBox(height: 16),
+            ...kCalculationMethods.keys.map((name) => ListTile(
+                  title: Text(name, style: const TextStyle(fontFamily: 'Cairo')),
+                  trailing: _svc.calculationMethodName == name
+                      ? const Icon(Icons.check_circle, color: AppColors.primaryDark)
+                      : null,
+                  onTap: () {
+                    _svc.setCalculationMethod(name);
+                    Navigator.pop(context);
+                  },
+                )),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }
@@ -1449,7 +1525,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 )),
             const SizedBox(height: 4),
             const Text(
-              'Using Umm Al-Qura calculation method.',
+              'Customize your prayer settings below.',
               style: TextStyle(
                 fontFamily: 'Cairo', fontSize: 11,
                 color: AppColors.textGrey,
@@ -1540,7 +1616,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
       backgroundColor: AppColors.bgCream,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => _NotifSettingsSheet(service: _svc),
+      builder: (_) => NotifSettingsSheet(service: _svc),
     );
   }
 }
@@ -1557,7 +1633,7 @@ class _PrayerRow extends StatelessWidget {
     'Fajr':    Icons.wb_twilight,
     'Dhuhr':   Icons.wb_sunny_rounded,
     'Asr':     Icons.light_mode_outlined,
-    'Maghrib': Icons.wb_twighlight,
+    'Maghrib': Icons.wb_twilight,
     'Isha':    Icons.nightlight_round,
   };
 
@@ -1569,7 +1645,7 @@ class _PrayerRow extends StatelessWidget {
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           color: isNext
-              ? AppColors.primaryDark.withOpacity(0.06)
+              ? AppColors.primaryDark.withValues(alpha: 0.06)
               : Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
@@ -1602,10 +1678,10 @@ class _PrayerRow extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.15),
+                    color: AppColors.gold.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: AppColors.gold.withOpacity(0.4)),
+                        color: AppColors.gold.withValues(alpha: 0.4)),
                   ),
                   child: const Text('NEXT',
                       style: TextStyle(
@@ -1701,11 +1777,11 @@ class _MadhabPickerSheet extends StatelessWidget {
                   horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
                 color: active
-                    ? AppColors.primaryDark.withOpacity(0.05)
+                    ? AppColors.primaryDark.withValues(alpha: 0.05)
                     : Colors.transparent,
                 border: Border(
                   bottom: BorderSide(
-                      color: AppColors.borderLight.withOpacity(0.5)),
+                      color: AppColors.borderLight.withValues(alpha: 0.5)),
                 ),
               ),
               child: Row(
@@ -1767,15 +1843,15 @@ class _MadhabPickerSheet extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 // NOTIFICATION SETTINGS SHEET
 // ══════════════════════════════════════════════════════════════════════════════
-class _NotifSettingsSheet extends StatefulWidget {
+class NotifSettingsSheet extends StatefulWidget {
   final PrayerService service;
-  const _NotifSettingsSheet({required this.service});
+  const NotifSettingsSheet({required this.service});
 
   @override
-  State<_NotifSettingsSheet> createState() => _NotifSettingsSheetState();
+  State<NotifSettingsSheet> createState() => _NotifSettingsSheetState();
 }
 
-class _NotifSettingsSheetState extends State<_NotifSettingsSheet> {
+class _NotifSettingsSheetState extends State<NotifSettingsSheet> {
   late bool _enabled;
   late int  _minutes;
 
@@ -1820,8 +1896,8 @@ class _NotifSettingsSheetState extends State<_NotifSettingsSheet> {
               Switch(
                 value: _enabled,
                 onChanged: (v) => setState(() => _enabled = v),
-                activeColor: AppColors.gold,
-                activeTrackColor: AppColors.gold.withOpacity(0.3),
+                activeThumbColor: AppColors.gold,
+                activeTrackColor: AppColors.gold.withValues(alpha: 0.3),
               ),
             ],
           ),

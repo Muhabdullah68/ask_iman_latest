@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../data/surahs_data.dart';
-import '../data/quran_api_service.dart';
+import 'tafseer_tab.dart'; 
 
 // ══════════════════════════════════════════════════════════════════════════════
 // JUZZ TAB
@@ -27,7 +27,6 @@ class _JuzzTabState extends State<JuzzTab> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  // Local Juzz data as fallback (in case API fails)
   final List<Map<String, dynamic>> _localJuzzData = [
     {'num': 1, 'arabic': 'آلم', 'name': 'Alif Lam Meem', 'start': '1:1', 'end': '2:141', 'startSurah': 1, 'endSurah': 2},
     {'num': 2, 'arabic': 'سَيَقُولُ', 'name': 'Sayaqool', 'start': '2:142', 'end': '2:252', 'startSurah': 2, 'endSurah': 2},
@@ -64,7 +63,6 @@ class _JuzzTabState extends State<JuzzTab> {
   @override
   void initState() {
     super.initState();
-    // If a search query was passed from QuranScreen, pre-populate the local one
     if (widget.searchQuery.isNotEmpty) {
       _searchQuery = widget.searchQuery;
       _searchController.text = widget.searchQuery;
@@ -75,7 +73,6 @@ class _JuzzTabState extends State<JuzzTab> {
   @override
   void didUpdateWidget(JuzzTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Keep in sync when the global search query changes
     if (widget.searchQuery != oldWidget.searchQuery) {
       setState(() {
         _searchQuery = widget.searchQuery;
@@ -91,40 +88,26 @@ class _JuzzTabState extends State<JuzzTab> {
   }
 
   Future<void> _loadJuzzData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Use local data first (instant display)
+    setState(() { _isLoading = true; });
     _juzzList = List.from(_localJuzzData);
     setState(() => _isLoading = false);
-
-    // Then try to fetch from API to get surah details
     await _fetchFromApi();
   }
 
   Future<void> _fetchFromApi() async {
     try {
       final List<Map<String, dynamic>> updatedJuzz = [];
-
       for (var juzz in _localJuzzData) {
         final juzzNum = juzz['num'] as int;
         final surahNums = await _getSurahNumbersForJuzz(juzzNum);
-
         updatedJuzz.add({
           ...juzz,
           'surahs': surahNums,
           'surahCount': surahNums.length,
         });
       }
-
-      if (mounted) {
-        setState(() {
-          _juzzList = updatedJuzz;
-        });
-      }
+      if (mounted) setState(() { _juzzList = updatedJuzz; });
     } catch (e) {
-      // Keep local data if API fails
       if (mounted) {
         setState(() {
           _juzzList = _localJuzzData.map((j) => {
@@ -139,29 +122,21 @@ class _JuzzTabState extends State<JuzzTab> {
 
   Future<List<int>> _getSurahNumbersForJuzz(int juzzNum) async {
     try {
-      final response = await http.get(
-        Uri.parse('https://api.alquran.cloud/v1/juz/$juzzNum'),
-      ).timeout(const Duration(seconds: 8));
-
+      final response = await http.get(Uri.parse('https://api.alquran.cloud/v1/juz/$juzzNum')).timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final ayahs = data['data']['ayahs'] as List;
         final Set<int> surahs = {};
-
         for (var ayah in ayahs) {
           surahs.add(ayah['surah']['number'] as int);
         }
-
         return surahs.toList()..sort();
       }
-    } catch (e) {
-      debugPrint('Error fetching Juzz $juzzNum: $e');
-    }
+    } catch (_) {}
     return _getSurahRangeForJuzz(juzzNum);
   }
 
   List<int> _getSurahRangeForJuzz(int juzzNum) {
-    // Hardcoded surah ranges for each Juzz (accurate)
     const ranges = {
       1: [1, 2], 2: [2], 3: [2, 3], 4: [3, 4], 5: [4],
       6: [4, 5], 7: [5, 6], 8: [6, 7], 9: [7, 8], 10: [8, 9],
@@ -221,7 +196,7 @@ class _JuzzTabState extends State<JuzzTab> {
           border: Border.all(color: AppColors.borderLight),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -236,18 +211,10 @@ class _JuzzTabState extends State<JuzzTab> {
               child: TextField(
                 controller: _searchController,
                 onChanged: (v) => setState(() => _searchQuery = v),
-                style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 14,
-                  color: AppColors.textDark,
-                ),
+                style: const TextStyle(fontFamily: 'Cairo', fontSize: 14, color: AppColors.textDark),
                 decoration: const InputDecoration(
                   hintText: 'Search Juz by name or number...',
-                  hintStyle: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 14,
-                    color: AppColors.textLightGrey,
-                  ),
+                  hintStyle: TextStyle(fontFamily: 'Cairo', fontSize: 14, color: AppColors.textLightGrey),
                   border: InputBorder.none,
                   isDense: true,
                 ),
@@ -277,31 +244,17 @@ class _JuzzTabState extends State<JuzzTab> {
         children: [
           Icon(Icons.menu_book, size: 64, color: AppColors.textLightGrey),
           const SizedBox(height: 16),
-          Text(
-            'No Juzz found',
-            style: AppTextStyles.headlineSmall.copyWith(
-              color: AppColors.textGrey,
-            ),
-          ),
+          Text('No Juzz found', style: AppTextStyles.headlineSmall.copyWith(color: AppColors.textGrey)),
           const SizedBox(height: 8),
-          Text(
-            'Try searching with a different keyword',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textLightGrey,
-            ),
-          ),
+          Text('Try searching with a different keyword', style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textLightGrey)),
         ],
       ),
     );
   }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// JUZZ CARD WIDGET
-// ══════════════════════════════════════════════════════════════════════════════
 class _JuzzCard extends StatelessWidget {
   final Map<String, dynamic> juzz;
-
   const _JuzzCard({required this.juzz});
 
   @override
@@ -314,142 +267,72 @@ class _JuzzCard extends StatelessWidget {
     final surahCount = juzz['surahCount'] as int? ?? 1;
 
     return GestureDetector(
-      onTap: () => _openJuzzDetail(context, juzz),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => JuzzDetailScreen(juzz: juzz))),
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         decoration: BoxDecoration(
           color: AppColors.bgWhite,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.borderLight),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with Juzz number badge
             Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.primaryDark,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-              ),
+              decoration: const BoxDecoration(color: AppColors.primaryDark, borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16))),
               child: Row(
                 children: [
-                  // Juzz number badge
                   Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.gold,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$juzzNum',
-                        style: const TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primaryDarkest,
-                        ),
-                      ),
-                    ),
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(12)),
+                    child: Center(child: Text('$juzzNum', style: const TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryDarkest))),
                   ),
                   const SizedBox(width: 14),
-                  // Juzz name
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Juz $juzzNum — $name',
-                          style: const TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textWhite,
-                          ),
-                        ),
+                        Text('Juz $juzzNum — $name', style: const TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textWhite)),
                         const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Icon(Icons.menu_book, size: 12, color: AppColors.textGreenMuted),
-                            const SizedBox(width: 4),
-                            Text(
-                              '$surahCount Surah${surahCount > 1 ? 's' : ''}',
-                              style: const TextStyle(
-                                fontFamily: 'Cairo',
-                                fontSize: 11,
-                                color: AppColors.textGreenMuted,
-                              ),
-                            ),
-                          ],
-                        ),
+                        Row(children: [
+                          const Icon(Icons.menu_book, size: 12, color: AppColors.textGreenMuted),
+                          const SizedBox(width: 4),
+                          Text('$surahCount Surah${surahCount > 1 ? 's' : ''}', style: const TextStyle(fontFamily: 'Cairo', fontSize: 11, color: AppColors.textGreenMuted)),
+                        ]),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            // Content
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Arabic text
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.gold.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          arabic,
-                          textDirection: TextDirection.rtl,
-                          style: const TextStyle(
-                            fontFamily: 'Amiri',
-                            fontSize: 20,
-                            color: AppColors.goldDark,
-                          ),
-                        ),
+                        decoration: BoxDecoration(color: AppColors.gold.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
+                        child: Text(arabic, textDirection: TextDirection.rtl, style: const TextStyle(fontFamily: 'Amiri', fontSize: 20, color: AppColors.goldDark)),
                       ),
                       const Spacer(),
                       const Icon(Icons.chevron_right, size: 18, color: AppColors.textLightGrey),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // Surah range
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.bgCream,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+                    decoration: BoxDecoration(color: AppColors.bgCream, borderRadius: BorderRadius.circular(6)),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.format_quote, size: 12, color: AppColors.textGrey),
                         const SizedBox(width: 4),
-                        Text(
-                          '$start → $end',
-                          style: const TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 11,
-                            color: AppColors.textGrey,
-                          ),
-                        ),
+                        Text('$start → $end', style: const TextStyle(fontFamily: 'Cairo', fontSize: 11, color: AppColors.textGrey)),
                       ],
                     ),
                   ),
@@ -461,26 +344,12 @@ class _JuzzCard extends StatelessWidget {
       ),
     );
   }
-
-  void _openJuzzDetail(BuildContext context, Map<String, dynamic> juzz) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => JuzzDetailScreen(juzz: juzz),
-      ),
-    );
-  }
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// JUZZ DETAIL SCREEN — Shows all Surahs in the selected Juzz
-// ══════════════════════════════════════════════════════════════════════════════
 class JuzzDetailScreen extends StatefulWidget {
   final Map<String, dynamic> juzz;
   const JuzzDetailScreen({super.key, required this.juzz});
-
-  @override
-  State<JuzzDetailScreen> createState() => _JuzzDetailScreenState();
+  @override State<JuzzDetailScreen> createState() => _JuzzDetailScreenState();
 }
 
 class _JuzzDetailScreenState extends State<JuzzDetailScreen> {
@@ -488,42 +357,19 @@ class _JuzzDetailScreenState extends State<JuzzDetailScreen> {
   bool _isLoading = true;
   String _error = '';
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSurahs();
-  }
+  @override void initState() { super.initState(); _loadSurahs(); }
 
   Future<void> _loadSurahs() async {
-    setState(() {
-      _isLoading = true;
-      _error = '';
-    });
-
+    setState(() { _isLoading = true; _error = ''; });
     try {
-      final surahNums = widget.juzz['surahs'] as List<int>? ??
-          _getSurahNumsFromRange(widget.juzz['num'] as int);
-
+      final surahNums = widget.juzz['surahs'] as List<int>? ?? _getSurahNumsFromRange(widget.juzz['num'] as int);
       final List<Map<String, dynamic>> surahs = [];
-
       for (final num in surahNums) {
-        final surah = SurahsData.surahs.firstWhere(
-              (s) => s['num'] == num,
-          orElse: () => {'num': num, 'name': 'Surah $num', 'type': 'MAKKI', 'ayahs': 0, 'arabic': '', 'meaning': ''},
-        );
+        final surah = SurahsData.surahs.firstWhere((s) => s['num'] == num, orElse: () => {'num': num, 'name': 'Surah $num', 'type': 'MAKKI', 'ayahs': 0, 'arabic': '', 'meaning': ''});
         surahs.add(surah);
       }
-
-      setState(() {
-        _surahsInJuzz = surahs;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to load surahs';
-        _isLoading = false;
-      });
-    }
+      setState(() { _surahsInJuzz = surahs; _isLoading = false; });
+    } catch (e) { setState(() { _error = 'Failed to load surahs'; _isLoading = false; }); }
   }
 
   List<int> _getSurahNumsFromRange(int juzzNum) {
@@ -539,49 +385,23 @@ class _JuzzDetailScreenState extends State<JuzzDetailScreen> {
     return ranges[juzzNum] ?? [1];
   }
 
-  void _openSurahDetail(Map<String, dynamic> surah) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => TafseerDetailScreen(surah: surah),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final juzz = widget.juzz;
-    final juzzNum = juzz['num'] as int;
-    final name = juzz['name'] as String;
-    final arabic = juzz['arabic'] as String;
-    final start = juzz['start'] as String;
-    final end = juzz['end'] as String;
-
     return Scaffold(
       backgroundColor: AppColors.bgCream,
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            _buildHeader(context, juzzNum, name, arabic, start, end),
-            // Surah list
+            _buildHeader(context, juzz['num'], juzz['name'], juzz['arabic'], juzz['start'], juzz['end']),
             Expanded(
-              child: _isLoading
-                  ? const Center(
-                child: CircularProgressIndicator(color: AppColors.gold),
-              )
-                  : _error.isNotEmpty
-                  ? _buildErrorState()
-                  : ListView.builder(
+              child: _isLoading ? const Center(child: CircularProgressIndicator(color: AppColors.gold)) : _error.isNotEmpty ? _buildErrorState() : ListView.builder(
                 physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.all(16),
                 itemCount: _surahsInJuzz.length,
                 itemBuilder: (context, index) {
                   final surah = _surahsInJuzz[index];
-                  return _SurahInJuzzTile(
-                    surah: surah,
-                    onTap: () => _openSurahDetail(surah),
-                  );
+                  return _SurahInJuzzTile(surah: surah, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TafseerReaderScreen(surah: surah, book: const {'name': 'Ibn Kathir', 'arabic': 'تفسیر ابنِ کثیر'}, isUrdu: false))));
                 },
               ),
             ),
@@ -600,336 +420,8 @@ class _JuzzDetailScreenState extends State<JuzzDetailScreen> {
           GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.primaryMid.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new,
-                color: AppColors.textWhite,
-                size: 16,
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Juz $num — $name',
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textWhite,
-                  ),
-                ),
-                Text(
-                  '$start → $end',
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 12,
-                    color: AppColors.textGreenMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            arabic,
-            textDirection: TextDirection.rtl,
-            style: const TextStyle(
-              fontFamily: 'Amiri',
-              fontSize: 24,
-              color: AppColors.gold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 48, color: AppColors.error),
-          const SizedBox(height: 12),
-          Text(
-            _error,
-            style: const TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 14,
-              color: AppColors.textGrey,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadSurahs,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.gold,
-              foregroundColor: AppColors.primaryDarkest,
-            ),
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// SURAH TILE INSIDE JUZZ DETAIL
-// ══════════════════════════════════════════════════════════════════════════════
-class _SurahInJuzzTile extends StatelessWidget {
-  final Map<String, dynamic> surah;
-  final VoidCallback onTap;
-
-  const _SurahInJuzzTile({
-    required this.surah,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isMakki = (surah['type'] as String) == 'MAKKI';
-    final surahNum = surah['num'] as int;
-    final name = surah['name'] as String;
-    final arabic = surah['arabic'] as String;
-    final ayahs = surah['ayahs'] as int;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-        decoration: BoxDecoration(
-          color: AppColors.bgWhite,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borderLight),
-        ),
-        child: Row(
-          children: [
-            // Number circle
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.borderLight),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  '$surahNum',
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            // Name + badges
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isMakki
-                              ? AppColors.gold.withOpacity(0.15)
-                              : AppColors.primaryLight.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          surah['type'] as String,
-                          style: TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: isMakki ? AppColors.goldDark : AppColors.primaryLight,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        '• $ayahs Ayahs',
-                        style: const TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 11,
-                          color: AppColors.textGrey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Arabic name
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  arabic,
-                  textDirection: TextDirection.rtl,
-                  style: const TextStyle(
-                    fontFamily: 'Amiri',
-                    fontSize: 20,
-                    color: AppColors.textDark,
-                  ),
-                ),
-                Text(
-                  (surah['meaning'] as String).split(' ').take(2).join(' '),
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 9,
-                    color: AppColors.textGrey,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TAFSEER DETAIL SCREEN (Reused from tafseer_tab)
-// ══════════════════════════════════════════════════════════════════════════════
-class TafseerDetailScreen extends StatefulWidget {
-  final Map<String, dynamic> surah;
-  const TafseerDetailScreen({super.key, required this.surah});
-
-  @override
-  State<TafseerDetailScreen> createState() => _TafseerDetailScreenState();
-}
-
-class _TafseerDetailScreenState extends State<TafseerDetailScreen> {
-  int _srcIndex = 0;
-  int _ayahIndex = 0;
-  bool _tExpanded = true;
-  bool _loadingAyahs = false;
-  bool _loadingTafseer = false;
-  String? _tafseerText;
-  List<Map<String, String>> _ayahs = [];
-
-  final _sources = ['Ibn Kathir', "Ma'ariful Quran", 'Al-Jalalayn'];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAyahs();
-  }
-
-  Future<void> _loadAyahs() async {
-    final num = widget.surah['num'] as int;
-    final local = await QuranApiService.getLocalAyahs(num);
-    if (local != null && local.isNotEmpty) {
-      setState(() => _ayahs = local);
-      _loadTafseer();
-      return;
-    }
-    setState(() => _loadingAyahs = true);
-    final fetched = await QuranApiService.fetchSurah(num);
-    if (!mounted) return;
-    setState(() {
-      _ayahs = fetched ?? [];
-      _loadingAyahs = false;
-    });
-    if (_ayahs.isNotEmpty) _loadTafseer();
-  }
-
-  Future<void> _loadTafseer() async {
-    final num = widget.surah['num'] as int;
-    final source = _sources[_srcIndex];
-    final local = await QuranApiService.getLocalTafseer(num, source);
-    if (local != null) {
-      setState(() => _tafseerText = local);
-      return;
-    }
-    setState(() {
-      _loadingTafseer = true;
-      _tafseerText = null;
-    });
-    final text = await QuranApiService.fetchTafseer(num, _ayahIndex + 1, source);
-    if (!mounted) return;
-    setState(() {
-      _tafseerText = text ?? _fallbackTafseer(source);
-      _loadingTafseer = false;
-    });
-  }
-
-  String _fallbackTafseer(String source) {
-    switch (source) {
-      case 'Ibn Kathir':
-        return 'Imam Ibn Kathir explains: This blessed surah carries profound meaning that scholars have expounded upon for centuries. The Arabic words carry layers of wisdom connecting the believer to the divine message.';
-      case "Ma'ariful Quran":
-        return "Mufti Shafi' explains: This verse is foundational to understanding the divine message, addressing the core of the believer's relationship with Allah — encompassing belief, action, and supplication.";
-      default:
-        return 'Al-Jalalayn states: This verse is clear in its guidance. The scholars have noted its great importance in understanding the divine address to humanity.';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final surah = widget.surah;
-    return Scaffold(
-      backgroundColor: AppColors.bgCream,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              _buildHeader(context, surah),
-              _buildSourceChips(),
-              _buildAyahCard(),
-              _buildAyahNav(),
-              _buildTafseerSection(),
-              _buildMetaRow(surah),
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, Map<String, dynamic> surah) {
-    return Container(
-      color: AppColors.primaryDark,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.primaryMid.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(10),
-              ),
+              width: 38, height: 38,
+              decoration: BoxDecoration(color: AppColors.primaryMid.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(10)),
               child: const Icon(Icons.arrow_back_ios_new, color: AppColors.textWhite, size: 16),
             ),
           ),
@@ -938,419 +430,73 @@ class _TafseerDetailScreenState extends State<TafseerDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  surah['name'] as String,
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textWhite,
-                  ),
-                ),
-                Text(
-                  '${surah['ayahs']} Ayahs  •  ${surah['type']}',
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 12,
-                    color: AppColors.textGreenMuted,
-                  ),
-                ),
+                Text('Juz $num — $name', style: const TextStyle(fontFamily: 'Cairo', fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textWhite)),
+                Text('$start → $end', style: const TextStyle(fontFamily: 'Cairo', fontSize: 12, color: AppColors.textGreenMuted)),
               ],
             ),
           ),
-          Text(
-            surah['arabic'] as String,
-            textDirection: TextDirection.rtl,
-            style: const TextStyle(
-              fontFamily: 'Amiri',
-              fontSize: 24,
-              color: AppColors.gold,
-            ),
-          ),
+          Text(arabic, textDirection: TextDirection.rtl, style: const TextStyle(fontFamily: 'Amiri', fontSize: 24, color: AppColors.gold)),
         ],
       ),
     );
   }
 
-  Widget _buildSourceChips() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 0, 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
+  Widget _buildErrorState() {
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+      const SizedBox(height: 12),
+      Text(_error, style: const TextStyle(fontFamily: 'Cairo', fontSize: 14, color: AppColors.textGrey)),
+      const SizedBox(height: 16),
+      ElevatedButton(onPressed: _loadSurahs, style: ElevatedButton.styleFrom(backgroundColor: AppColors.gold, foregroundColor: AppColors.primaryDarkest), child: const Text('Retry')),
+    ]));
+  }
+}
+
+class _SurahInJuzzTile extends StatelessWidget {
+  final Map<String, dynamic> surah;
+  final VoidCallback onTap;
+  const _SurahInJuzzTile({required this.surah, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isMakki = (surah['type'] as String) == 'MAKKI';
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(color: AppColors.bgWhite, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.borderLight)),
         child: Row(
-          children: List.generate(_sources.length, (i) {
-            final active = _srcIndex == i;
-            return GestureDetector(
-              onTap: () {
-                setState(() => _srcIndex = i);
-                _loadTafseer();
-              },
-              child: Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                decoration: BoxDecoration(
-                  color: active ? AppColors.primaryDark : Colors.transparent,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: active ? AppColors.primaryDark : AppColors.borderLight,
-                  ),
-                ),
-                child: Text(
-                  _sources[i],
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: active ? AppColors.textWhite : AppColors.textGrey,
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAyahCard() {
-    if (_loadingAyahs) {
-      return const Padding(
-        padding: EdgeInsets.all(40),
-        child: Center(child: CircularProgressIndicator(color: AppColors.gold)),
-      );
-    }
-    if (_ayahs.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(
-          child: Text(
-            'No ayahs found',
-            style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey),
-          ),
-        ),
-      );
-    }
-    final ayah = _ayahs[_ayahIndex];
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.primaryDark,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.gold.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'SURAH ${(widget.surah['name'] as String).toUpperCase()}: ${_ayahIndex + 1}',
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.gold,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              const Icon(Icons.share_outlined, size: 18, color: AppColors.textGreenMuted),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            ayah['a']!,
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontFamily: 'Amiri',
-              fontSize: 26,
-              color: AppColors.textWhite,
-              height: 2.0,
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(border: Border.all(color: AppColors.borderLight), shape: BoxShape.circle),
+              child: Center(child: Text('${surah['num']}', style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textDark))),
             ),
-          ),
-          const SizedBox(height: 12),
-          Container(height: 1, color: AppColors.primaryMid),
-          const SizedBox(height: 12),
-          Text(
-            ayah['t']!,
-            style: const TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 14,
-              color: AppColors.textCream,
-              height: 1.6,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAyahNav() {
-    if (_ayahs.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: _ayahIndex > 0
-                ? () {
-              setState(() => _ayahIndex--);
-              _loadTafseer();
-            }
-                : null,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: _ayahIndex > 0 ? AppColors.bgWhite : AppColors.borderLight,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.arrow_back_ios,
-                    size: 12,
-                    color: _ayahIndex > 0 ? AppColors.textDark : AppColors.textLightGrey,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Previous Ayah',
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _ayahIndex > 0 ? AppColors.textDark : AppColors.textLightGrey,
-                    ),
-                  ),
+                  Text(surah['name'], style: const TextStyle(fontFamily: 'Cairo', fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+                  const SizedBox(height: 3),
+                  Row(children: [
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: isMakki ? AppColors.gold.withValues(alpha: 0.15) : AppColors.primaryLight.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)), child: Text(surah['type'], style: TextStyle(fontFamily: 'Cairo', fontSize: 9, fontWeight: FontWeight.w700, color: isMakki ? AppColors.goldDark : AppColors.primaryLight))),
+                    const SizedBox(width: 5),
+                    Text('• ${surah['ayahs']} Ayahs', style: const TextStyle(fontFamily: 'Cairo', fontSize: 11, color: AppColors.textGrey)),
+                  ]),
                 ],
               ),
             ),
-          ),
-          const Spacer(),
-          GestureDetector(
-            onTap: _ayahIndex < _ayahs.length - 1
-                ? () {
-              setState(() => _ayahIndex++);
-              _loadTafseer();
-            }
-                : null,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: _ayahIndex < _ayahs.length - 1 ? AppColors.bgWhite : AppColors.borderLight,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: AppColors.borderLight),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Next Ayah',
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _ayahIndex < _ayahs.length - 1 ? AppColors.textDark : AppColors.textLightGrey,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 12,
-                    color: _ayahIndex < _ayahs.length - 1 ? AppColors.textDark : AppColors.textLightGrey,
-                  ),
-                ],
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(surah['arabic'], textDirection: TextDirection.rtl, style: const TextStyle(fontFamily: 'Amiri', fontSize: 20, color: AppColors.textDark)),
+                Text((surah['meaning'] as String).split(' ').take(2).join(' '), style: const TextStyle(fontFamily: 'Cairo', fontSize: 9, color: AppColors.textGrey)),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTafseerSection() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      decoration: BoxDecoration(
-        color: AppColors.bgWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () => setState(() => _tExpanded = !_tExpanded),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-              child: Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _sources[_srcIndex],
-                        style: const TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDark,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            margin: const EdgeInsets.only(right: 5),
-                            decoration: const BoxDecoration(
-                              color: AppColors.success,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const Text(
-                            'Authentic Source',
-                            style: TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 11,
-                              color: AppColors.success,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  Icon(
-                    _tExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    color: AppColors.textGrey,
-                    size: 22,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_tExpanded) ...[
-            Container(height: 1, color: AppColors.borderLight),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _loadingTafseer
-                  ? const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: CircularProgressIndicator(color: AppColors.gold),
-                ),
-              )
-                  : Text(
-                _tafseerText ?? '',
-                style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 14,
-                  color: AppColors.textDark,
-                  height: 1.7,
-                ),
-              ),
-            ),
-            if (!_loadingTafseer)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Container(
-                  width: double.infinity,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.borderLight),
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'READ FULL TAFSEER',
-                      style: TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDark,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMetaRow(Map<String, dynamic> surah) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: _metaCard(
-              Icons.location_on_outlined,
-              'Revelation Site',
-              surah['type'] == 'MAKKI' ? 'Makkah\n(Makkiyah)' : 'Madinah\n(Madaniyah)',
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _metaCard(
-              Icons.format_list_numbered,
-              'Word Count',
-              '${(surah['ayahs'] as int) * 10} Words',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _metaCard(IconData icon, String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.bgWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.gold),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 11,
-                  color: AppColors.textGrey,
-                ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                  height: 1.3,
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -21,9 +21,9 @@ class AppColors {
   static const Color bgWhite        = Color(0xFFFFFFFF);
   static const Color bgDarkCard     = Color(0xFF1F3A2A);
   static const Color bgDarkest      = Color(0xFF0A1F12);
-  // Quran screen specific - Light green background
-  static const Color quranBgLightGreen = Color(0xFFE8F5E9);  // Light green
-  static const Color quranCardBg = Color(0xFFF1F8E9);
+  // Quran screen specific - Using app consistent cream background
+  static const Color quranBgLightGreen = Color(0xFFF5F0E8); // Matches bgCream
+  static const Color quranCardBg = Color(0xFFFFFFFF); // White cards on cream bg
 
   // ── Text ────────────────────────────────────────
   static const Color textWhite      = Color(0xFFFFFFFF);

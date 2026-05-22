@@ -42,9 +42,18 @@ class _DmScreenState extends State<DmScreen> {
     if (text.isEmpty || _sending) return;
     setState(() => _sending = true);
     _msgCtrl.clear();
-    await _svc.sendDm(widget.otherUid, text);
-    if (mounted) setState(() => _sending = false);
-    _scrollToBottom();
+    try {
+      await _svc.sendDm(widget.otherUid, text);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send message: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+      _scrollToBottom();
+    }
   }
 
   void _scrollToBottom() {
@@ -134,7 +143,7 @@ class _DmScreenState extends State<DmScreen> {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryDark.withOpacity(0.08),
+                    color: AppColors.primaryDark.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.chat_bubble_outline_rounded,

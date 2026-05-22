@@ -12,6 +12,11 @@ class HadithCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSahih = hadith['grade'] == 'SAHIH';
+    final book = hadith['book'] ?? 'Unknown Source';
+    final grade = hadith['grade'] ?? 'Unrated';
+    final text = hadith['text'] ?? 'No text available';
+    final narrator = hadith['narrator'] ?? 'Unknown Narrator';
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       padding: const EdgeInsets.all(18),
@@ -26,7 +31,7 @@ class HadithCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                hadith['book']!,
+                book,
                 style: const TextStyle(
                   fontFamily: 'Cairo',
                   fontSize: 11,
@@ -41,12 +46,12 @@ class HadithCard extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: isSahih
-                      ? AppColors.success.withOpacity(0.2)
-                      : AppColors.warning.withOpacity(0.2),
+                      ? AppColors.success.withValues(alpha: 0.2)
+                      : AppColors.warning.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  hadith['grade']!,
+                  grade,
                   style: TextStyle(
                     fontFamily: 'Cairo',
                     fontSize: 10,
@@ -66,7 +71,7 @@ class HadithCard extends StatelessWidget {
           const SizedBox(height: 14),
           // Text
           Text(
-            hadith['text']!,
+            text,
             style: const TextStyle(
               fontFamily: 'Cairo',
               fontSize: 15,
@@ -78,7 +83,7 @@ class HadithCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Container(
-              height: 1, color: AppColors.primaryMid.withOpacity(0.6)),
+              height: 1, color: AppColors.primaryMid.withValues(alpha: 0.6)),
           const SizedBox(height: 10),
           // Narrator
           Row(
@@ -87,7 +92,7 @@ class HadithCard extends StatelessWidget {
                 width: 22,
                 height: 22,
                 decoration: BoxDecoration(
-                  color: AppColors.gold.withOpacity(0.18),
+                  color: AppColors.gold.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.person,
@@ -95,7 +100,7 @@ class HadithCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                hadith['narrator']!,
+                narrator,
                 style: const TextStyle(
                   fontFamily: 'Cairo',
                   fontSize: 12,

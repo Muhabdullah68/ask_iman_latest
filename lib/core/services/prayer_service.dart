@@ -139,14 +139,23 @@ class PrayerInfo {
   }
 }
 
-// ── 4 Classical Madhabs ───────────────────────────────────────────────────────
-// The adhan package maps Hanafi → longer Asr, Shafi → standard Asr.
-// Maliki and Hanbali share the same Asr rule as Shafi'i in this engine.
+// 4 Classical Madhabs & Calculation Methods
 const Map<String, Madhab> kMadhabs = {
   'Hanafi':  Madhab.hanafi,
-  "Maliki":  Madhab.shafi,   // same Asr shadow ratio as Shafi/Hanbali
+  "Maliki":  Madhab.shafi,
   "Shafi'i": Madhab.shafi,
   'Hanbali': Madhab.shafi,
+};
+
+const Map<String, CalculationMethod> kCalculationMethods = {
+  'Umm Al-Qura': CalculationMethod.umm_al_qura,
+  'Muslim World League': CalculationMethod.muslim_world_league,
+  'ISNA': CalculationMethod.north_america,
+  'Karachi (University of Islamic Sciences)': CalculationMethod.karachi,
+  'Dubai': CalculationMethod.dubai,
+  'Qatar': CalculationMethod.qatar,
+  'Kuwait': CalculationMethod.kuwait,
+  'Singapore': CalculationMethod.singapore,
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -166,9 +175,8 @@ class PrayerService extends ChangeNotifier {
   Timer?       _midnightTimer;
   Timer?       _countdownTimer;
 
-  // Fixed calculation method — Umm Al-Qura is accurate and well-tested globally.
-  // Users only choose their Madhab (affects Asr time).
-  final CalculationMethod _calcMethod = CalculationMethod.umm_al_qura;
+  CalculationMethod _calcMethod = CalculationMethod.umm_al_qura;
+  String _calcMethodName = 'Umm Al-Qura';
   String _madhabName   = 'Hanafi';
   bool   _notifEnabled = true;
   int    _reminderMins = 10;
@@ -182,6 +190,7 @@ class PrayerService extends ChangeNotifier {
   bool         get isLoading      => _loading;
   String?      get error          => _error;
   String       get madhabName     => _madhabName;
+  String       get calculationMethodName => _calcMethodName;
   bool         get notifEnabled   => _notifEnabled;
   int          get reminderMinutes => _reminderMins;
 
@@ -193,21 +202,31 @@ class PrayerService extends ChangeNotifier {
     _startCountdownTimer();
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh({DateTime? customTime}) async {
     _loading = true;
     _error   = null;
     notifyListeners();
     try {
       _position = await _getLocation();
       if (_position != null) {
-        _calculatePrayerTimes();
-        if (_notifEnabled) await _scheduleAllNotifications();
+        _calculatePrayerTimes(customTime: customTime);
+        if (_notifEnabled) await _scheduleAllNotifications(customTime: customTime);
       }
     } catch (e) {
       _error = e.toString();
     }
     _loading = false;
     notifyListeners();
+  }
+
+  void setCalculationMethod(String name) {
+    if (kCalculationMethods.containsKey(name)) {
+      _calcMethodName = name;
+      _calcMethod = kCalculationMethods[name]!;
+      _calculatePrayerTimes();
+      if (_notifEnabled) _scheduleAllNotifications();
+      notifyListeners();
+    }
   }
 
   void setMadhab(String name) {
@@ -230,9 +249,16 @@ class PrayerService extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<PrayerInfo> get todayPrayers {
+  List<PrayerInfo> getTodayPrayers({DateTime? at}) {
     if (_prayerTimes == null) return [];
-    final next = _prayerTimes!.nextPrayer();
+    
+    // We want the 'next' indicator to only apply to the 5 main prayers.
+    // If adhan says next is sunrise, we treat the next main prayer (Dhuhr) as next.
+    var next = _prayerTimes!.nextPrayer();
+    if (next == Prayer.sunrise) {
+      next = Prayer.dhuhr;
+    }
+
     return [
       _info(Prayer.fajr,    'Fajr',    _prayerTimes!.fajr,    next),
       _info(Prayer.dhuhr,   'Dhuhr',   _prayerTimes!.dhuhr,   next),
@@ -242,16 +268,29 @@ class PrayerService extends ChangeNotifier {
     ];
   }
 
+  List<PrayerInfo> get todayPrayers => getTodayPrayers();
+
   PrayerInfo _info(Prayer p, String name, DateTime time, Prayer next) =>
       PrayerInfo(prayer: p, name: name, time: time, isNext: p == next);
 
-  PrayerInfo? get nextPrayerInfo =>
-      todayPrayers.where((p) => p.isNext).firstOrNull;
+  PrayerInfo? get nextPrayerInfo {
+    final prayers = todayPrayers;
+    if (prayers.isEmpty) return null;
+    try {
+      // Find the first prayer that is marked as next
+      return prayers.firstWhere((p) => p.isNext);
+    } catch (_) {
+      // If all prayers today are finished, nextPrayer() returns Prayer.none
+      return null;
+    }
+  }
 
   String get currentPrayerName {
     if (_prayerTimes == null) return '—';
-    switch (_prayerTimes!.currentPrayer()) {
+    final current = _prayerTimes!.currentPrayer();
+    switch (current) {
       case Prayer.fajr:    return 'Fajr';
+      case Prayer.sunrise: return 'Sunrise';
       case Prayer.dhuhr:   return 'Dhuhr';
       case Prayer.asr:     return 'Asr';
       case Prayer.maghrib: return 'Maghrib';
@@ -280,16 +319,17 @@ class PrayerService extends ChangeNotifier {
         desiredAccuracy: LocationAccuracy.high);
   }
 
-  void _calculatePrayerTimes() {
+  void _calculatePrayerTimes({DateTime? customTime}) {
     if (_position == null) return;
     final coords = Coordinates(_position!.latitude, _position!.longitude);
     final params = _calcMethod.getParameters()
       ..madhab = kMadhabs[_madhabName] ?? Madhab.hanafi;
-    _prayerTimes = PrayerTimes.today(coords, params);
+    final date = customTime ?? DateTime.now();
+    _prayerTimes = PrayerTimes(coords, DateComponents.from(date), params);
     _sunnahTimes = SunnahTimes(_prayerTimes!);
   }
 
-  Future<void> _scheduleAllNotifications() async {
+  Future<void> _scheduleAllNotifications({DateTime? customTime}) async {
     if (_notifPlugin == null || _prayerTimes == null) return;
     await _notifPlugin!.cancelAll();
     final prayers = [
@@ -310,9 +350,10 @@ class PrayerService extends ChangeNotifier {
       iOS: const DarwinNotificationDetails(
           presentAlert: true, presentBadge: true, presentSound: true),
     );
+    final now = customTime ?? DateTime.now();
     for (final (name, time, id) in prayers) {
       final rem = time.subtract(Duration(minutes: _reminderMins));
-      if (rem.isAfter(DateTime.now())) {
+      if (rem.isAfter(now)) {
         try {
           await _notifPlugin!.zonedSchedule(
             id, '$name Reminder',
@@ -324,7 +365,7 @@ class PrayerService extends ChangeNotifier {
           );
         } catch (_) {}
       }
-      if (time.isAfter(DateTime.now())) {
+      if (time.isAfter(now)) {
         try {
           await _notifPlugin!.zonedSchedule(
             id + 10, 'Time for $name',

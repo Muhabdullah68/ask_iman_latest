@@ -113,7 +113,7 @@ class _StudentClassesView extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryDark.withOpacity(0.08),
+                          color: AppColors.primaryDark.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text('Teacher',
@@ -280,7 +280,7 @@ class _TeacherClassesView extends StatelessWidget {
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.gold.withOpacity(0.15),
+                  color: AppColors.gold.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -316,10 +316,10 @@ class _TeacherClassesView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.15),
+                  color: AppColors.success.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: AppColors.success.withOpacity(0.3)),
+                      color: AppColors.success.withValues(alpha: 0.3)),
                 ),
                 child: const Text('Active',
                     style: TextStyle(
@@ -392,9 +392,9 @@ class _TeacherClassesView extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [
@@ -608,7 +608,7 @@ class _TeacherClassesView extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: category,
+                      initialValue: category,
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: AppColors.bgWhite,
@@ -641,17 +641,27 @@ class _TeacherClassesView extends StatelessWidget {
                 width: double.infinity,
                 child: GestureDetector(
                   onTap: submitting ? null : () async {
-                    if (titleCtrl.text.trim().isEmpty) return;
+                    final title = titleCtrl.text.trim();
+                    if (title.isEmpty) return;
                     setBS(() => submitting = true);
-                    await CommunityService.instance.submitNewClass(
-                      title:       titleCtrl.text.trim(),
-                      description: descCtrl.text.trim(),
-                      category:    category,
-                      teacherName: currentUser.name,
-                      videoUrl:    videoCtrl.text.trim(),
-                      durationMinutes: int.tryParse(durationCtrl.text) ?? 60,
-                    );
-                    if (ctx2.mounted) Navigator.pop(ctx2);
+                    try {
+                      await CommunityService.instance.submitNewClass(
+                        title:       title,
+                        description: descCtrl.text.trim(),
+                        category:    category,
+                        teacherName: currentUser.name,
+                        videoUrl:    videoCtrl.text.trim(),
+                        durationMinutes: int.tryParse(durationCtrl.text) ?? 60,
+                      );
+                      if (ctx2.mounted) Navigator.pop(ctx2);
+                    } catch (e) {
+                      if (ctx2.mounted) {
+                        setBS(() => submitting = false);
+                        ScaffoldMessenger.of(ctx2).showSnackBar(
+                          SnackBar(content: Text('Failed to submit: $e')),
+                        );
+                      }
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -764,16 +774,24 @@ class _TeacherClassesView extends StatelessWidget {
               const SizedBox(height: 18),
               GestureDetector(
                 onTap: () async {
-                  await CommunityService.instance.scheduleMeeting(
-                    classId:         cls.id,
-                    className:       cls.title,
-                    purpose:         purposeCtrl.text.trim(),
-                    scheduledAt:     DateTime.now().add(
-                        const Duration(hours: 1)),
-                    durationMinutes: duration,
-                    meetUrl:         urlCtrl.text.trim(),
-                  );
-                  if (ctx2.mounted) Navigator.pop(ctx2);
+                  try {
+                    await CommunityService.instance.scheduleMeeting(
+                      classId:         cls.id,
+                      className:       cls.title,
+                      purpose:         purposeCtrl.text.trim(),
+                      scheduledAt:     DateTime.now().add(
+                          const Duration(hours: 1)),
+                      durationMinutes: duration,
+                      meetUrl:         urlCtrl.text.trim(),
+                    );
+                    if (ctx2.mounted) Navigator.pop(ctx2);
+                  } catch (e) {
+                    if (ctx2.mounted) {
+                      ScaffoldMessenger.of(ctx2).showSnackBar(
+                        SnackBar(content: Text('Failed to schedule: $e')),
+                      );
+                    }
+                  }
                 },
                 child: Container(
                   width: double.infinity,
@@ -862,7 +880,7 @@ class _ClassCard extends StatelessWidget {
         border: Border.all(color: AppColors.borderLight),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 3)),
         ],
@@ -887,7 +905,7 @@ class _ClassCard extends StatelessWidget {
                   child: Container(
                     width: 120, height: 120,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.04),
+                      color: Colors.white.withValues(alpha: 0.04),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -903,7 +921,7 @@ class _ClassCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppColors.gold.withOpacity(0.15),
+                          color: AppColors.gold.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(cls.category,
@@ -963,8 +981,18 @@ class _ClassCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 GestureDetector(
                   onTap: isEnrolled
-                      ? null
-                      : () => CommunityService.instance.joinClass(cls.id),
+                    ? null
+                    : () async {
+                  try {
+                    await CommunityService.instance.joinClass(cls.id);
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to join: $e')),
+                      );
+                    }
+                  }
+                },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 11),
                     decoration: BoxDecoration(
@@ -1050,7 +1078,7 @@ class _CourseRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: BoxDecoration(
-              color: AppColors.success.withOpacity(0.12),
+              color: AppColors.success.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Text('Live',
@@ -1063,7 +1091,17 @@ class _CourseRow extends StatelessWidget {
           GestureDetector(
             onTap: isEnrolled
                 ? null
-                : () => CommunityService.instance.joinClass(cls.id),
+                : () async {
+              try {
+                await CommunityService.instance.joinClass(cls.id);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to join: $e')),
+                  );
+                }
+              }
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: 14, vertical: 7),
@@ -1128,9 +1166,9 @@ class _TeacherClassCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isPending
-              ? AppColors.warning.withOpacity(0.3)
+              ? AppColors.warning.withValues(alpha: 0.3)
               : isRejected
-              ? AppColors.error.withOpacity(0.2)
+              ? AppColors.error.withValues(alpha: 0.2)
               : AppColors.borderLight,
         ),
       ),
@@ -1175,7 +1213,7 @@ class _TeacherClassCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.12),
+                    color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(statusLabel,
@@ -1219,7 +1257,7 @@ class _TeacherClassCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: AppColors.gold.withOpacity(0.1),
+                      color: AppColors.gold.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
@@ -1271,7 +1309,7 @@ class _TeacherClassCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                   horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.06),
+                color: AppColors.warning.withValues(alpha: 0.06),
                 borderRadius: const BorderRadius.only(
                   bottomLeft:  Radius.circular(16),
                   bottomRight: Radius.circular(16),

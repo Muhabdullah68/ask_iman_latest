@@ -7,293 +7,379 @@
 
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../data/curated_data.dart';
 
 class AyahTab extends StatefulWidget {
   final String searchQuery;
-  const AyahTab({super.key, this.searchQuery = ''});
+  final bool useUrduFont;
+  final String? arabicFont;
+  const AyahTab({super.key, this.searchQuery = '', this.useUrduFont = false, this.arabicFont});
   @override State<AyahTab> createState() => _AyahTabState();
 }
 
-class _AyahTabState extends State<AyahTab> {
-  int _topicIndex = 0;
+class _AyahTabState extends State<AyahTab> with SingleTickerProviderStateMixin {
+  late TabController _topicController;
+  bool _isUrdu = false;
 
-  static const _topics = [
-    'Mercy', 'Patience', 'Tawbah', 'Forgiveness', 'Gratitude', 'Hope', 'Prayer', 'Death',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _topicController = TabController(length: CuratedData.topics.length, vsync: this);
+    _isUrdu = widget.useUrduFont;
+  }
 
-  static const Map<String, List<Map<String, String>>> _ayahs = {
-    'Mercy': [
-      {'ref':'SURAH AR-RAHMAN 55:13',
-        'a':'فَبِأَيِّ آلَاءِ رَبِّكُمَا تُكَذِّبَانِ',
-        't':'"So which of the favors of your Lord would you deny?"'},
-      {'ref':'SURAH AL-ANBIYA 21:107',
-        'a':'وَمَا أَرْسَلْنَاكَ إِلَّا رَحْمَةً لِّلْعَالَمِينَ',
-        't':'"And We have not sent you, [O Muhammad], except as a mercy to the worlds."'},
-      {'ref':'SURAH AL-ARAF 7:156',
-        'a':'وَرَحْمَتِي وَسِعَتْ كُلَّ شَيْءٍ',
-        't':'"My mercy encompasses all things."'},
-      {'ref':'SURAH AZ-ZUMAR 39:53',
-        'a':'لَا تَقْنَطُوا مِن رَّحْمَةِ اللَّهِ ۚ إِنَّ اللَّهَ يَغْفِرُ الذُّنُوبَ جَمِيعًا',
-        't':'"Do not despair of the mercy of Allah. Indeed, Allah forgives all sins."'},
-    ],
-    'Patience': [
-      {'ref':'SURAH ASH-SHARH 94:5-6',
-        'a':'فَإِنَّ مَعَ الْعُسْرِ يُسْرًا ۝ إِنَّ مَعَ الْعُسْرِ يُسْرًا',
-        't':'"For indeed, with hardship [will be] ease. Indeed, with hardship [will be] ease."'},
-      {'ref':'SURAH AL-BAQARAH 2:286',
-        'a':'لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا',
-        't':'"Allah does not charge a soul except [with that within] its capacity."'},
-      {'ref':'SURAH AZ-ZUMAR 39:10',
-        'a':'إِنَّمَا يُوَفَّى الصَّابِرُونَ أَجْرَهُم بِغَيْرِ حِسَابٍ',
-        't':'"Indeed, the patient will be given their reward without account."'},
-      {'ref':'SURAH AL-BAQARAH 2:153',
-        'a':'يَا أَيُّهَا الَّذِينَ آمَنُوا اسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ',
-        't':'"O you who have believed, seek help through patience and prayer."'},
-      {'ref':'SURAH AL-BAQARAH 2:155-157',
-        'a':'وَبَشِّرِ الصَّابِرِينَ ۝ الَّذِينَ إِذَا أَصَابَتْهُم مُّصِيبَةٌ قَالُوا إِنَّا لِلَّهِ وَإِنَّا إِلَيْهِ رَاجِعُونَ',
-        't':'"And give good tidings to the patient — Who, when disaster strikes them, say, Indeed we belong to Allah, and indeed to Him we will return."'},
-    ],
-    'Tawbah': [
-      {'ref':'SURAH AZ-ZUMAR 39:53',
-        'a':'قُلْ يَا عِبَادِيَ الَّذِينَ أَسْرَفُوا عَلَىٰ أَنفُسِهِمْ لَا تَقْنَطُوا مِن رَّحْمَةِ اللَّهِ',
-        't':'"Say, O My servants who have exceeded against themselves – do not despair of the mercy of Allah."'},
-      {'ref':'SURAH AL-BAQARAH 2:222',
-        'a':'إِنَّ اللَّهَ يُحِبُّ التَّوَّابِينَ وَيُحِبُّ الْمُتَطَهِّرِينَ',
-        't':'"Indeed, Allah loves those who are constantly repentant and loves those who purify themselves."'},
-      {'ref':'SURAH HOUD 11:90',
-        'a':'وَاسْتَغْفِرُوا رَبَّكُمْ ثُمَّ تُوبُوا إِلَيْهِ ۚ إِنَّ رَبِّي رَحِيمٌ وَدُودٌ',
-        't':'"And ask forgiveness of your Lord and then repent to Him. Indeed, my Lord is Merciful and Affectionate."'},
-      {'ref':'SURAH AN-NISA 4:110',
-        'a':'وَمَن يَعْمَلْ سُوءًا أَوْ يَظْلِمْ نَفْسَهُ ثُمَّ يَسْتَغْفِرِ اللَّهَ يَجِدِ اللَّهَ غَفُورًا رَّحِيمًا',
-        't':'"And whoever does a wrong or wrongs himself but then seeks forgiveness of Allah will find Allah Forgiving and Merciful."'},
-    ],
-    'Forgiveness': [
-      {'ref':'SURAH AL-IMRAN 3:135',
-        'a':'وَالَّذِينَ إِذَا فَعَلُوا فَاحِشَةً أَوْ ظَلَمُوا أَنفُسَهُمْ ذَكَرُوا اللَّهَ فَاسْتَغْفَرُوا لِذُنُوبِهِمْ',
-        't':'"And those who, when they commit an immorality or wrong themselves [by transgression], remember Allah and seek forgiveness for their sins."'},
-      {'ref':'SURAH AL-BAQARAH 2:286',
-        'a':'رَبَّنَا لَا تُؤَاخِذْنَا إِن نَّسِينَا أَوْ أَخْطَأْنَا',
-        't':'"Our Lord, do not impose blame upon us if we have forgotten or erred."'},
-      {'ref':'SURAH AL-MUMINOON 23:118',
-        'a':'وَقُل رَّبِّ اغْفِرْ وَارْحَمْ وَأَنتَ خَيْرُ الرَّاحِمِينَ',
-        't':'"And say, My Lord, forgive and have mercy, and You are the best of the merciful."'},
-    ],
-    'Gratitude': [
-      {'ref':'SURAH IBRAHIM 14:7',
-        'a':'لَئِن شَكَرْتُمْ لَأَزِيدَنَّكُمْ',
-        't':'"If you are grateful, I will surely increase you [in favor]."'},
-      {'ref':'SURAH AL-BAQARAH 2:152',
-        'a':'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ',
-        't':'"So remember Me; I will remember you. And be grateful to Me and do not deny Me."'},
-      {'ref':'SURAH LUQMAN 31:12',
-        'a':'وَمَن يَشْكُرْ فَإِنَّمَا يَشْكُرُ لِنَفْسِهِ',
-        't':'"And whoever is grateful — his gratitude is only for [the benefit of] himself."'},
-      {'ref':'SURAH AN-NAHL 16:18',
-        'a':'وَإِن تَعُدُّوا نِعْمَةَ اللَّهِ لَا تُحْصُوهَا',
-        't':'"And if you should count the favors of Allah, you could not enumerate them."'},
-    ],
-    'Hope': [
-      {'ref':'SURAH AD-DUHA 93:3-5',
-        'a':'مَا وَدَّعَكَ رَبُّكَ وَمَا قَلَىٰ ۝ وَلَلْآخِرَةُ خَيْرٌ لَّكَ مِنَ الْأُولَىٰ ۝ وَلَسَوْفَ يُعْطِيكَ رَبُّكَ فَتَرْضَىٰ',
-        't':'"Your Lord has not taken leave of you, nor has He detested [you]. And the Hereafter is better for you than the first [life]. And your Lord is going to give you, and you will be satisfied."'},
-      {'ref':'SURAH AL-HIJR 15:56',
-        'a':'وَمَن يَقْنَطُ مِن رَّحْمَةِ رَبِّهِ إِلَّا الضَّالُّونَ',
-        't':'"And who despairs of the mercy of his Lord except for those astray?"'},
-      {'ref':'SURAH AL-BAQARAH 2:286',
-        'a':'لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا',
-        't':'"Allah does not burden a soul beyond that it can bear."'},
-    ],
-    'Prayer': [
-      {'ref':'SURAH AL-BAQARAH 2:238',
-        'a':'حَافِظُوا عَلَى الصَّلَوَاتِ وَالصَّلَاةِ الْوُسْطَىٰ وَقُومُوا لِلَّهِ قَانِتِينَ',
-        't':'"Maintain with care the [obligatory] prayers and [in particular] the middle prayer and stand before Allah, devoutly obedient."'},
-      {'ref':'SURAH AL-ANKABUT 29:45',
-        'a':'اتْلُ مَا أُوحِيَ إِلَيْكَ مِنَ الْكِتَابِ وَأَقِمِ الصَّلَاةَ ۖ إِنَّ الصَّلَاةَ تَنْهَىٰ عَنِ الْفَحْشَاءِ وَالْمُنكَرِ',
-        't':'"Recite what is revealed to you of the Book and establish prayer. Indeed, prayer prohibits immorality and wrongdoing."'},
-      {'ref':'SURAH AL-BAQARAH 2:45',
-        'a':'وَاسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ',
-        't':'"And seek help through patience and prayer."'},
-    ],
-    'Death': [
-      {'ref':'SURAH AL-BAQARAH 2:156',
-        'a':'إِنَّا لِلَّهِ وَإِنَّا إِلَيْهِ رَاجِعُونَ',
-        't':'"Indeed we belong to Allah, and indeed to Him we will return."'},
-      {'ref':'SURAH AL-JUMU\'AH 62:8',
-        'a':'قُلْ إِنَّ الْمَوْتَ الَّذِي تَفِرُّونَ مِنْهُ فَإِنَّهُ مُلَاقِيكُمْ',
-        't':'"Say, Indeed, the death from which you flee — indeed, it will meet you."'},
-      {'ref':'SURAH AL-IMRAN 3:185',
-        'a':'كُلُّ نَفْسٍ ذَائِقَةُ الْمَوْتِ',
-        't':'"Every soul will taste death."'},
-    ],
-  };
-
-  List<Map<String, String>> get _current => _ayahs[_topics[_topicIndex]] ?? [];
+  @override
+  void dispose() {
+    _topicController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        _buildLanguageToggle(),
+        _buildTopicBar(),
+        Expanded(
+          child: TabBarView(
+            controller: _topicController,
+            children: CuratedData.topics.map((topic) => _TopicContent(
+              topic: topic,
+              useUrduFont: _isUrdu,
+              arabicFont: widget.arabicFont,
+              showTafseer: false,
+            )).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLanguageToggle() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          _buildHeroBanner(),
-          _buildTopicFilter(),
-          if (_current.isEmpty)
-            const Padding(padding: EdgeInsets.all(40),
-                child: Center(child: Text('No ayahs found.',
-                    style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey))))
-          else
-            ..._current.map(_buildAyahCard),
-          _buildDeepDiveBanner(),
-          const SizedBox(height: 24),
+          _toggleBtn('ENGLISH', !_isUrdu, () => setState(() => _isUrdu = false)),
+          const SizedBox(width: 8),
+          _toggleBtn('اردو', _isUrdu, () => setState(() => _isUrdu = true)),
         ],
       ),
     );
   }
 
-  Widget _buildHeroBanner() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Container(
-        width: double.infinity,
-        height: 160,
+  Widget _toggleBtn(String label, bool active, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
+          color: active ? AppColors.gold : AppColors.bgCream,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: active ? AppColors.gold : AppColors.borderLight),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(fit: StackFit.expand, children: [
-            Image.asset('assets/images/mosque.png', fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  decoration: const BoxDecoration(gradient: LinearGradient(
-                    begin: Alignment.topLeft, end: Alignment.bottomRight,
-                    colors: [Color(0xFF2D5A3D), Color(0xFF0D2818)],
-                  )),
-                )),
-            Container(decoration: const BoxDecoration(gradient: LinearGradient(
-                begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                colors: [Color(0x44000000), Color(0xBB0D2818)]))),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Words of Allah', style: TextStyle(fontFamily: 'Cairo',
-                        fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.gold)),
-                    const SizedBox(height: 4),
-                    const Text('Find solace and guidance in the divine revelations of the Noble Quran.',
-                        style: TextStyle(fontFamily: 'Cairo', fontSize: 12, color: AppColors.textCream, height: 1.5)),
-                  ]),
-            ),
-          ]),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: active ? AppColors.primaryDarkest : AppColors.textGrey,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildTopicFilter() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Explore by Topic', style: TextStyle(fontFamily: 'Cairo',
-            fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textDark)),
-        const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(children: List.generate(_topics.length, (i) {
-            final a = _topicIndex == i;
-            return GestureDetector(
-              onTap: () => setState(() => _topicIndex = i),
-              child: Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-                decoration: BoxDecoration(
-                  color: a ? AppColors.gold : Colors.transparent,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: a ? AppColors.gold : AppColors.borderLight),
+  Widget _buildTopicBar() {
+    return Container(
+      height: 60,
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TabBar(
+        controller: _topicController,
+        isScrollable: true,
+        indicator: BoxDecoration(
+          color: AppColors.primaryDark,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: Colors.white,
+        unselectedLabelColor: AppColors.textGrey,
+        labelStyle: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700, fontSize: 13),
+        unselectedLabelStyle: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w400, fontSize: 13),
+        tabs: CuratedData.topics.map((t) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Tab(text: t),
+        )).toList(),
+      ),
+    );
+  }
+}
+
+// Re-defining for now to keep files independent or I could move them to shared widgets
+class _TopicContent extends StatelessWidget {
+  final String topic;
+  final bool useUrduFont;
+  final String? arabicFont;
+  final bool showTafseer;
+
+  const _TopicContent({
+    required this.topic,
+    required this.useUrduFont,
+    this.arabicFont,
+    required this.showTafseer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ayats = CuratedData.topicAyats[topic] ?? [];
+    if (ayats.isEmpty) {
+      return const Center(child: Text('Coming Soon...', style: TextStyle(fontFamily: 'Cairo')));
+    }
+
+    final daily = CuratedData.getDailyAyat(topic);
+
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (daily.isNotEmpty) ...[
+          _buildDailyHeader(),
+          _AyahTafseerCard(
+            item: daily,
+            useUrduFont: useUrduFont,
+            arabicFont: arabicFont,
+            showTafseer: showTafseer,
+            isDaily: true,
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('EXPLORE MORE', style: TextStyle(fontFamily: 'Cairo', fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.textLightGrey)),
                 ),
-                child: Text(_topics[i], style: TextStyle(fontFamily: 'Cairo', fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: a ? AppColors.primaryDarkest : AppColors.textGrey)),
-              ),
-            );
-          })),
-        ),
-      ]),
-    );
-  }
-
-  Widget _buildAyahCard(Map<String, String> a) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      decoration: BoxDecoration(
-        color: AppColors.bgWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
-            blurRadius: 6, offset: const Offset(0, 1))],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-          child: Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                  color: AppColors.gold.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-              child: Text(a['ref']!, style: const TextStyle(fontFamily: 'Cairo', fontSize: 10,
-                  fontWeight: FontWeight.w700, color: AppColors.goldDark)),
+                Expanded(child: Divider()),
+              ],
             ),
-            const Spacer(),
-            const Icon(Icons.bookmark_outline, size: 18, color: AppColors.textGrey),
-            const SizedBox(width: 10),
-            const Icon(Icons.share_outlined, size: 18, color: AppColors.textGrey),
-          ]),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 16, 14, 8),
-          child: Text(a['a']!, textDirection: TextDirection.rtl, textAlign: TextAlign.right,
-              style: const TextStyle(fontFamily: 'Amiri', fontSize: 26,
-                  color: AppColors.textDark, height: 2.0)),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Container(height: 1, color: AppColors.borderLight),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
-          child: Text(a['t']!, style: const TextStyle(fontFamily: 'Cairo', fontSize: 13,
-              color: AppColors.textGrey, height: 1.6, fontStyle: FontStyle.italic)),
-        ),
-      ]),
+          ),
+        ],
+        ...ayats.where((a) => a['ref'] != daily['ref']).map((item) => _AyahTafseerCard(
+          item: item,
+          useUrduFont: useUrduFont,
+          arabicFont: arabicFont,
+          showTafseer: showTafseer,
+        )),
+      ],
     );
   }
 
-  Widget _buildDeepDiveBanner() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight,
-            colors: [AppColors.primaryDark, AppColors.primaryDarkest]),
-        borderRadius: BorderRadius.circular(20),
+  Widget _buildDailyHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.auto_awesome, color: AppColors.gold, size: 18),
+          const SizedBox(width: 8),
+          const Text(
+            'DAILY INSPIRATION',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primaryDark,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
       ),
-      child: Column(children: [
-        const Text('Deepen Your\nConnection', textAlign: TextAlign.center,
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 22, fontWeight: FontWeight.w800,
-                color: AppColors.gold, height: 1.3)),
-        const SizedBox(height: 10),
-        const Text('Access our full library of tafsir, word-by-word translations, and high-quality recitations.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textCream, height: 1.55)),
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-          decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(28)),
-          child: const Text('Explore Full Quran', style: TextStyle(fontFamily: 'Cairo',
-              fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primaryDarkest)),
-        ),
-      ]),
     );
   }
+}
+
+class _AyahTafseerCard extends StatelessWidget {
+  final Map<String, dynamic> item;
+  final bool useUrduFont;
+  final String? arabicFont;
+  final bool showTafseer;
+  final bool isDaily;
+
+  const _AyahTafseerCard({
+    required this.item,
+    required this.useUrduFont,
+    this.arabicFont,
+    required this.showTafseer,
+    this.isDaily = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final actualArabicFont = arabicFont ?? (useUrduFont ? 'NotoNastaliq' : 'AlQalam');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDaily ? AppColors.primaryDark.withValues(alpha: 0.02) : AppColors.bgWhite,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDaily ? AppColors.gold.withValues(alpha: 0.5) : AppColors.gold.withValues(alpha: 0.2), width: isDaily ? 1.5 : 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                item['ref']?.toString() ?? '',
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.goldDark,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              if (isDaily)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(4)),
+                  child: const Text('TODAY', style: TextStyle(fontFamily: 'Cairo', fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.primaryDarkest)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            item['arabic']?.toString() ?? '',
+            textDirection: TextDirection.rtl,
+            style: TextStyle(
+              fontFamily: actualArabicFont,
+              fontSize: useUrduFont ? 18 : 24,
+              color: AppColors.textDark,
+              height: 1.8,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (!useUrduFont)
+            _buildLanguageSection('English', item['english_trans']?.toString() ?? '', item['english_tafseer']?.toString()),
+          if (useUrduFont)
+            _buildLanguageSection('Urdu', item['urdu_trans']?.toString() ?? '', item['urdu_tafseer']?.toString()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageSection(String lang, String trans, String? tafseer) {
+    final isUrdu = lang == 'Urdu';
+    return Column(
+      crossAxisAlignment: isUrdu ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Text(
+          lang,
+          style: TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            color: AppColors.primaryDark.withValues(alpha: 0.5),
+          ),
+        ),
+        const SizedBox(height: 4),
+        _renderMixedText(
+          trans,
+          isUrdu,
+          fontSize: isUrdu ? 13 : 14,
+          color: AppColors.textDark,
+          height: 1.5,
+          arabicFont: arabicFont,
+        ),
+        if (showTafseer && tafseer != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.quranBgLightGreen.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: isUrdu ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tafseer',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.goldDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _renderMixedText(
+                  tafseer,
+                  isUrdu,
+                  fontSize: isUrdu ? 12 : 13,
+                  color: AppColors.textGrey,
+                  height: 1.6,
+                  arabicFont: arabicFont,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+Widget _renderMixedText(String text, bool isUrdu, {double? fontSize, Color? color, double? height, String? arabicFont}) {
+  final arabicRegex = RegExp(r'([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+)');
+  
+  final parts = text.split(arabicRegex);
+  final matches = arabicRegex.allMatches(text).map((m) => m.group(0)).toList();
+  
+  List<TextSpan> spans = [];
+  
+  for (int i = 0; i < parts.length; i++) {
+    if (parts[i].isNotEmpty) {
+      spans.add(TextSpan(
+        text: parts[i],
+        style: TextStyle(
+          fontFamily: isUrdu ? 'NotoNastaliq' : 'Cairo',
+          fontSize: fontSize ?? (isUrdu ? 17 : 16),
+          color: color ?? AppColors.primaryDarkest,
+          height: height ?? 2.2,
+        ),
+      ));
+    }
+    if (i < matches.length) {
+      spans.add(TextSpan(
+        text: matches[i],
+        style: TextStyle(
+          fontFamily: arabicFont ?? 'AlQalam',
+          fontSize: (fontSize ?? (isUrdu ? 17 : 16)) * 1.3,
+          color: color ?? AppColors.primaryDarkest,
+          height: height ?? 2.2,
+        ),
+      ));
+    }
+  }
+  
+  return RichText(
+    textDirection: isUrdu ? TextDirection.rtl : TextDirection.ltr,
+    textAlign: isUrdu ? TextAlign.right : TextAlign.left,
+    text: TextSpan(children: spans),
+  );
 }

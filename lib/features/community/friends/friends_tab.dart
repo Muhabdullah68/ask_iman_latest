@@ -17,13 +17,22 @@ class _FriendsTabState extends State<FriendsTab> {
   List<AppUser> _searchResults = [];
 
   @override
-  void dispose() { _searchCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   void _onSearch(String q) {
     setState(() => _query = q);
     if (q.length >= 2) {
       _svc.searchUsers(q).first.then((r) {
         if (mounted) setState(() => _searchResults = r);
+      }).catchError((e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Search failed: $e')),
+          );
+        }
       });
     } else {
       setState(() => _searchResults = []);
@@ -143,6 +152,23 @@ class _FriendsTabState extends State<FriendsTab> {
     );
   }
 
+  Future<void> _handleFriendRequest(AppUser target) async {
+    try {
+      await _svc.sendFriendRequest(target);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Friend request sent!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send request: $e')),
+        );
+      }
+    }
+  }
+
   Widget _buildSearchResults() {
     if (_searchResults.isEmpty) {
       return const Padding(
@@ -165,7 +191,7 @@ class _FriendsTabState extends State<FriendsTab> {
                 onPressed: () => _showReportDialog(u.uid),
               ),
               GestureDetector(
-                onTap: () => _svc.sendFriendRequest(u),
+                onTap: () => _handleFriendRequest(u),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                   decoration: BoxDecoration(
@@ -188,19 +214,33 @@ class _FriendsTabState extends State<FriendsTab> {
     final reasonCtrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Report User', style: TextStyle(fontFamily: 'Cairo')),
         content: TextField(
           controller: reasonCtrl,
           decoration: const InputDecoration(hintText: 'Reason for reporting'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
-              if (reasonCtrl.text.isNotEmpty) {
-                await _svc.reportUser(targetId, reasonCtrl.text);
-                if (mounted) Navigator.pop(context);
+              final reason = reasonCtrl.text.trim();
+              if (reason.isNotEmpty) {
+                try {
+                  await _svc.reportUser(targetId, reason);
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text('Report submitted. Thank you.')),
+                    );
+                  }
+                } catch (e) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(content: Text('Failed to submit report: $e')),
+                    );
+                  }
+                }
               }
             },
             child: const Text('Report', style: TextStyle(color: AppColors.error)),
@@ -308,7 +348,7 @@ class _FriendsTabState extends State<FriendsTab> {
                     child: Container(
                       width: 34, height: 34,
                       decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.15),
+                          color: AppColors.success.withValues(alpha: 0.15),
                           shape: BoxShape.circle),
                       child: const Icon(Icons.check_rounded,
                           color: AppColors.success, size: 18),
@@ -320,7 +360,7 @@ class _FriendsTabState extends State<FriendsTab> {
                     child: Container(
                       width: 34, height: 34,
                       decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
+                          color: AppColors.error.withValues(alpha: 0.1),
                           shape: BoxShape.circle),
                       child: const Icon(Icons.close_rounded,
                           color: AppColors.error, size: 18),
@@ -504,7 +544,7 @@ class _UserRow extends StatelessWidget {
           Container(
             width: 36, height: 36,
             decoration: BoxDecoration(
-              color: AppColors.primaryMid.withOpacity(0.5),
+              color: AppColors.primaryMid.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.person, color: AppColors.textWhite, size: 18),

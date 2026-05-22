@@ -9,10 +9,12 @@
 //   • Package builder bottom sheet (drag to reorder, +/- count)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../../core/theme/app_colors.dart';
+import 'dart:math' as math;
 import '../../shared/widgets/ask_iman_app_bar.dart';
 
 // ── Data models ───────────────────────────────────────────────────────────────
@@ -59,6 +61,8 @@ class TasbeehScreen extends StatefulWidget {
 
 class _TasbeehScreenState extends State<TasbeehScreen>
     with TickerProviderStateMixin {
+  // ── Library ────────────────────────────────────────────────────────────────
+  late List<DhikrItem> _dhikrLibrary;
 
   // ── Mode ───────────────────────────────────────────────────────────────────
   bool _packageMode = false;
@@ -75,12 +79,17 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   bool _showCompletion = false;
 
   // ── Tap animation ──────────────────────────────────────────────────────────
+  bool _soundEnabled = true;
+  bool _hapticEnabled = true;
+  late AudioPlayer _audioPlayer;
   late AnimationController _pulseCtrl;
   late Animation<double>    _pulse;
 
   @override
   void initState() {
     super.initState();
+    _audioPlayer = AudioPlayer();
+    _dhikrLibrary = List.from(_kDhikrLibrary);
     _pulseCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 160));
     _pulse = Tween<double>(begin: 1.0, end: 0.93)
@@ -97,37 +106,163 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   DhikrItem get _currentDhikr =>
       _packageMode && _package.isNotEmpty
           ? _package[_pkgStepIndex].dhikr
-          : _kDhikrLibrary[_dhikrIndex];
+          : _dhikrLibrary[_dhikrIndex];
 
   int get _currentTarget =>
       _packageMode && _package.isNotEmpty
           ? _package[_pkgStepIndex].target
-          : _kDhikrLibrary[_dhikrIndex].target;
+          : _dhikrLibrary[_dhikrIndex].target;
 
   int get _currentCount => _packageMode ? _pkgStepCount : _count;
 
   double get _progress => _currentTarget == 0
       ? 0 : (_currentCount / _currentTarget).clamp(0.0, 1.0);
 
-  // ── Tap logic ──────────────────────────────────────────────────────────────
+  // ── Custom Dhikr Logic ─────────────────────────────────────────────────────
+  void _showAddDhikrDialog() {
+    final nameCtrl = TextEditingController();
+    final arabicCtrl = TextEditingController();
+    final meaningCtrl = TextEditingController();
+    final targetCtrl = TextEditingController(text: '33');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.bgCream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: AppColors.primaryDark.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primaryDark, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Text('Add Custom Dhikr', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primaryDark)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _dialogInput('Dhikr Name', nameCtrl, hint: 'e.g. SubhanAllah'),
+            const SizedBox(height: 16),
+            _dialogInput('Arabic Text', arabicCtrl, hint: 'سُبْحَانَ اللَّهِ', isArabic: true),
+            const SizedBox(height: 16),
+            _dialogInput('Meaning', meaningCtrl, hint: 'Glory be to Allah'),
+            const SizedBox(height: 16),
+            _dialogInput('Target Count', targetCtrl, hint: '33', isNumber: true),
+          ]),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx), 
+            child: const Text('Cancel', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700, color: AppColors.textGrey))
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: AppColors.gold,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            onPressed: () {
+              final name = nameCtrl.text.trim();
+              final arabic = arabicCtrl.text.trim();
+              if (name.isNotEmpty && arabic.isNotEmpty) {
+                setState(() {
+                  _dhikrLibrary.add(DhikrItem(
+                    name: name,
+                    arabic: arabic,
+                    meaning: meaningCtrl.text.trim(),
+                    target: int.tryParse(targetCtrl.text) ?? 33,
+                  ));
+                });
+                Navigator.pop(ctx);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Name and Arabic text are required')),
+                );
+              }
+            },
+            child: const Text('Add Dhikr', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dialogInput(String label, TextEditingController ctrl, {String? hint, bool isArabic = false, bool isNumber = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontFamily: 'Cairo', fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.primaryDark, letterSpacing: 0.5)),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.primaryDark,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+          ),
+          child: TextField(
+            controller: ctrl,
+            textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
+            keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+            style: TextStyle(
+              fontFamily: isArabic ? 'AlQalam' : 'Cairo',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13, fontFamily: isArabic ? 'AlQalam' : 'Cairo'),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _playClickSound() async {
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.play(AssetSource('sounds/click.mpeg'), volume: 1.0);
+    } catch (e) {
+      debugPrint('Audio error: $e');
+    }
+  }
+
   void _onTap() {
-    HapticFeedback.lightImpact();
     _pulseCtrl.forward().then((_) => _pulseCtrl.reverse());
 
     if (_packageMode) {
       _packageTap();
     } else {
+      if (_soundEnabled) _playClickSound();
+      final newCount = _count + 1;
+      if (newCount >= _currentTarget) {
+        // Individual mode completion feedback
+        if (_hapticEnabled) HapticFeedback.vibrate();
+        if (_soundEnabled) _playClickSound();
+      }
       setState(() => _count++);
     }
   }
 
   void _packageTap() {
     if (!_pkgRunning || _package.isEmpty) return;
+    if (_soundEnabled) _playClickSound();
     final newCount = _pkgStepCount + 1;
     final step     = _package[_pkgStepIndex];
 
     if (newCount >= step.target) {
-      HapticFeedback.mediumImpact();
+      // Step completion feedback (Vibrate + Sound)
+      if (_hapticEnabled) HapticFeedback.vibrate();
+      if (_soundEnabled) _playClickSound();
+
       if (_pkgStepIndex < _package.length - 1) {
         setState(() { _pkgStepIndex++; _pkgStepCount = 0; });
         _showStepSnack();
@@ -167,7 +302,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgCream,
-      appBar: const AskImanAppBar(),
+      appBar: const AskImanAppBar(showBackButton: true),
       body: Stack(children: [
         SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -207,7 +342,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
             'assets/images/tasbih beads.png',
             fit: BoxFit.cover,
             alignment: Alignment.topCenter,
-            errorBuilder: (_, __, ___) => Container(color: AppColors.primaryDark),
+            errorBuilder: (_, _, _) => Container(color: AppColors.primaryDark),
           ),
           Container(
             decoration: const BoxDecoration(
@@ -324,7 +459,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.gold.withOpacity(0.15),
+                color: AppColors.gold.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text('STEP ${_pkgStepIndex + 1} / ${_package.length}',
@@ -349,49 +484,6 @@ class _TasbeehScreenState extends State<TasbeehScreen>
               backgroundColor: AppColors.borderLight,
               color: AppColors.gold,
               minHeight: 6,
-            ),
-          ),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              children: List.generate(_package.length, (i) {
-                final done    = i < _pkgStepIndex;
-                final current = i == _pkgStepIndex;
-                return Container(
-                  margin: const EdgeInsets.only(right: 6),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: done ? AppColors.success.withOpacity(0.15)
-                        : current ? AppColors.primaryDark
-                        : AppColors.bgCream,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: done ? AppColors.success.withOpacity(0.4)
-                          : current ? AppColors.primaryDark
-                          : AppColors.borderLight,
-                    ),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    if (done) ...[
-                      const Icon(Icons.check, size: 11, color: AppColors.success),
-                      const SizedBox(width: 4),
-                    ],
-                    Text(_package[i].dhikr.name, style: TextStyle(
-                        fontFamily: 'Cairo', fontSize: 11, fontWeight: FontWeight.w600,
-                        color: done ? AppColors.success
-                            : current ? AppColors.gold
-                            : AppColors.textGrey)),
-                    const SizedBox(width: 4),
-                    Text('×${_package[i].target}', style: TextStyle(
-                        fontFamily: 'Cairo', fontSize: 10,
-                        color: done ? AppColors.success.withOpacity(0.7)
-                            : current ? AppColors.textGreenMuted
-                            : AppColors.textLightGrey)),
-                  ]),
-                );
-              }),
             ),
           ),
         ]),
@@ -440,18 +532,16 @@ class _TasbeehScreenState extends State<TasbeehScreen>
           child: SizedBox(
             width: 280, height: 280,
             child: Stack(alignment: Alignment.center, children: [
-              // Outer cream ring
               Container(
                 width: 280, height: 280,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: const Color(0xFFF5F2EC),
                   boxShadow: [BoxShadow(
-                      color: Colors.black.withOpacity(0.07),
+                      color: Colors.black.withValues(alpha: 0.07),
                       blurRadius: 20, spreadRadius: 2)],
                 ),
               ),
-              // Progress ring
               SizedBox(
                 width: 256, height: 256,
                 child: CircularProgressIndicator(
@@ -463,14 +553,13 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                   strokeCap: StrokeCap.round,
                 ),
               ),
-              // Inner dark circle
               Container(
                 width: 228, height: 228,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.primaryDark,
                   boxShadow: [BoxShadow(
-                      color: AppColors.primaryDark.withOpacity(0.3),
+                      color: AppColors.primaryDark.withValues(alpha: 0.3),
                       blurRadius: 20, spreadRadius: 2, offset: const Offset(0, 4))],
                 ),
                 child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -478,21 +567,6 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                     fontFamily: 'Cairo', fontSize: 80,
                     fontWeight: FontWeight.w800, color: Colors.white, height: 1.0,
                   )),
-                  const SizedBox(height: 4),
-                  Text(
-                    _packageMode && !_pkgRunning && _package.isNotEmpty
-                        ? 'START BELOW'
-                        : 'TAP TO COUNT',
-                    style: const TextStyle(fontFamily: 'Cairo', fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF7BAE8A), letterSpacing: 1.5),
-                  ),
-                  if (_currentTarget > 0) ...[
-                    const SizedBox(height: 2),
-                    Text('/ $_currentTarget', style: const TextStyle(
-                        fontFamily: 'Cairo', fontSize: 13,
-                        color: AppColors.textGreenMuted)),
-                  ],
                 ]),
               ),
             ]),
@@ -504,63 +578,21 @@ class _TasbeehScreenState extends State<TasbeehScreen>
 
   // ── Controls row ───────────────────────────────────────────────────────────
   Widget _buildControls() {
-    if (_packageMode) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Row(children: [
-          Expanded(child: _ctrlBtn(Icons.refresh_rounded, 'Reset', _resetPackage)),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: GestureDetector(
-              onTap: _package.isEmpty
-                  ? _openPackageBuilder
-                  : () => setState(() {
-                _pkgRunning   = !_pkgRunning;
-                _pkgStepIndex = 0;
-                _pkgStepCount = 0;
-                _showCompletion = false;
-              }),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                    color: AppColors.gold,
-                    borderRadius: BorderRadius.circular(28)),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Icon(
-                    _package.isEmpty ? Icons.add
-                        : _pkgRunning ? Icons.stop_rounded
-                        : Icons.play_arrow_rounded,
-                    color: AppColors.primaryDarkest, size: 22,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _package.isEmpty ? 'Add Dhikrs'
-                        : _pkgRunning ? 'Stop'
-                        : 'Start Package',
-                    style: const TextStyle(fontFamily: 'Cairo', fontSize: 15,
-                        fontWeight: FontWeight.w700, color: AppColors.primaryDarkest),
-                  ),
-                ]),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: _ctrlBtn(Icons.playlist_add, 'Edit', _openPackageBuilder)),
-        ]),
-      );
-    }
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _ctrlBtn(Icons.refresh_rounded,    'Reset',  () => setState(() => _count = 0)),
-        _ctrlBtn(Icons.volume_up_outlined, 'Sound',  () {}),
-        _ctrlBtn(Icons.vibration_rounded,  'Haptic', () {}),
+        _ctrlBtn(Icons.refresh_rounded,    'Reset',  () => setState(() => _packageMode ? _resetPackage() : _count = 0)),
+        _ctrlBtn(Icons.volume_up_outlined, 'Sound',  () {
+          setState(() => _soundEnabled = !_soundEnabled);
+        }, active: _soundEnabled),
+        _ctrlBtn(Icons.vibration_rounded,  'Haptic', () {
+          setState(() => _hapticEnabled = !_hapticEnabled);
+        }, active: _hapticEnabled),
       ],
     );
   }
 
-  Widget _ctrlBtn(IconData icon, String label, VoidCallback onTap) {
+  Widget _ctrlBtn(IconData icon, String label, VoidCallback onTap, {bool active = true}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(children: [
@@ -571,7 +603,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
             color: const Color(0xFFF0EDE6),
             border: Border.all(color: const Color(0xFFE0DDD5)),
           ),
-          child: Icon(icon, color: AppColors.primaryDark, size: 22),
+          child: Icon(icon, color: active ? AppColors.primaryDark : Colors.grey, size: 22),
         ),
         const SizedBox(height: 6),
         Text(label, style: const TextStyle(fontFamily: 'Cairo',
@@ -589,9 +621,23 @@ class _TasbeehScreenState extends State<TasbeehScreen>
           const Text('Choose Dhikr', style: TextStyle(fontFamily: 'Cairo',
               fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textDark)),
           const Spacer(),
-          const Text('VIEW ALL', style: TextStyle(fontFamily: 'Cairo',
-              fontSize: 12, fontWeight: FontWeight.w700,
-              color: AppColors.gold, letterSpacing: 0.5)),
+          GestureDetector(
+            onTap: _showAddDhikrDialog,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [AppColors.gold, AppColors.primaryDark]),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text('+ ADD NEW', style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              )),
+            ),
+          ),
         ]),
       ),
       const SizedBox(height: 14),
@@ -600,9 +646,9 @@ class _TasbeehScreenState extends State<TasbeehScreen>
         padding: const EdgeInsets.symmetric(horizontal: 20),
         physics: const BouncingScrollPhysics(),
         child: Row(
-          children: List.generate(_kDhikrLibrary.length, (i) {
+          children: List.generate(_dhikrLibrary.length, (i) {
             final active = _dhikrIndex == i;
-            final d = _kDhikrLibrary[i];
+            final d = _dhikrLibrary[i];
             return GestureDetector(
               onTap: () => setState(() { _dhikrIndex = i; _count = 0; }),
               child: AnimatedContainer(
@@ -621,7 +667,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      color: active ? Colors.white.withOpacity(0.2)
+                      color: active ? Colors.white.withValues(alpha: 0.2)
                           : const Color(0xFFDDD9D0),
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -654,12 +700,12 @@ class _TasbeehScreenState extends State<TasbeehScreen>
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: done ? AppColors.success.withOpacity(0.06)
+              color: done ? AppColors.success.withValues(alpha: 0.06)
                   : current ? AppColors.primaryDark
                   : AppColors.bgWhite,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: done ? AppColors.success.withOpacity(0.3)
+                color: done ? AppColors.success.withValues(alpha: 0.3)
                     : current ? AppColors.primaryDark
                     : AppColors.borderLight,
               ),
@@ -712,6 +758,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
       backgroundColor: Colors.transparent,
       builder: (_) => _PackageBuilderSheet(
         initial: List.from(_package),
+        library: _dhikrLibrary,
         onSave: (steps) => setState(() {
           _package        = steps;
           _pkgStepIndex   = 0;
@@ -729,8 +776,9 @@ class _TasbeehScreenState extends State<TasbeehScreen>
 // ══════════════════════════════════════════════════════════════════════════════
 class _PackageBuilderSheet extends StatefulWidget {
   final List<PackageStep> initial;
+  final List<DhikrItem> library;
   final void Function(List<PackageStep>) onSave;
-  const _PackageBuilderSheet({required this.initial, required this.onSave});
+  const _PackageBuilderSheet({required this.initial, required this.library, required this.onSave});
   @override State<_PackageBuilderSheet> createState() => _PackageBuilderSheetState();
 }
 
@@ -741,7 +789,7 @@ class _PackageBuilderSheetState extends State<_PackageBuilderSheet> {
   void initState() {
     super.initState();
     _steps = widget.initial.isEmpty
-        ? [PackageStep(dhikr: _kDhikrLibrary[0], target: 33)]
+        ? [PackageStep(dhikr: widget.library[0], target: 33)]
         : List.from(widget.initial);
   }
 
@@ -824,7 +872,7 @@ class _PackageBuilderSheetState extends State<_PackageBuilderSheet> {
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
                 child: Row(
-                  children: _kDhikrLibrary.map((d) => GestureDetector(
+                  children: widget.library.map((d) => GestureDetector(
                     onTap: () => setState(() =>
                         _steps.add(PackageStep(dhikr: d, target: d.target))),
                     child: Container(
@@ -997,7 +1045,7 @@ class _CompletionOverlayState extends State<_CompletionOverlay>
           [_bgFade, _starScale, _starRotate, _textSlide, _textFade, _particleCtrl]),
       builder: (ctx, _) => Positioned.fill(
         child: Container(
-          color: AppColors.primaryDarkest.withOpacity(0.93 * _bgFade.value),
+          color: AppColors.primaryDarkest.withValues(alpha: 0.93 * _bgFade.value),
           child: SafeArea(
             child: Stack(children: [
               // Floating particles
@@ -1105,12 +1153,12 @@ class _IslamicStarPainter extends CustomPainter {
     final cx = size.width / 2, cy = size.height / 2, r = size.width / 2;
 
     canvas.drawCircle(Offset(cx, cy), r * 1.1,
-        Paint()..color = AppColors.gold.withOpacity(0.15 * progress));
+        Paint()..color = AppColors.gold.withValues(alpha: 0.15 * progress));
     canvas.drawCircle(Offset(cx, cy), r * 0.95,
         Paint()..color = AppColors.primaryDark);
     canvas.drawCircle(Offset(cx, cy), r * 0.92,
         Paint()
-          ..color = AppColors.gold.withOpacity(0.4)
+          ..color = AppColors.gold.withValues(alpha: 0.4)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5);
 
@@ -1135,7 +1183,7 @@ class _IslamicStarPainter extends CustomPainter {
     if (fill == null) {
       c.drawPath(path,
           Paint()
-            ..color = AppColors.primaryDark.withOpacity(0.3)
+            ..color = AppColors.primaryDark.withValues(alpha: 0.3)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 0.8);
     }
