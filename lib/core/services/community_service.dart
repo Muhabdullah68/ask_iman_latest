@@ -18,7 +18,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 // ── Role enum ─────────────────────────────────────────────────────────────────
 
@@ -59,10 +62,22 @@ class AppUser {
     this.streakCount = 0,
   });
 
+  static const guest = AppUser(
+    uid: 'guest_user',
+    name: 'Guest User',
+    email: 'guest@askiman.app',
+    role: UserRole.student,
+    bio: 'Assalamu Alaikum! I am using Ask Iman as a guest.',
+  );
+
   factory AppUser.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
+    return AppUser.fromMap(d, doc.id);
+  }
+
+  factory AppUser.fromMap(Map<String, dynamic> d, String id) {
     return AppUser(
-      uid:            doc.id,
+      uid:            id,
       name:           d['name']           ?? '',
       email:          d['email']          ?? '',
       role:           _roleFrom(d['role']),
@@ -77,6 +92,24 @@ class AppUser {
       reportCount:    d['reportCount']    ?? 0,
       streakCount:    d['streakCount']    ?? 0,
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name':           name,
+      'email':          email,
+      'role':           role.name,
+      'bio':            bio,
+      'photoUrl':       photoUrl,
+      'isBlocked':      isBlocked,
+      'isApproved':     isApproved,
+      'qualification':  qualification,
+      'specialization': specialization,
+      'friends':        friends,
+      'groups':         groups,
+      'reportCount':    reportCount,
+      'streakCount':    streakCount,
+    };
   }
 
   static UserRole _roleFrom(String? r) {
@@ -342,11 +375,35 @@ class CommunityService {
   CommunityService._();
   static final CommunityService instance = CommunityService._();
 
-  final _db   = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
-  final _storage = FirebaseStorage.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  String get _uid => _auth.currentUser?.uid ?? '';
+  String get _uid => _auth.currentUser?.uid ?? 'guest_user';
+  bool get _isGuest => _uid == 'guest_user';
+  bool get isGuestUser => _isGuest;
+
+  final _guestUpdateController = StreamController<Object?>.broadcast();
+
+  Future<AppUser> _getGuestUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString('guest_user_data');
+    if (json != null) {
+      try {
+        final map = jsonDecode(json);
+        return AppUser.fromMap(map, 'guest_user');
+      } catch (e) {
+        debugPrint('Error parsing guest user: $e');
+      }
+    }
+    return AppUser.guest;
+  }
+
+  Future<void> _saveGuestUser(AppUser user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('guest_user_data', jsonEncode(user.toMap()));
+    _guestUpdateController.add(null);
+  }
 
   // ── Storage ────────────────────────────────────────────────────────────────
 
@@ -364,13 +421,28 @@ class CommunityService {
   // ── Current user ───────────────────────────────────────────────────────────
 
   Future<AppUser?> getCurrentUser() async {
-    if (_uid.isEmpty) return null;
+    if (_isGuest) return _getGuestUser();
     final doc = await _db.collection('users').doc(_uid).get();
     return doc.exists ? AppUser.fromDoc(doc) : null;
   }
 
   Stream<AppUser?> watchCurrentUser() {
-    if (_uid.isEmpty) return Stream.value(null);
+    if (_isGuest) {
+      late StreamController<AppUser?> controller;
+      StreamSubscription? sub;
+      controller = StreamController<AppUser?>.broadcast(
+        onListen: () async {
+          final guest = await _getGuestUser();
+          if (!controller.isClosed) controller.add(guest);
+          sub = _guestUpdateController.stream.listen((_) async {
+            final updatedGuest = await _getGuestUser();
+            if (!controller.isClosed) controller.add(updatedGuest);
+          });
+        },
+        onCancel: () => sub?.cancel(),
+      );
+      return controller.stream;
+    }
     return _db.collection('users').doc(_uid).snapshots()
         .map((d) => d.exists ? AppUser.fromDoc(d) : null);
   }
@@ -386,6 +458,19 @@ class CommunityService {
     String? qualification,
     String? specialization,
   }) async {
+    if (_isGuest) {
+      final guest = AppUser(
+        uid: 'guest_user',
+        name: name,
+        email: email,
+        role: role,
+        bio: bio,
+        qualification: qualification ?? '',
+        specialization: specialization ?? '',
+      );
+      await _saveGuestUser(guest);
+      return;
+    }
     final batch = _db.batch();
     final userRef = _db.collection('users').doc(_uid);
 
@@ -534,6 +619,46 @@ class CommunityService {
     required bool quran,
     required bool classAttended,
   }) async {
+    if (_isGuest) {
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now();
+      final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
+      
+      final streaksJson = prefs.getString('guest_streaks') ?? '{}';
+      final Map<String, dynamic> streaks = jsonDecode(streaksJson);
+      
+      streaks[dateKey] = {
+        'prayers':       prayers,
+        'quran':         quran,
+        'classAttended': classAttended,
+        'date':          today.toIso8601String(),
+      };
+      
+      await prefs.setString('guest_streaks', jsonEncode(streaks));
+      
+      // Update guest profile streak count
+      final guest = await _getGuestUser();
+      final newStreakCount = await getStreakForUser('guest_user');
+      
+      final updated = AppUser(
+        uid:            guest.uid,
+        name:           guest.name,
+        email:          guest.email,
+        role:           guest.role,
+        bio:            guest.bio,
+        photoUrl:       guest.photoUrl,
+        isBlocked:      guest.isBlocked,
+        isApproved:     guest.isApproved,
+        qualification:  guest.qualification,
+        specialization: guest.specialization,
+        friends:        guest.friends,
+        groups:         guest.groups,
+        reportCount:    guest.reportCount,
+        streakCount:    newStreakCount,
+      );
+      await _saveGuestUser(updated);
+      return;
+    }
     final today = DateTime.now();
     final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
     await _db
@@ -562,7 +687,38 @@ class CommunityService {
   }
 
   Future<Map<String, double>> getSoulProgress() async {
-    if (_uid.isEmpty) return {'namaz': 0, 'quran': 0, 'zikr': 0};
+    if (_isGuest) {
+      final prefs = await SharedPreferences.getInstance();
+      final streaksJson = prefs.getString('guest_streaks') ?? '{}';
+      final Map<String, dynamic> streaks = jsonDecode(streaksJson);
+      
+      if (streaks.isEmpty) return {'namaz': 0, 'quran': 0, 'zikr': 0};
+
+      final now = DateTime.now();
+      final sevenDaysAgo = now.subtract(const Duration(days: 7));
+      
+      int namazCount = 0;
+      int quranCount = 0;
+      int zikrCount = 0;
+
+      streaks.forEach((key, value) {
+        final date = DateTime.parse(key);
+        if (date.isAfter(sevenDaysAgo)) {
+          if (value['prayers'] == true) namazCount++;
+          if (value['quran'] == true) quranCount++;
+          // Any activity counts for zikr in this simple demo
+          if (value['prayers'] == true || value['quran'] == true || value['classAttended'] == true) {
+            zikrCount++;
+          }
+        }
+      });
+
+      return {
+        'namaz': namazCount / 7,
+        'quran': quranCount / 7,
+        'zikr': zikrCount / 7,
+      };
+    }
     
     try {
       final now = DateTime.now();
@@ -611,6 +767,36 @@ class CommunityService {
 
   Future<int> getStreakForUser(String userId) async {
     if (userId.isEmpty) return 0;
+
+    if (userId == 'guest_user') {
+      final prefs = await SharedPreferences.getInstance();
+      final streaksJson = prefs.getString('guest_streaks') ?? '{}';
+      final Map<String, dynamic> streaks = jsonDecode(streaksJson);
+      
+      if (streaks.isEmpty) return 0;
+      
+      final now = DateTime.now();
+      DateTime checkDate = DateTime(now.year, now.month, now.day);
+      int streak = 0;
+      
+      final sortedKeys = streaks.keys.toList()..sort((a, b) => b.compareTo(a));
+      if (sortedKeys.isEmpty) return 0;
+      
+      final latestDate = DateTime.parse(sortedKeys.first);
+      if (latestDate.isBefore(checkDate.subtract(const Duration(days: 1)))) return 0;
+      if (latestDate.isBefore(checkDate)) checkDate = latestDate;
+      
+      for (var key in sortedKeys) {
+        final date = DateTime.parse(key);
+        if (date.year == checkDate.year && date.month == checkDate.month && date.day == checkDate.day) {
+          streak++;
+          checkDate = checkDate.subtract(const Duration(days: 1));
+        } else if (date.isBefore(checkDate)) {
+          break;
+        }
+      }
+      return streak;
+    }
     
     try {
       final now = DateTime.now();
@@ -972,7 +1158,27 @@ class CommunityService {
     required String bio,
     String? photoUrl,
   }) async {
-    if (_uid.isEmpty) return;
+    if (_isGuest) {
+      final guest = await _getGuestUser();
+      final updated = AppUser(
+        uid: guest.uid,
+        name: name,
+        email: guest.email,
+        role: guest.role,
+        bio: bio,
+        photoUrl: photoUrl ?? guest.photoUrl,
+        isBlocked: guest.isBlocked,
+        isApproved: guest.isApproved,
+        qualification: guest.qualification,
+        specialization: guest.specialization,
+        friends: guest.friends,
+        groups: guest.groups,
+        reportCount: guest.reportCount,
+        streakCount: guest.streakCount,
+      );
+      await _saveGuestUser(updated);
+      return;
+    }
     await _db.collection('users').doc(_uid).update({
       'name': name,
       'bio': bio,

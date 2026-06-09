@@ -180,14 +180,16 @@ class _QiblahScreenState extends State<QiblahScreen>
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
+      
+      // PASSIVE CHECK: Only request if it's the FIRST time or we already have it.
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (mounted && _currentPosition == null) {
-            setState(() => _errorMessage = 'Location permissions are denied.');
-          }
-          return;
+        if (mounted && _currentPosition == null) {
+          setState(() {
+            _errorMessage = 'Location permission is required for Qiblah.';
+            _isLoading = false;
+          });
         }
+        return;
       }
 
       if (permission == LocationPermission.deniedForever) {
@@ -197,30 +199,55 @@ class _QiblahScreenState extends State<QiblahScreen>
         return;
       }
 
-      // 3. Get fresh position in background (might take time)
-      Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium, // Faster than high
-        timeLimit: const Duration(seconds: 5),
-      ).then((pos) {
-        if (mounted) {
-          setState(() {
-            _currentPosition = pos;
-            _qiblahBearing = _calculateQiblahBearing();
-            _targetQiblahAngle = _qiblahBearing - _compassHeading;
-            _isLoading = false;
-          });
-        }
-      }).catchError((e) {
-        if (mounted && _currentPosition == null) {
-          setState(() => _isLoading = false);
-        }
-      });
-
+      // If we have permission, get position
+      _requestFreshLocation();
     } catch (e) {
       if (mounted && _currentPosition == null) {
         setState(() => _errorMessage = 'Error initializing location: $e');
       }
     }
+  }
+
+  /// Explicitly request permission and re-initialize. Use for the 'RETRY' button.
+  Future<void> _requestPermissionAndRetry() async {
+    setState(() {
+      _errorMessage = '';
+      _isLoading = true;
+    });
+    
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    
+    if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+      _initialize();
+    } else {
+      setState(() {
+        _errorMessage = 'Location permission denied.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _requestFreshLocation() {
+    Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.medium,
+      timeLimit: const Duration(seconds: 5),
+    ).then((pos) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = pos;
+          _qiblahBearing = _calculateQiblahBearing();
+          _targetQiblahAngle = _qiblahBearing - _compassHeading;
+          _isLoading = false;
+        });
+      }
+    }).catchError((e) {
+      if (mounted && _currentPosition == null) {
+        setState(() => _isLoading = false);
+      }
+    });
   }
 
   Future<void> _getCurrentLocation() async {
