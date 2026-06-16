@@ -8,10 +8,6 @@ import '../../features/ibadah/ibadah_screen.dart';
 // import '../../features/community/community_auth_screen.dart';
 import '../../features/profile/profile_screen.dart';
 
-import 'package:firebase_auth/firebase_auth.dart';
-import '../../features/community/streaks/streaks_tab.dart';
-import '../../core/services/community_service.dart';
-
 import '../../features/community/community_auth_screen.dart'; // Needed for CommunityGate if applicable
 
 class MainShell extends StatefulWidget {
@@ -57,7 +53,7 @@ class _MainShellState extends State<MainShell> {
       HomeScreen(onNavigateToTab: _changeTab),
       QuranScreen(key: QuranScreen.screenKey),
       const IbadahScreen(),
-      _buildStreaksGate(),
+      const CommunityGate(), // Updated to only show streaks (guest mode) as requested
       const ProfileScreen(),
     ];
 
@@ -80,42 +76,6 @@ class _MainShellState extends State<MainShell> {
           onTap: _changeTab,
         ),
       ),
-    );
-  }
-
-  Widget _buildStreaksGate() {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (ctx, authSnap) {
-        if (authSnap.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-        if (authSnap.data == null) {
-          return const CommunityGate(); // Redirect to login if not authenticated
-        }
-        return StreamBuilder<AppUser?>(
-          stream: CommunityService.instance.watchCurrentUser(),
-          builder: (ctx2, profileSnap) {
-            if (profileSnap.connectionState == ConnectionState.waiting) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
-            }
-            final user = profileSnap.data;
-            if (user == null) {
-              return const CommunityGate(); // Redirect to setup profile if missing
-            }
-            return Scaffold(
-              backgroundColor: Colors.white,
-              appBar: AppBar(
-                backgroundColor: AppColors.primaryDark,
-                title: const Text('Deen Streaks', style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.bold, color: Colors.white)),
-                centerTitle: true,
-                elevation: 0,
-              ),
-              body: StreaksTab(currentUser: user),
-            );
-          },
-        );
-      },
     );
   }
 }

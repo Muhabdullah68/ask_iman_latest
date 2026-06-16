@@ -94,24 +94,6 @@ class AppUser {
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'name':           name,
-      'email':          email,
-      'role':           role.name,
-      'bio':            bio,
-      'photoUrl':       photoUrl,
-      'isBlocked':      isBlocked,
-      'isApproved':     isApproved,
-      'qualification':  qualification,
-      'specialization': specialization,
-      'friends':        friends,
-      'groups':         groups,
-      'reportCount':    reportCount,
-      'streakCount':    streakCount,
-    };
-  }
-
   static UserRole _roleFrom(String? r) {
     switch (r) {
       case 'teacher': return UserRole.teacher;
@@ -1179,11 +1161,40 @@ class CommunityService {
       await _saveGuestUser(updated);
       return;
     }
-    await _db.collection('users').doc(_uid).update({
+    final data = {
       'name': name,
       'bio': bio,
-      if (photoUrl != null) 'photoUrl': photoUrl,
-    });
+    };
+    if (photoUrl != null) data['photoUrl'] = photoUrl;
+    await _db.collection('users').doc(_uid).update(data);
+  }
+
+  Future<void> updateStreakCount(int count) async {
+    if (_isGuest) {
+      final guest = await _getGuestUser();
+      final updated = AppUser(
+        uid:            guest.uid,
+        name:           guest.name,
+        email:          guest.email,
+        role:           guest.role,
+        bio:            guest.bio,
+        photoUrl:       guest.photoUrl,
+        isBlocked:      guest.isBlocked,
+        isApproved:     guest.isApproved,
+        qualification:  guest.qualification,
+        specialization: guest.specialization,
+        friends:        guest.friends,
+        groups:         guest.groups,
+        reportCount:    guest.reportCount,
+        streakCount:    count,
+      );
+      await _saveGuestUser(updated);
+    } else {
+      await _db.collection('users').doc(_uid).update({
+        'streakCount': count,
+        'lastActive': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   // Live list of approved teachers (for student Featured Teachers section)

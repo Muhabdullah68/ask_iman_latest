@@ -1845,7 +1845,7 @@ class _MadhabPickerSheet extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 class NotifSettingsSheet extends StatefulWidget {
   final PrayerService service;
-  const NotifSettingsSheet({required this.service});
+  const NotifSettingsSheet({super.key, required this.service});
 
   @override
   State<NotifSettingsSheet> createState() => _NotifSettingsSheetState();

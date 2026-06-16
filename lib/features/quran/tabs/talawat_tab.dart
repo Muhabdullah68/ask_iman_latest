@@ -29,9 +29,13 @@
 //   5. Translation mode: individual ayah cards retained (unchanged UX).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/quran_download_service.dart';
+import '../../../core/services/quran_audio_service.dart';
+import '../widgets/download_dialog.dart';
+import '../widgets/pdf_viewer_screen.dart';
 import '../data/surahs_data.dart';
 import '../data/quran_api_service.dart';
 import 'tafseer_tab.dart';
@@ -410,77 +414,229 @@ class SharedSurahCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 6),
         decoration: BoxDecoration(
           color: AppColors.bgWhite,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.gold.withValues(alpha: 0.35), width: 1.2),
           boxShadow: [
             BoxShadow(color: AppColors.gold.withValues(alpha: 0.07),
                 blurRadius: 6, offset: const Offset(0, 2)),
           ],
         ),
-        child: Row(children: [
-          // Golden number badge
-          Container(
-            width: 48, height: 64,
-            decoration: BoxDecoration(
-              color: AppColors.gold,
-              borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  bottomLeft: Radius.circular(14)),
-            ),
-            child: Center(
-              child: Text('${surah['num']}',
-                  style: const TextStyle(fontFamily: 'Cairo', fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primaryDarkest)),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(surah['name'] as String,
+        child: IntrinsicHeight(
+          child: Row(children: [
+            // Golden number badge
+            Container(
+              width: 44,
+              decoration: BoxDecoration(
+                color: AppColors.gold,
+                borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    bottomLeft: Radius.circular(12)),
+              ),
+              child: Center(
+                child: Text('${surah['num']}',
                     style: const TextStyle(fontFamily: 'Cairo', fontSize: 14,
-                        fontWeight: FontWeight.w700, color: AppColors.textDark)),
-                const SizedBox(height: 3),
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: isMakki
-                          ? AppColors.gold.withValues(alpha: 0.18)
-                          : AppColors.primaryLight.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                          color: isMakki
-                              ? AppColors.gold.withValues(alpha: 0.4)
-                              : AppColors.primaryLight.withValues(alpha: 0.3)),
-                    ),
-                    child: Text(surah['type'] as String,
-                        style: TextStyle(fontFamily: 'Cairo', fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: isMakki ? AppColors.goldDark : AppColors.primaryLight)),
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primaryDarkest)),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(surah['name'] as String,
+                          style: const TextStyle(fontFamily: 'Cairo', fontSize: 14,
+                              fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isMakki
+                                ? AppColors.gold.withValues(alpha: 0.18)
+                                : AppColors.primaryLight.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                                color: isMakki
+                                    ? AppColors.gold.withValues(alpha: 0.4)
+                                    : AppColors.primaryLight.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(surah['type'] as String,
+                              style: TextStyle(fontFamily: 'Cairo', fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: isMakki ? AppColors.goldDark : AppColors.primaryLight)),
+                        ),
+                        const SizedBox(width: 5),
+                        Text('• ${surah['ayahs']} Ayahs',
+                            style: const TextStyle(fontFamily: 'Cairo', fontSize: 11,
+                                color: AppColors.textGrey)),
+                      ]),
+                    ]),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListenableBuilder(
+                    listenable: QuranAudioService(),
+                    builder: (context, _) {
+                      final audio = QuranAudioService();
+                      final isPlaying = audio.isPlaying && audio.currentId == 'surah_${surah['num']}';
+                      return IconButton(
+                        icon: Icon(
+                          isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded,
+                          color: AppColors.primaryDark,
+                          size: 26,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          if (isPlaying) {
+                            audio.togglePause();
+                          } else {
+                            audio.playSurah(surah['num'], surah['name']);
+                          }
+                        },
+                      );
+                    },
                   ),
-                  const SizedBox(width: 5),
-                  Text('• ${surah['ayahs']} Ayahs',
-                      style: const TextStyle(fontFamily: 'Cairo', fontSize: 11,
+                  const SizedBox(height: 6),
+                  ListenableBuilder(
+                    listenable: QuranDownloadService(),
+                    builder: (context, _) {
+                      final service = QuranDownloadService();
+                      final id = 'surah_${surah['num']}';
+                      
+                      // Build audio status widget
+                      Widget buildAudioStatus() {
+                        final audioDownloaded = service.isDownloaded(id, DownloadType.audio);
+                        final audioProgress = service.getProgress(id, DownloadType.audio);
+                        
+                        if (audioProgress?.isDownloading == true) {
+                          return SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              value: audioProgress!.progress,
+                              color: AppColors.gold,
+                              strokeWidth: 2,
+                            ),
+                          );
+                        } else if (audioProgress?.error != null) {
+                          return const Icon(Icons.error_outline, color: Colors.red, size: 16);
+                        } else if (audioDownloaded) {
+                          return const Icon(Icons.check_circle, color: Colors.green, size: 16);
+                        } else {
+                          return const SizedBox.shrink();
+                        }
+                      }
+                      
+                      // Build PDF status widget
+                      Widget buildPdfStatus() {
+                        final pdfDownloaded = service.isDownloaded(id, DownloadType.pdf);
+                        final pdfProgress = service.getProgress(id, DownloadType.pdf);
+                        
+                        if (pdfProgress?.isDownloading == true) {
+                          return SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              value: pdfProgress!.progress,
+                              color: AppColors.gold,
+                              strokeWidth: 2,
+                            ),
+                          );
+                        } else if (pdfProgress?.error != null) {
+                          return const Icon(Icons.error_outline, color: Colors.red, size: 16);
+                        } else if (pdfDownloaded) {
+                          return InkWell(
+                            onTap: () async {
+                              final path = await service.getFilePath(id, DownloadType.pdf);
+                              if (context.mounted) {
+                                Navigator.push(context, MaterialPageRoute(
+                                  builder: (_) => PdfViewerScreen(title: surah['name'], localPath: path),
+                                ));
+                              }
+                            },
+                            child: const Icon(Icons.picture_as_pdf_rounded, color: AppColors.goldDark, size: 18),
+                          );
+                        } else {
+                          return const SizedBox.shrink();
+                        }
+                      }
+                      
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.music_note, size: 12, color: AppColors.textGrey),
+                              const SizedBox(height: 1),
+                              buildAudioStatus(),
+                            ],
+                          ),
+                          const SizedBox(width: 10),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.picture_as_pdf, size: 12, color: AppColors.textGrey),
+                              const SizedBox(height: 1),
+                              buildPdfStatus(),
+                            ],
+                          ),
+                          const SizedBox(width: 6),
+                          IconButton(
+                            icon: const Icon(Icons.download_for_offline_rounded, color: AppColors.textGrey),
+                            iconSize: 22,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                builder: (_) => DownloadDialog(
+                                  id: id,
+                                  title: surah['name'],
+                                  audioUrl: 'https://server7.mp3quran.net/basit/${'${surah['num']}'.padLeft(3, '0')}.mp3',
+                                  pdfUrl: 'https://pdf.quran.ws/pdfs/hafs/surah/quran-hafs-surah-${surah['num']}-${surah['pdfSlug']}.pdf',
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(surah['arabic'] as String,
+                      textDirection: TextDirection.rtl,
+                      style: TextStyle(fontFamily: actualArabicFont,
+                          fontSize: useUrduFont ? 15 : 18, color: AppColors.textDark)),
+                  const SizedBox(height: 2),
+                  Text((surah['meaning'] as String).split(' ').take(2).join(' '),
+                      style: const TextStyle(fontFamily: 'Cairo', fontSize: 8,
                           color: AppColors.textGrey)),
-                ]),
-              ])),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(surah['arabic'] as String,
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(fontFamily: actualArabicFont,
-                      fontSize: useUrduFont ? 16 : 20, color: AppColors.textDark)),
-              Text((surah['meaning'] as String).split(' ').take(2).join(' '),
-                  style: const TextStyle(fontFamily: 'Cairo', fontSize: 9,
-                      color: AppColors.textGrey)),
-            ]),
-          ),
-        ]),
+                ],
+              ),
+            ),
+          ]),
+        ),
       ),
     );
   }
@@ -502,60 +658,215 @@ class SharedJuzCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 6),
         decoration: BoxDecoration(
           color: AppColors.bgWhite,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.gold.withValues(alpha: 0.35), width: 1.2),
           boxShadow: [
             BoxShadow(color: AppColors.gold.withValues(alpha: 0.07),
                 blurRadius: 6, offset: const Offset(0, 2)),
           ],
         ),
-        child: Row(children: [
-          Container(
-            width: 56, height: 64,
-            decoration: BoxDecoration(
-              color: AppColors.gold,
-              borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  bottomLeft: Radius.circular(14)),
+        child: IntrinsicHeight(
+          child: Row(children: [
+            Container(
+              width: 52,
+              decoration: BoxDecoration(
+                color: AppColors.gold,
+                borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    bottomLeft: Radius.circular(12)),
+              ),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Juz', style: TextStyle(fontFamily: 'Cairo',
+                        fontSize: 8, color: AppColors.primaryDarkest,
+                        fontWeight: FontWeight.w600)),
+                    Text('${meta.num}', style: const TextStyle(fontFamily: 'Cairo',
+                        fontSize: 18, fontWeight: FontWeight.w800,
+                        color: AppColors.primaryDarkest)),
+                  ]),
             ),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Juz', style: TextStyle(fontFamily: 'Cairo',
-                      fontSize: 9, color: AppColors.primaryDarkest,
-                      fontWeight: FontWeight.w600)),
-                  Text('${meta.num}', style: const TextStyle(fontFamily: 'Cairo',
-                      fontSize: 20, fontWeight: FontWeight.w800,
-                      color: AppColors.primaryDarkest)),
-                ]),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(meta.name, style: const TextStyle(fontFamily: 'Cairo',
+                        fontSize: 14, fontWeight: FontWeight.w700,
+                        color: AppColors.textDark)),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: AppColors.gold.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: AppColors.gold.withValues(alpha: 0.3))),
+                      child: Text('${meta.start} → ${meta.end}',
+                          style: const TextStyle(fontFamily: 'Cairo', fontSize: 10,
+                              color: AppColors.goldDark)),
+                    ),
+                  ],
+              ),
+            ),
           ),
-          const SizedBox(width: 14),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(meta.name, style: const TextStyle(fontFamily: 'Cairo',
-                    fontSize: 14, fontWeight: FontWeight.w700,
-                    color: AppColors.textDark)),
-                const SizedBox(height: 3),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                      color: AppColors.gold.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: AppColors.gold.withValues(alpha: 0.3))),
-                  child: Text('${meta.start} → ${meta.end}',
-                      style: const TextStyle(fontFamily: 'Cairo', fontSize: 10,
-                          color: AppColors.goldDark)),
-                ),
-              ])),
           Padding(
-            padding: const EdgeInsets.only(right: 14),
-            child: Text(meta.ar, textDirection: TextDirection.rtl,
-                style: TextStyle(fontFamily: actualArabicFont,
-                    fontSize: useUrduFont ? 14 : 18, color: AppColors.goldDark)),
+            padding: const EdgeInsets.only(right: 8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListenableBuilder(
+                  listenable: QuranAudioService(),
+                  builder: (context, _) {
+                    final audio = QuranAudioService();
+                    final isPlaying = audio.isPlaying && audio.currentId == 'juz_${meta.num}';
+                    return IconButton(
+                      icon: Icon(
+                        isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded,
+                        color: AppColors.primaryDark,
+                        size: 26,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        if (isPlaying) {
+                          audio.togglePause();
+                        } else {
+                          // Extract surahs from start and end strings (e.g. "1:1" -> 1)
+                          final startSurah = int.parse(meta.start.split(':')[0]);
+                          final endSurah = int.parse(meta.end.split(':')[0]);
+                          final surahs = List.generate(endSurah - startSurah + 1, (i) => startSurah + i);
+                          audio.playJuzz(meta.num, meta.name, surahs);
+                        }
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 6),
+                ListenableBuilder(
+                  listenable: QuranDownloadService(),
+                  builder: (context, _) {
+                    final service = QuranDownloadService();
+                    final id = 'juz_${meta.num}';
+                    
+                    Widget buildAudioStatus() {
+                      final isDownloaded = service.isDownloaded(id, DownloadType.audio);
+                      final progress = service.getProgress(id, DownloadType.audio);
+
+                      if (progress?.isDownloading == true) {
+                        return SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            value: progress!.progress,
+                            strokeWidth: 2,
+                            color: AppColors.gold,
+                          ),
+                        );
+                      } else if (progress?.error != null) {
+                        return const Icon(Icons.error_outline, color: Colors.red, size: 16);
+                      } else if (isDownloaded) {
+                        return const Icon(Icons.check_circle, color: Colors.green, size: 16);
+                      } else {
+                        return const SizedBox.shrink();
+                      }
+                    }
+                    
+                    Widget buildPdfStatus() {
+                      final isDownloaded = service.isDownloaded(id, DownloadType.pdf);
+                      final progress = service.getProgress(id, DownloadType.pdf);
+
+                      if (progress?.isDownloading == true) {
+                        return SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            value: progress!.progress,
+                            strokeWidth: 2,
+                            color: AppColors.gold,
+                          ),
+                        );
+                      } else if (progress?.error != null) {
+                        return const Icon(Icons.error_outline, color: Colors.red, size: 16);
+                      } else if (isDownloaded) {
+                        return InkWell(
+                          onTap: () async {
+                            final path = await service.getFilePath(id, DownloadType.pdf);
+                            if (context.mounted) {
+                              Navigator.push(context, MaterialPageRoute(
+                                builder: (_) => PdfViewerScreen(title: 'Juz ${meta.num}', localPath: path),
+                              ));
+                            }
+                          },
+                          child: const Icon(Icons.picture_as_pdf_rounded, color: AppColors.goldDark, size: 18),
+                        );
+                      } else {
+                        return const SizedBox.shrink();
+                      }
+                    }
+                    
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.music_note, size: 12, color: AppColors.textGrey),
+                            const SizedBox(height: 1),
+                            buildAudioStatus(),
+                          ],
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.picture_as_pdf, size: 12, color: AppColors.textGrey),
+                            const SizedBox(height: 1),
+                            buildPdfStatus(),
+                          ],
+                        ),
+                        const SizedBox(width: 6),
+                        IconButton(
+                          icon: const Icon(Icons.download_for_offline_rounded, color: AppColors.textGrey),
+                          iconSize: 22,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => DownloadDialog(
+                                id: id,
+                                title: 'Juz ${meta.num}',
+                                audioUrl: 'https://server7.mp3quran.net/basit/juz_${'${meta.num}'.padLeft(2, '0')}.mp3',
+                                pdfUrl: 'https://pdf.quran.ws/pdfs/hafs/juz/quran-hafs-juz-${meta.num}.pdf',
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(meta.ar, textDirection: TextDirection.rtl,
+                    style: TextStyle(fontFamily: actualArabicFont,
+                        fontSize: useUrduFont ? 13 : 17, color: AppColors.goldDark)),
+              ],
+            ),
           ),
         ]),
+        ),
       ),
     );
   }
@@ -604,11 +915,6 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   bool _showUrdu = false; // EN/UR toggle for translation mode
   late String _currentArabicFont;
 
-  // Audio
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  String? _playingAyahNum;
-  bool _audioLoading = false;
-
   @override
   void initState() {
     super.initState();
@@ -630,7 +936,6 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -661,24 +966,6 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
         });
       }
     }
-  }
-
-  Future<void> _playAudio(String url, String ayahNum) async {
-    if (url.isEmpty) return;
-    if (_playingAyahNum == ayahNum) {
-      await _audioPlayer.stop();
-      setState(() { _playingAyahNum = null; });
-      return;
-    }
-    setState(() { _playingAyahNum = ayahNum; _audioLoading = true; });
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(UrlSource(url));
-      _audioPlayer.onPlayerComplete.listen((_) {
-        if (mounted) setState(() { _playingAyahNum = null; });
-      });
-    } catch (_) {}
-    if (mounted) setState(() { _audioLoading = false; });
   }
 
   @override
@@ -917,7 +1204,7 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
             showUrdu: _showUrdu, // Fixed: use _showUrdu state
           ))
         else
-          _buildMushaafBlock(displayAyahs),
+          _buildMushaafBlock(displayAyahs, surahNum),
       ]),
     );
   }
@@ -989,7 +1276,7 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
       else
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _buildMushaafBlock(displayAyahs),
+          child: _buildMushaafBlock(displayAyahs, g.surahNum),
         ),
     ]);
   }
@@ -1029,11 +1316,12 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   // MUSHAF BLOCK — all ayahs as ONE flowing RichText paragraph (matches
   // the hamariweb / screenshot layout). Ayah numbers inline in gold ﴿n﴾.
   // ══════════════════════════════════════════════════════════════════════════
-  Widget _buildMushaafBlock(List<Map<String, String>> ayahs) {
+  Widget _buildMushaafBlock(List<Map<String, String>> ayahs, int surahNum) {
     if (ayahs.isEmpty) return const SizedBox.shrink();
 
     final spans = <InlineSpan>[];
     for (int i = 0; i < ayahs.length; i++) {
+      final ayahNum = ayahs[i]['num']!;
       if (i > 0) {
         spans.add(const TextSpan(text: '\u200C')); // zero-width non-joiner spacing
       }
@@ -1043,6 +1331,9 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
       // Ayah text
       spans.add(TextSpan(
         text: ayahs[i]['a']!,
+        recognizer: TapGestureRecognizer()..onTap = () {
+          QuranAudioService().playAyah(surahNum, int.parse(ayahNum));
+        },
         style: TextStyle(
           fontFamily: _currentArabicFont,
           fontSize: isAlQalam ? _fontSize * 1.3 : (_currentArabicFont == 'NotoNastaliq' ? _fontSize - 4 : _fontSize),
@@ -1088,7 +1379,6 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   // AYAH CARD — translation mode (individual cards, unchanged UX)
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildAyahCard(String arabic, String trans, String num, int surahNum, {String urduTrans = '', String audioUrl = '', bool showUrdu = false}) {
-    final isPlaying  = _playingAyahNum == num;
     final displayTrans = (showUrdu && urduTrans.isNotEmpty) ? urduTrans : trans;
     final isUrdu     = showUrdu && urduTrans.isNotEmpty;
 
@@ -1098,8 +1388,8 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
         color: AppColors.bgWhite,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isPlaying ? AppColors.gold : AppColors.gold.withValues(alpha: 0.35),
-          width: isPlaying ? 2.0 : 1.0,
+          color: AppColors.gold.withValues(alpha: 0.35),
+          width: 1.0,
         ),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -1157,34 +1447,43 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
           ]),
         ),
         // Audio play row
-        if (audioUrl.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 2, 14, 10),
-            child: GestureDetector(
-              onTap: () => _playAudio(audioUrl, num),
-              child: Row(children: [
-                Container(
-                  width: 32, height: 32,
-                  decoration: BoxDecoration(
-                    color: isPlaying ? AppColors.gold : AppColors.primaryDark,
-                    shape: BoxShape.circle,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 2, 14, 10),
+          child: ListenableBuilder(
+            listenable: QuranAudioService(),
+            builder: (context, _) {
+              final audio = QuranAudioService();
+              final isThisAyahPlaying = audio.isPlaying && audio.currentId == 'ayah_$surahNum-$num';
+              return GestureDetector(
+                onTap: () {
+                  if (isThisAyahPlaying) {
+                    audio.stop();
+                  } else {
+                    audio.playAyah(surahNum, int.parse(num));
+                  }
+                },
+                child: Row(children: [
+                  Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(
+                      color: isThisAyahPlaying ? AppColors.gold : AppColors.primaryDark,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(isThisAyahPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                        color: isThisAyahPlaying ? AppColors.primaryDarkest : AppColors.gold, size: 18),
                   ),
-                  child: _audioLoading && isPlaying
-                      ? const Padding(padding: EdgeInsets.all(8),
-                          child: CircularProgressIndicator(color: AppColors.textWhite, strokeWidth: 2))
-                      : Icon(isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
-                          color: isPlaying ? AppColors.primaryDarkest : AppColors.gold, size: 18),
-                ),
-                const SizedBox(width: 8),
-                Text(isPlaying ? 'Stop Recitation' : 'Play Recitation',
-                    style: TextStyle(
-                      fontFamily: 'Cairo', fontSize: 11,
-                      color: isPlaying ? AppColors.gold : AppColors.textGrey,
-                      fontWeight: FontWeight.w600,
-                    )),
-              ]),
-            ),
+                  const SizedBox(width: 8),
+                  Text(isThisAyahPlaying ? 'Stop Recitation' : 'Play Recitation',
+                      style: TextStyle(
+                        fontFamily: 'Cairo', fontSize: 11,
+                        color: isThisAyahPlaying ? AppColors.gold : AppColors.textGrey,
+                        fontWeight: FontWeight.w600,
+                      )),
+                ]),
+              );
+            },
           ),
+        ),
       ]),
     );
   }

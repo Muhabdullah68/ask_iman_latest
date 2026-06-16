@@ -250,29 +250,6 @@ class _QiblahScreenState extends State<QiblahScreen>
     });
   }
 
-  Future<void> _getCurrentLocation() async {
-    try {
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      if (!mounted) return;
-      setState(() {
-        _currentPosition   = position;
-        _qiblahBearing     = _calculateQiblahBearing();
-        // FIX: always recompute with the live compass heading so the icon
-        // doesn't jump when location resolves after several compass events.
-        _targetQiblahAngle = _qiblahBearing - _compassHeading;
-        _isLoading         = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Failed to get location: $e';
-        _isLoading    = false;
-      });
-    }
-  }
-
   void _startLocationUpdates() {
     _locationSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
@@ -446,13 +423,15 @@ class _QiblahScreenState extends State<QiblahScreen>
                           borderRadius: BorderRadius.circular(16)),
                       elevation: 0,
                     ),
-                    onPressed: _initialize,
+                    onPressed: _requestPermissionAndRetry,
                     child: const Text(
-                      'RETRY INITIALIZATION',
+                      'GRANT PERMISSION',
                       style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1),
+                        fontFamily: 'Cairo',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                 ),

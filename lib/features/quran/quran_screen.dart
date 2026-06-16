@@ -12,13 +12,13 @@ import 'tabs/ahadees_tab.dart';
 class QuranScreen extends StatefulWidget {
   const QuranScreen({super.key});
   
-  static final GlobalKey<_QuranScreenState> screenKey = GlobalKey<_QuranScreenState>();
+  static final GlobalKey<QuranScreenState> screenKey = GlobalKey<QuranScreenState>();
   
   @override
-  State<QuranScreen> createState() => _QuranScreenState();
+  State<QuranScreen> createState() => QuranScreenState();
 }
 
-class _QuranScreenState extends State<QuranScreen>
+class QuranScreenState extends State<QuranScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tc;
   final TextEditingController _searchController = TextEditingController();
@@ -51,21 +51,6 @@ class _QuranScreenState extends State<QuranScreen>
     _tc = TabController(length: _tabs.length, vsync: this);
     _tc.addListener(() => setState(() {}));
     _checkFirstTime();
-  }
-
-  bool _isFirstLoad = true;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_isFirstLoad) {
-      _isFirstLoad = false;
-      // We don't auto-open here anymore because it might be pre-loaded by IndexedStack
-    }
-  }
-
-  void _onScreenVisible() {
-    _showInitialPreferences();
   }
 
   Future<void> _checkFirstTime() async {

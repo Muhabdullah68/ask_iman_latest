@@ -3,11 +3,13 @@
 // a negative margin value in the streak bar calculation. Fixed by clamping.
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/community_service.dart';
 
 class StreaksTab extends StatefulWidget {
-  final AppUser currentUser;
+  final AppUser? currentUser;
   const StreaksTab({super.key, required this.currentUser});
   @override State<StreaksTab> createState() => _StreaksTabState();
 }
@@ -41,54 +43,77 @@ class _StreaksTabState extends State<StreaksTab> {
     setState(() => _loading = true);
 
     try {
-      // Use the live streak count from the user document first (real-time sync)
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.currentUser.uid)
-          .get();
-      
-      final userData = userDoc.data();
-      final currentStreakFromDoc = userData?['streakCount'] ?? 0;
+      final isGuest = widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
+      final List<String> activeCustomTasks = [];
+      int currentStreak = 0;
+      Map<String, dynamic>? todayData;
 
-      // Recalculate to be sure, and update if different
-      final calculatedStreak = await _svc.getCurrentStreak();
-      
-      if (currentStreakFromDoc != calculatedStreak) {
-        await FirebaseFirestore.instance
+      if (isGuest) {
+        final prefs = await SharedPreferences.getInstance();
+        final guestDataJson = prefs.getString('guest_user_data');
+        if (guestDataJson != null) {
+          final guestData = jsonDecode(guestDataJson);
+          if (guestData['customStreakTasks'] is List) {
+            activeCustomTasks.addAll(List<String>.from(guestData['customStreakTasks']));
+          }
+        }
+        
+        currentStreak = await _svc.getStreakForUser(widget.currentUser?.uid ?? 'guest_user');
+        
+        // Ensure guest profile is in sync with actual streak logs
+        await _svc.updateStreakCount(currentStreak);
+        
+        final streaksJson = prefs.getString('guest_streaks') ?? '{}';
+        final Map<String, dynamic> streaks = jsonDecode(streaksJson);
+        final today = DateTime.now();
+        final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
+        todayData = streaks[dateKey];
+      } else {
+        // Use the live streak count from the user document first (real-time sync)
+        final userDoc = await FirebaseFirestore.instance
             .collection('users')
-            .doc(widget.currentUser.uid)
-            .update({'streakCount': calculatedStreak});
+            .doc(widget.currentUser!.uid)
+            .get();
+        
+        final userData = userDoc.data();
+        final currentStreakFromDoc = userData?['streakCount'] ?? 0;
+
+        // Recalculate to be sure, and update if different
+        currentStreak = await _svc.getStreakForUser(widget.currentUser!.uid);
+        
+        if (currentStreakFromDoc != currentStreak) {
+          await _svc.updateStreakCount(currentStreak);
+        }
+
+        if (userData != null && userData['customStreakTasks'] is List) {
+          activeCustomTasks.addAll(List<String>.from(userData['customStreakTasks']));
+        }
+
+        // Fetch today's log
+        final today = DateTime.now();
+        final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
+        
+        final doc = await FirebaseFirestore.instance
+            .collection('streaks')
+            .doc(widget.currentUser!.uid)
+            .collection('logs')
+            .doc(dateKey)
+            .get();
+        todayData = doc.data();
       }
 
       if (!mounted) return;
       
-      // Fetch today's log
-      final today = DateTime.now();
-      final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
-      
-      final doc = await FirebaseFirestore.instance
-          .collection('streaks')
-          .doc(widget.currentUser.uid)
-          .collection('logs')
-          .doc(dateKey)
-          .get();
-
-      final List<String> activeCustomTasks = [];
-      if (userData != null && userData['customStreakTasks'] is List) {
-        activeCustomTasks.addAll(List<String>.from(userData['customStreakTasks']));
-      }
-
       setState(() {
-        _streak = calculatedStreak;
+        _streak = currentStreak;
         _customTasks = activeCustomTasks;
         
-        if (doc.exists) {
-          final data = doc.data()!;
-          _prayers = data['prayers'] == true;
-          _quran   = data['quran'] == true;
-          _class_  = data['classAttended'] == true;
+        if (todayData != null) {
+          _prayers = todayData['prayers'] == true;
+          _quran   = todayData['quran'] == true;
+          _class_  = todayData['classAttended'] == true;
           
-          final loggedCustom = data['customTasks'];
+          final loggedCustom = todayData['customTasks'];
           _customTasksValues.clear();
           if (loggedCustom is Map) {
             for (var t in activeCustomTasks) {
@@ -120,28 +145,46 @@ class _StreaksTabState extends State<StreaksTab> {
     try {
       final today = DateTime.now();
       final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
+      final isGuest = widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
       
-      await FirebaseFirestore.instance
-          .collection('streaks')
-          .doc(widget.currentUser.uid)
-          .collection('logs')
-          .doc(dateKey)
-          .set({
-        'prayers':       _prayers,
-        'quran':         _quran,
-        'classAttended': _class_,
-        'customTasks':   _customTasksValues,
-        'date':          Timestamp.fromDate(today),
-      }, SetOptions(merge: true));
+      if (isGuest) {
+        final prefs = await SharedPreferences.getInstance();
+        final streaksJson = prefs.getString('guest_streaks') ?? '{}';
+        final Map<String, dynamic> streaks = jsonDecode(streaksJson);
+        
+        streaks[dateKey] = {
+          'prayers':       _prayers,
+          'quran':         _quran,
+          'classAttended': _class_,
+          'customTasks':   _customTasksValues,
+          'date':          today.toIso8601String(),
+        };
+        
+        await prefs.setString('guest_streaks', jsonEncode(streaks));
+        
+        final s = await _svc.getStreakForUser(widget.currentUser?.uid ?? 'guest_user');
+        await _svc.updateStreakCount(s);
+        if (mounted) setState(() => _streak = s);
+      } else {
+        await FirebaseFirestore.instance
+            .collection('streaks')
+            .doc(widget.currentUser!.uid)
+            .collection('logs')
+            .doc(dateKey)
+            .set({
+          'prayers':       _prayers,
+          'quran':         _quran,
+          'classAttended': _class_,
+          'customTasks':   _customTasksValues,
+          'date':          Timestamp.fromDate(today),
+        }, SetOptions(merge: true));
 
-      // Update streak counter on user doc
-      final s = await _svc.getCurrentStreak();
-      await FirebaseFirestore.instance.collection('users').doc(widget.currentUser.uid).update({
-        'lastActive': FieldValue.serverTimestamp(),
-        'streakCount': s,
-      });
-      
-      if (mounted) setState(() => _streak = s);
+        // Update streak counter on user doc
+        final s = await _svc.getStreakForUser(widget.currentUser!.uid);
+        await _svc.updateStreakCount(s);
+        
+        if (mounted) setState(() => _streak = s);
+      }
     } catch (e) {
       debugPrint('Error saving streak: $e');
       if (mounted) {
@@ -157,10 +200,25 @@ class _StreaksTabState extends State<StreaksTab> {
     if (cleanedTask.isEmpty) return;
     
     try {
-      // 1. Update Firestore
-      await FirebaseFirestore.instance.collection('users').doc(widget.currentUser.uid).update({
-        'customStreakTasks': FieldValue.arrayUnion([cleanedTask])
-      });
+      final isGuest = widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
+      
+      if (isGuest) {
+        final prefs = await SharedPreferences.getInstance();
+        final guestDataJson = prefs.getString('guest_user_data') ?? jsonEncode(AppUser.guest.toMap());
+        final Map<String, dynamic> guestData = jsonDecode(guestDataJson);
+        
+        final List<String> tasks = List<String>.from(guestData['customStreakTasks'] ?? []);
+        if (!tasks.contains(cleanedTask)) {
+          tasks.add(cleanedTask);
+        }
+        guestData['customStreakTasks'] = tasks;
+        await prefs.setString('guest_user_data', jsonEncode(guestData));
+      } else {
+        // 1. Update Firestore
+        await FirebaseFirestore.instance.collection('users').doc(widget.currentUser!.uid).update({
+          'customStreakTasks': FieldValue.arrayUnion([cleanedTask])
+        });
+      }
       
       // 2. Update local state immediately for better UX
       if (mounted) {
@@ -186,9 +244,22 @@ class _StreaksTabState extends State<StreaksTab> {
 
   Future<void> _deleteCustomTask(String task) async {
     try {
-      await FirebaseFirestore.instance.collection('users').doc(widget.currentUser.uid).update({
-        'customStreakTasks': FieldValue.arrayRemove([task])
-      });
+      final isGuest = widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
+      
+      if (isGuest) {
+        final prefs = await SharedPreferences.getInstance();
+        final guestDataJson = prefs.getString('guest_user_data') ?? jsonEncode(AppUser.guest.toMap());
+        final Map<String, dynamic> guestData = jsonDecode(guestDataJson);
+        
+        final List<String> tasks = List<String>.from(guestData['customStreakTasks'] ?? []);
+        tasks.remove(task);
+        guestData['customStreakTasks'] = tasks;
+        await prefs.setString('guest_user_data', jsonEncode(guestData));
+      } else {
+        await FirebaseFirestore.instance.collection('users').doc(widget.currentUser!.uid).update({
+          'customStreakTasks': FieldValue.arrayRemove([task])
+        });
+      }
       
       if (mounted) {
         setState(() {
@@ -216,7 +287,7 @@ class _StreaksTabState extends State<StreaksTab> {
           const SizedBox(height: 20),
           _buildTodayChecklist(),
           const SizedBox(height: 20),
-          _buildFriendsLeaderboard(),
+          // _buildFriendsLeaderboard(), // Commented out as requested
           const SizedBox(height: 32),
         ],
       ),
@@ -494,10 +565,5 @@ class _StreaksTabState extends State<StreaksTab> {
         ],
       ),
     );
-  }
-
-  Widget _buildFriendsLeaderboard() {
-    // Hidden leaderboard as requested - focusing on personal streaks
-    return const SizedBox.shrink();
   }
 }

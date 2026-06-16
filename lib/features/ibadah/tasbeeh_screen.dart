@@ -12,7 +12,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 import '../../core/theme/app_colors.dart';
 import 'dart:math' as math;
 import '../../shared/widgets/ask_iman_app_bar.dart';
@@ -99,6 +99,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   @override
   void dispose() {
     _pulseCtrl.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -229,7 +230,8 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   void _playClickSound() async {
     try {
       await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/click.mpeg'), volume: 1.0);
+      await _audioPlayer.setAsset('assets/sounds/click.mpeg');
+      await _audioPlayer.play();
     } catch (e) {
       debugPrint('Audio error: $e');
     }

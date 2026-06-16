@@ -106,7 +106,7 @@ class ProfileScreen extends StatelessWidget {
                     color: AppColors.primaryMid,
                     child: user.photoUrl != null
                         ? Image.network(user.photoUrl!, fit: BoxFit.cover, 
-                            errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 50, color: AppColors.textCream))
+                            errorBuilder: (_, _, _) => const Icon(Icons.person, size: 50, color: AppColors.textCream))
                         : const Icon(Icons.person, size: 50, color: AppColors.textCream),
                   ),
                 ),
@@ -463,7 +463,7 @@ class ProfileScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 10),
             Image.asset('assets/images/applogo.png', height: 70, 
-                errorBuilder: (_, __, ___) => const Icon(Icons.mosque, color: AppColors.gold, size: 60)),
+                errorBuilder: (_, _, _) => const Icon(Icons.mosque, color: AppColors.gold, size: 60)),
             const SizedBox(height: 16),
             const Text('Ask Iman', style: TextStyle(fontFamily: 'Cairo', fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
             const Text('v1.0.4 (Stable)', style: TextStyle(fontFamily: 'Cairo', fontSize: 12, color: AppColors.goldDark, fontWeight: FontWeight.w700)),

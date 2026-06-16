@@ -8,6 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/app_colors.dart' as theme;
 import 'core/services/notification_service.dart';
 import 'core/services/prayer_service.dart';
+import 'core/services/quran_download_service.dart';
 import 'features/splash/splash_screen.dart';
 // community_auth_screen is reached via the navigation stack, not needed here
 
@@ -48,6 +49,9 @@ void main() async {
 
   // ── Prayer service ─────────────────────────────────────────────────────────
   PrayerService().initialize(NotificationService.plugin).ignore();
+
+  // ── Quran services ─────────────────────────────────────────────────────────
+  await QuranDownloadService().init();
 
   runApp(const AskImanApp());
 }

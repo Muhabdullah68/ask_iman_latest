@@ -1,7 +1,7 @@
 name: ask_iman
 description: "Ask Iman - Islamic lifestyle app"
 publish_to: none
-version: 1.0.1+2
+version: 1.0.2+4
 
 environment:
   sdk: ^3.11.4
@@ -27,7 +27,9 @@ dependencies:
   url_launcher: ^6.3.1
 
   # Audio playback for Quran Tilawat
-  audioplayers: ^6.0.0
+  just_audio: ^0.9.42
+  just_audio_background: ^0.0.1-beta.15
+  audio_session: ^0.1.21
 
   # Location + Compass
   geolocator: ^10.1.1
@@ -39,6 +41,14 @@ dependencies:
 
   # Persistence
   shared_preferences: ^2.2.2
+  path_provider: ^2.1.2
+  path: ^1.9.0
+
+  # Downloads & Networking
+  dio: ^5.4.1
+
+  # PDF Viewer
+  syncfusion_flutter_pdfviewer: ^28.1.33
 
   # Notifications + scheduling
   flutter_local_notifications: ^17.1.2

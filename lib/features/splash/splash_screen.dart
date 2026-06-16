@@ -187,7 +187,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const MainShell(),
+        pageBuilder: (_, _, _) => const MainShell(),
         transitionDuration: Duration.zero,
       ),
     );
@@ -217,7 +217,7 @@ class _SplashScreenState extends State<SplashScreen>
           _textFade, _textSlide, _tagFade, _tagSlide,
           _verseFade, _loopCtrl, _exitFade,
         ]),
-        builder: (_, __) {
+        builder: (_, _) {
           return Opacity(
             opacity: _exitFade.value,
             child: Stack(
