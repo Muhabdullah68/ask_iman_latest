@@ -227,15 +227,8 @@ class _TasbeehScreenState extends State<TasbeehScreen>
     );
   }
 
-  void _playClickSound() async {
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.setAsset('assets/sounds/alarm1.wav');
-      await _audioPlayer.setVolume(1.0); // Max volume
-      await _audioPlayer.play();
-    } catch (e) {
-      debugPrint('Audio error: $e');
-    }
+  void _playClickSound() {
+    SystemSound.play(SystemSoundType.click);
   }
 
   void _onTap() {
@@ -275,6 +268,8 @@ class _TasbeehScreenState extends State<TasbeehScreen>
         _triggerCompletion();
       }
     } else {
+      if (_hapticEnabled) HapticFeedback.heavyImpact();
+      if (_soundEnabled) _playClickSound();
       setState(() => _pkgStepCount = newCount);
     }
   }
