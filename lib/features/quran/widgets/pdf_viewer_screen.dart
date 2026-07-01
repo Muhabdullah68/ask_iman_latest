@@ -7,17 +7,68 @@ class PdfViewerScreen extends StatelessWidget {
   final String title;
   final String? url;
   final String? localPath;
+  final String? assetPath;
 
   const PdfViewerScreen({
     super.key,
     required this.title,
     this.url,
     this.localPath,
+    this.assetPath,
   });
 
   @override
   Widget build(BuildContext context) {
+    Widget pdfViewer = const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: AppColors.primaryDark),
+          SizedBox(height: 16),
+          Text('Loading PDF...', style: TextStyle(fontFamily: 'Cairo')),
+        ],
+      ),
+    );
+
+    if (assetPath != null) {
+      try {
+        pdfViewer = SfPdfViewer.asset(
+          assetPath!,
+          initialScrollOffset: const Offset(0, 0),
+          pageLayoutMode: PdfPageLayoutMode.single,
+        );
+      } catch (e) {
+        debugPrint('Error loading asset PDF: $e');
+        pdfViewer = Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+              const SizedBox(height: 16),
+              Text('Failed to load PDF',
+                  style: const TextStyle(fontFamily: 'Cairo', fontSize: 18)),
+              const SizedBox(height: 8),
+              Text('$e'),
+            ],
+          ),
+        );
+      }
+    } else if (localPath != null && File(localPath!).existsSync()) {
+      pdfViewer = SfPdfViewer.file(
+        File(localPath!),
+        initialScrollOffset: const Offset(0, 0),
+        pageLayoutMode: PdfPageLayoutMode.single,
+      );
+    } else if (url != null) {
+      pdfViewer = SfPdfViewer.network(
+        url!,
+        initialScrollOffset: const Offset(0, 0),
+        pageLayoutMode: PdfPageLayoutMode.single,
+      );
+    }
+
     return Scaffold(
+      backgroundColor: AppColors.bgCream,
       appBar: AppBar(
         title: Text(
           title,
@@ -34,11 +85,7 @@ class PdfViewerScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: localPath != null && File(localPath!).existsSync()
-          ? SfPdfViewer.file(File(localPath!))
-          : url != null
-              ? SfPdfViewer.network(url!)
-              : const Center(child: Text('No PDF source available')),
+      body: pdfViewer,
     );
   }
 }

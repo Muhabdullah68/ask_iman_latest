@@ -8,6 +8,15 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Required for full screen alarm notifications on Android 14+ -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+    <!-- Required to request battery optimization exemption -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+    <!-- Required for foreground service (keeps alarms alive when app is closed) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+    <!-- Required to wake the device for alarms -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <application
         android:label="ASK Iman"
         android:name="${applicationName}"
@@ -51,6 +60,11 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
+        
+        <!-- Foreground service to keep alarms alive when app is closed -->
+        <service android:name="com.dexterous.flutterlocalnotifications.ForegroundService" 
+            android:foregroundServiceType="specialUse"
+            android:exported="false"/>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

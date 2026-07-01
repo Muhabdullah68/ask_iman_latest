@@ -48,6 +48,7 @@ class _AyahTabState extends State<AyahTab> with SingleTickerProviderStateMixin {
               useUrduFont: _isUrdu,
               arabicFont: widget.arabicFont,
               showTafseer: false,
+              searchQuery: widget.searchQuery,
             )).toList(),
           ),
         ),
@@ -128,13 +129,27 @@ class _TopicContent extends StatelessWidget {
   final bool useUrduFont;
   final String? arabicFont;
   final bool showTafseer;
+  final String searchQuery;
 
   const _TopicContent({
     required this.topic,
     required this.useUrduFont,
     this.arabicFont,
     required this.showTafseer,
+    this.searchQuery = '',
   });
+
+  List<Map<String, dynamic>> _filterAyats(List<Map<String, dynamic>> ayats) {
+    if (searchQuery.isEmpty) return ayats;
+    final q = searchQuery.toLowerCase();
+    return ayats.where((a) {
+      final ref = a['ref']?.toString().toLowerCase() ?? '';
+      final englishTrans = a['english_trans']?.toString().toLowerCase() ?? '';
+      final urduTrans = a['urdu_trans']?.toString().toLowerCase() ?? '';
+      final arabicText = a['arabic']?.toString() ?? '';
+      return ref.contains(q) || englishTrans.contains(q) || urduTrans.contains(q) || arabicText.contains(q);
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -144,15 +159,17 @@ class _TopicContent extends StatelessWidget {
     }
 
     final daily = CuratedData.getDailyAyat(topic);
+    final filteredAyats = _filterAyats(ayats.where((a) => a['ref'] != daily['ref']).toList());
+    final filteredDaily = _filterAyats([daily]).isNotEmpty ? daily : null;
 
     return ListView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(16),
       children: [
-        if (daily.isNotEmpty) ...[
+        if (filteredDaily != null) ...[
           _buildDailyHeader(),
           _AyahTafseerCard(
-            item: daily,
+            item: filteredDaily,
             useUrduFont: useUrduFont,
             arabicFont: arabicFont,
             showTafseer: showTafseer,
@@ -172,12 +189,19 @@ class _TopicContent extends StatelessWidget {
             ),
           ),
         ],
-        ...ayats.where((a) => a['ref'] != daily['ref']).map((item) => _AyahTafseerCard(
+        ...filteredAyats.map((item) => _AyahTafseerCard(
           item: item,
           useUrduFont: useUrduFont,
           arabicFont: arabicFont,
           showTafseer: showTafseer,
         )),
+        if (searchQuery.isNotEmpty && filteredAyats.isEmpty && filteredDaily == null)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.only(top: 40),
+              child: Text('No ayats found for your search.', style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)),
+            ),
+          ),
       ],
     );
   }

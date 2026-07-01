@@ -116,8 +116,8 @@ class _QiblahScreenState extends State<QiblahScreen>
   void _onTick(Duration _) {
     if (!mounted) return;
 
-    final newNeedle = _lerpAngle(_displayNeedleAngle, _targetNeedleAngle, 0.10);
-    final newQiblah = _lerpAngle(_displayQiblahAngle, _targetQiblahAngle, 0.10);
+    final newNeedle = _lerpAngle(_displayNeedleAngle, _targetNeedleAngle, 0.15);
+    final newQiblah = _lerpAngle(_displayQiblahAngle, _targetQiblahAngle, 0.15);
 
     final needleMoved =
         _shortestAngularDiff(newNeedle, _displayNeedleAngle).abs() > 0.01;

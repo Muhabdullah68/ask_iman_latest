@@ -26,6 +26,7 @@ import '../../core/services/prayer_service.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import 'qiblah_screen.dart';
 import 'tasbeeh_screen.dart';
+import 'alarm_screen.dart';
 
 class IbadahScreen extends StatefulWidget {
   const IbadahScreen({super.key});
@@ -88,8 +89,6 @@ class _IbadahScreenState extends State<IbadahScreen> {
               const SizedBox(height: 24),
               _buildSunnahTimes(),
               const SizedBox(height: 20),
-              _buildCalculationMethodStrip(context),
-              const SizedBox(height: 12),
               _buildSettingsStrip(context),
               const SizedBox(height: 40),
             ],
@@ -1293,6 +1292,17 @@ class _IbadahScreenState extends State<IbadahScreen> {
                           builder: (_) => const TasbeehScreen())),
                 ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildToolCard(
+                  imagePath: 'assets/images/tasbih beads.png',
+                  label: 'Reminders',
+                  subtitle: 'Set alarms',
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(
+                          builder: (_) => const AlarmScreen())),
+                ),
+              ),
             ],
           ),
         ],
@@ -1436,72 +1446,6 @@ class _IbadahScreenState extends State<IbadahScreen> {
     );
   }
 
-  Widget _buildCalculationMethodStrip(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.bgWhite,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderLight),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Calculation Method',
-                style: TextStyle(
-                  fontFamily: 'Cairo', fontSize: 15,
-                  fontWeight: FontWeight.w700, color: AppColors.textDark,
-                )),
-            const SizedBox(height: 14),
-            _settingRow(
-              icon: Icons.calculate_outlined,
-              label: 'Method',
-              value: _svc.calculationMethodName,
-              onTap: () => _showMethodPicker(context),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showMethodPicker(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Select Calculation Method',
-                style: TextStyle(
-                  fontFamily: 'Cairo', fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                )),
-            const SizedBox(height: 16),
-            ...kCalculationMethods.keys.map((name) => ListTile(
-                  title: Text(name, style: const TextStyle(fontFamily: 'Cairo')),
-                  trailing: _svc.calculationMethodName == name
-                      ? const Icon(Icons.check_circle, color: AppColors.primaryDark)
-                      : null,
-                  onTap: () {
-                    _svc.setCalculationMethod(name);
-                    Navigator.pop(context);
-                  },
-                )),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ══════════════════════════════════════════════════════════════════════════
   // 6. Settings Strip — Madhab + Notifications only
   // ══════════════════════════════════════════════════════════════════════════
@@ -1532,10 +1476,10 @@ class _IbadahScreenState extends State<IbadahScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            // Madhab
+            // Ferka
             _settingRow(
               icon: Icons.school_outlined,
-              label: 'Madhab',
+              label: 'Ferka',
               value: _svc.madhabName,
               onTap: () => _showMadhabPicker(context),
             ),
@@ -1761,7 +1705,7 @@ class _MadhabPickerSheet extends StatelessWidget {
         ),
         const Padding(
           padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
-          child: Text('Select Your Madhab',
+          child: Text('Select Your Ferka',
               style: TextStyle(
                 fontFamily: 'Cairo', fontSize: 17,
                 fontWeight: FontWeight.w700, color: AppColors.textDark,

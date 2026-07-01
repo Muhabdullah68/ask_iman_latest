@@ -15,7 +15,10 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin plugin =
   FlutterLocalNotificationsPlugin();
 
-  static Future<void> initialize() async {
+  static Future<void> initialize({
+    DidReceiveNotificationResponseCallback? onDidReceiveNotificationResponse,
+    DidReceiveBackgroundNotificationResponseCallback? onDidReceiveBackgroundNotificationResponse,
+  }) async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iOS     = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -23,7 +26,11 @@ class NotificationService {
       requestSoundPermission: true,
     );
     const settings = InitializationSettings(android: android, iOS: iOS);
-    await plugin.initialize(settings);
+    await plugin.initialize(
+      settings,
+      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
+      onDidReceiveBackgroundNotificationResponse: onDidReceiveBackgroundNotificationResponse,
+    );
   }
 
   /// Request Android 13+ notification permission (call once after init).

@@ -146,9 +146,9 @@ class _TasbeehScreenState extends State<TasbeehScreen>
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             _dialogInput('Dhikr Name', nameCtrl, hint: 'e.g. SubhanAllah'),
             const SizedBox(height: 16),
-            _dialogInput('Arabic Text', arabicCtrl, hint: 'سُبْحَانَ اللَّهِ', isArabic: true),
+            _dialogInput('Arabic Text (Optional)', arabicCtrl, hint: 'سُبْحَانَ اللَّهِ', isArabic: true),
             const SizedBox(height: 16),
-            _dialogInput('Meaning', meaningCtrl, hint: 'Glory be to Allah'),
+            _dialogInput('Meaning (Optional)', meaningCtrl, hint: 'Glory be to Allah'),
             const SizedBox(height: 16),
             _dialogInput('Target Count', targetCtrl, hint: '33', isNumber: true),
           ]),
@@ -169,20 +169,20 @@ class _TasbeehScreenState extends State<TasbeehScreen>
             ),
             onPressed: () {
               final name = nameCtrl.text.trim();
-              final arabic = arabicCtrl.text.trim();
-              if (name.isNotEmpty && arabic.isNotEmpty) {
+              final target = int.tryParse(targetCtrl.text) ?? 33;
+              if (name.isNotEmpty) {
                 setState(() {
                   _dhikrLibrary.add(DhikrItem(
                     name: name,
-                    arabic: arabic,
+                    arabic: arabicCtrl.text.trim().isEmpty ? name : arabicCtrl.text.trim(),
                     meaning: meaningCtrl.text.trim(),
-                    target: int.tryParse(targetCtrl.text) ?? 33,
+                    target: target,
                   ));
                 });
                 Navigator.pop(ctx);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Name and Arabic text are required')),
+                  const SnackBar(content: Text('Dhikr Name and Target Count are required')),
                 );
               }
             },
@@ -230,7 +230,8 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   void _playClickSound() async {
     try {
       await _audioPlayer.stop();
-      await _audioPlayer.setAsset('assets/sounds/click.mpeg');
+      await _audioPlayer.setAsset('assets/sounds/alarm1.wav');
+      await _audioPlayer.setVolume(1.0); // Max volume
       await _audioPlayer.play();
     } catch (e) {
       debugPrint('Audio error: $e');
@@ -240,10 +241,12 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   void _onTap() {
     _pulseCtrl.forward().then((_) => _pulseCtrl.reverse());
 
+    if (_soundEnabled) _playClickSound();
+    if (_hapticEnabled) HapticFeedback.heavyImpact();
+
     if (_packageMode) {
       _packageTap();
     } else {
-      if (_soundEnabled) _playClickSound();
       final newCount = _count + 1;
       if (newCount >= _currentTarget) {
         // Individual mode completion feedback
@@ -256,7 +259,6 @@ class _TasbeehScreenState extends State<TasbeehScreen>
 
   void _packageTap() {
     if (!_pkgRunning || _package.isEmpty) return;
-    if (_soundEnabled) _playClickSound();
     final newCount = _pkgStepCount + 1;
     final step     = _package[_pkgStepIndex];
 

@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/l10n/app_localizations.dart';
 import '../../../core/services/community_service.dart';
 
 class StreaksTab extends StatefulWidget {
@@ -188,8 +189,9 @@ class _StreaksTabState extends State<StreaksTab> {
     } catch (e) {
       debugPrint('Error saving streak: $e');
       if (mounted) {
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Offline: Progress saved locally. 📶')),
+          SnackBar(content: Text(loc.translate('offlineProgressSavedLocally'))),
         );
       }
     }
@@ -235,8 +237,9 @@ class _StreaksTabState extends State<StreaksTab> {
     } catch (e) {
       debugPrint('Error adding custom task: $e');
       if (mounted) {
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to add task. Please try again.')),
+          SnackBar(content: Text(loc.translate('failedToAddTask'))),
         );
       }
     }
@@ -281,11 +284,12 @@ class _StreaksTabState extends State<StreaksTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildStreakHero(),
+          const SizedBox(height: 80), // Add more space to move streak down and center
+          _buildStreakHero(context),
           const SizedBox(height: 16),
           _buildWeekRow(),
           const SizedBox(height: 20),
-          _buildTodayChecklist(),
+          _buildTodayChecklist(context),
           const SizedBox(height: 20),
           // _buildFriendsLeaderboard(), // Commented out as requested
           const SizedBox(height: 32),
@@ -294,7 +298,8 @@ class _StreaksTabState extends State<StreaksTab> {
     );
   }
 
-  Widget _buildStreakHero() {
+  Widget _buildStreakHero(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.all(24),
@@ -308,7 +313,7 @@ class _StreaksTabState extends State<StreaksTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Current Streak', style: TextStyle(
+                Text(loc.translate('currentStreak'), style: const TextStyle(
                   fontFamily: 'Cairo', fontSize: 13,
                   color: AppColors.textGreenMuted,
                 )),
@@ -317,14 +322,14 @@ class _StreaksTabState extends State<StreaksTab> {
                     ? const SizedBox(width: 20, height: 20,
                     child: CircularProgressIndicator(
                         color: AppColors.gold, strokeWidth: 2))
-                    : Text('$_streak Days', style: const TextStyle(
+                    : Text('$_streak ${loc.translate('days')}', style: const TextStyle(
                     fontFamily: 'Cairo', fontSize: 36,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textWhite)),
                 const SizedBox(height: 8),
-                const Text(
-                  'Complete today\'s tasks to maintain your streak.',
-                  style: TextStyle(fontFamily: 'Cairo', fontSize: 12,
+                Text(
+                  loc.translate('completeTodayTasks'),
+                  style: const TextStyle(fontFamily: 'Cairo', fontSize: 12,
                       color: AppColors.textGreenMuted, height: 1.4),
                 ),
               ],
@@ -395,7 +400,8 @@ class _StreaksTabState extends State<StreaksTab> {
     );
   }
 
-  Widget _buildTodayChecklist() {
+  Widget _buildTodayChecklist(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -404,23 +410,23 @@ class _StreaksTabState extends State<StreaksTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Today's Tasks", style: TextStyle(
+              Text(loc.translate('todaysTasks'), style: const TextStyle(
                 fontFamily: 'Cairo', fontSize: 16,
                 fontWeight: FontWeight.w700, color: AppColors.textDark,
               )),
               GestureDetector(
-                onTap: _showCreateTaskDialog,
+                onTap: () => _showCreateTaskDialog(context),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.primaryDark,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.add, color: AppColors.gold, size: 14),
-                      SizedBox(width: 4),
-                      Text('Add Goal', style: TextStyle(
+                      const Icon(Icons.add, color: AppColors.gold, size: 14),
+                      const SizedBox(width: 4),
+                      Text(loc.translate('addGoal'), style: const TextStyle(
                         fontFamily: 'Cairo', fontSize: 11,
                         fontWeight: FontWeight.bold,
                         color: AppColors.gold,
@@ -432,17 +438,17 @@ class _StreaksTabState extends State<StreaksTab> {
             ],
           ),
           const SizedBox(height: 10),
-          _task('Completed 5 daily prayers', _prayers,
+          _task(loc.translate('completed5DailyPrayers'), _prayers,
                   (v) => setState(() { _prayers = v!; _save(); })),
-          _task('Read Quran today', _quran,
+          _task(loc.translate('readQuranToday'), _quran,
                   (v) => setState(() { _quran = v!; _save(); })),
-          _task('Attended a class or activity', _class_,
+          _task(loc.translate('attendedClassOrActivity'), _class_,
                   (v) => setState(() { _class_ = v!; _save(); })),
           if (_customTasks.isNotEmpty) ...[
             const SizedBox(height: 12),
             const Divider(color: AppColors.borderLight),
             const SizedBox(height: 8),
-            const Text('Custom Goals', style: TextStyle(
+            Text(loc.translate('customGoals'), style: const TextStyle(
               fontFamily: 'Cairo', fontSize: 14,
               fontWeight: FontWeight.w700, color: AppColors.textDark,
             )),
@@ -509,21 +515,22 @@ class _StreaksTabState extends State<StreaksTab> {
     );
   }
 
-  void _showCreateTaskDialog() {
+  void _showCreateTaskDialog(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final taskCtrl = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgCream,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Create Custom Streak Goal',
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+        title: Text(loc.translate('createCustomStreakGoal'),
+            style: const TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Enter goal name (e.g. Read Hadith, Tasbeeh):',
-                style: TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey)),
+            Text(loc.translate('enterGoalName'),
+                style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey)),
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
@@ -535,10 +542,10 @@ class _StreaksTabState extends State<StreaksTab> {
                 controller: taskCtrl,
                 autofocus: true,
                 style: const TextStyle(fontFamily: 'Cairo', fontSize: 14),
-                decoration: const InputDecoration(
-                  hintText: 'e.g. Tasbeeh 100x',
+                decoration: InputDecoration(
+                  hintText: loc.translate('e.g.Tasbeeh100x'),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
               ),
             ),
@@ -547,7 +554,7 @@ class _StreaksTabState extends State<StreaksTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)),
+            child: Text(loc.translate('cancel'), style: const TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -560,7 +567,7 @@ class _StreaksTabState extends State<StreaksTab> {
                 if (ctx.mounted) Navigator.pop(ctx);
               }
             },
-            child: const Text('Create', style: TextStyle(fontFamily: 'Cairo', color: AppColors.gold, fontWeight: FontWeight.bold)),
+            child: Text(loc.translate('create'), style: const TextStyle(fontFamily: 'Cairo', color: AppColors.gold, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

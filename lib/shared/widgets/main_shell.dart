@@ -2,11 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/quran/quran_screen.dart';
 import '../../features/ibadah/ibadah_screen.dart';
 // import '../../features/community/community_auth_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../core/services/notification_service.dart';
+import '../../core/services/alarm_service.dart';
 
 import '../../features/community/community_auth_screen.dart'; // Needed for CommunityGate if applicable
 
@@ -20,6 +23,16 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   final List<int> _history = [0];
+
+  @override
+  void initState() {
+    super.initState();
+    // Request notification permissions when the main app is loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService.requestPermission();
+      AlarmService.instance.requestPermissions();
+    });
+  }
 
   void _changeTab(int index) {
     if (_currentIndex == index) return;
@@ -36,7 +49,17 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
+  // Global navigator key to handle nested navigations
+  final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
+
   Future<bool> _onWillPop() async {
+    // First check if there's a nested navigator that can pop
+    if (_shellNavigatorKey.currentState?.canPop() ?? false) {
+      _shellNavigatorKey.currentState?.pop();
+      return false;
+    }
+
+    // Then check tab history
     if (_history.length > 1) {
       setState(() {
         _history.removeLast();
@@ -44,6 +67,8 @@ class _MainShellState extends State<MainShell> {
       });
       return false;
     }
+
+    // If nothing else, exit app
     return true;
   }
 
@@ -87,12 +112,13 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final items = [
-      _NavItem(icon: Icons.home_outlined,        activeIcon: Icons.home,        label: 'Home'),
-      _NavItem(icon: Icons.menu_book_outlined,    activeIcon: Icons.menu_book,    label: 'Quran'),
-      _NavItem(icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome, label: 'Ibadah'),
-      _NavItem(icon: Icons.local_fire_department_outlined, activeIcon: Icons.local_fire_department, label: 'Streaks'),
-      _NavItem(icon: Icons.person_outline,        activeIcon: Icons.person,       label: 'Me'),
+      _NavItem(icon: Icons.home_outlined,        activeIcon: Icons.home,        label: loc.translate('home')),
+      _NavItem(icon: Icons.menu_book_outlined,    activeIcon: Icons.menu_book,    label: loc.translate('quran')),
+      _NavItem(icon: Icons.auto_awesome_outlined, activeIcon: Icons.auto_awesome, label: loc.translate('ibadah')),
+      _NavItem(icon: Icons.local_fire_department_outlined, activeIcon: Icons.local_fire_department, label: loc.translate('streaks')),
+      _NavItem(icon: Icons.person_outline,        activeIcon: Icons.person,       label: loc.translate('profile')),
     ];
 
     return Container(

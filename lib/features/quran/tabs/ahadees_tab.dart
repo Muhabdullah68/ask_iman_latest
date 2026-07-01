@@ -1,17 +1,12 @@
 // lib/features/quran/tabs/ahadees_tab.dart
 // ─────────────────────────────────────────────────────────────────────────────
-// AHADEES TAB — Working API: hadith-api-six.vercel.app (Fallback to local if fail)
-// 6 Books: Bukhari, Muslim, Tirmidhi, Abu Dawud, Nasa'i, Ibn Majah
+// AHADEES TAB — Uses local authentic hadith data
+// 6 Books: Bukhari, Muslim, Tirmidhi, Abu Dawud, Nasai, Ibn Majah
 // ─────────────────────────────────────────────────────────────────────────────
 
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import '../../../core/theme/app_colors.dart';
 import '../data/ahadees_data.dart';
-
-// ── Stable API base (Original) ────────────────────────────────────────────────
-const _kBase = 'https://api.hadith.gading.dev';
 
 // ── Book slugs ───────────────────────────────────────────────────────────────
 class _BookInfo {
@@ -23,14 +18,13 @@ class _BookInfo {
   const _BookInfo(this.slug, this.name, this.arabic, this.total, this.grade);
 }
 
-// Mapped to api.hadith.gading.dev identifiers
 const _books = [
-  _BookInfo('bukhari', 'Sahih al-Bukhari', 'صحيح البُخاري', 6638, 'SAHIH'),
-  _BookInfo('muslim', 'Sahih Muslim', 'صحيح مُسلم', 4930, 'SAHIH'),
-  _BookInfo('tirmidzi', 'Jami at-Tirmidhi', 'جامع الترمذي', 3625, 'SAHIH'),
-  _BookInfo('abu-daud', 'Sunan Abu Dawud', 'سنن أبي داود', 4419, 'SAHIH'),
-  _BookInfo('nasai', 'Sunan an-Nasa\'i', 'سنن النسائي', 5364, 'SAHIH'),
-  _BookInfo('ibnu-majah', 'Sunan Ibn Majah', 'سنن ابن ماجه', 4285, 'SAHIH'),
+  _BookInfo('bukhari', 'Sahih al-Bukhari', 'صحيح البخاري', 100, 'SAHIH'),
+  _BookInfo('muslim', 'Sahih Muslim', 'صحيح مسلم', 100, 'SAHIH'),
+  _BookInfo('tirmidhi', 'Jami at-Tirmidhi', 'جامع الترمذي', 100, 'SAHIH'),
+  _BookInfo('abu-dawud', 'Sunan Abu Dawud', 'سنن أبي داود', 100, 'SAHIH'),
+  _BookInfo('nasai', 'Sunan an-Nasai', 'سنن النسائي', 100, 'SAHIH'),
+  _BookInfo('ibn-majah', 'Sunan Ibn Majah', 'سنن ابن ماجه', 100, 'SAHIH'),
 ];
 
 const _topics = [
@@ -57,8 +51,7 @@ class _AhadeesTabState extends State<AhadeesTab> with SingleTickerProviderStateM
   _BookInfo? _selectedBook;
   String _selectedTopic = 'All';
 
-  Map<String, dynamic>? _dailyHadith;
-  bool _loadingDaily = true;
+  Map<String, String>? _dailyHadith;
 
   @override
   void initState() { 
@@ -74,23 +67,16 @@ class _AhadeesTabState extends State<AhadeesTab> with SingleTickerProviderStateM
   }
 
   Future<void> _fetchDailyHadith() async {
-    setState(() => _loadingDaily = true);
-    try {
-      final day = DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays + 1;
-      final num = (day % 100) + 1;
-      // Using gading hadith api
-      final r = await http
-          .get(Uri.parse('$_kBase/books/bukhari/$num'))
-          .timeout(const Duration(seconds: 8));
-      if (r.statusCode == 200) {
-        final data = jsonDecode(r.body)['data'];
-        if (data != null && mounted) {
-          setState(() { _dailyHadith = data; _loadingDaily = false; });
-          return;
-        }
-      }
-    } catch (_) {}
-    if (mounted) setState(() => _loadingDaily = false);
+    // Use local data for daily hadith
+    final day = DateTime.now().difference(DateTime(DateTime.now().year, 1, 1)).inDays + 1;
+    final bookHadiths = AhadeesData.bookHadiths['bukhari']!;
+    final index = (day % bookHadiths.length);
+    
+    if (mounted) {
+      setState(() {
+        _dailyHadith = bookHadiths[index];
+      });
+    }
   }
 
   @override
@@ -106,7 +92,8 @@ class _AhadeesTabState extends State<AhadeesTab> with SingleTickerProviderStateM
       return _TopicFilterScreen(
           topic: _selectedTopic,
           onBack: () => setState(() => _view = 0),
-          onTopicChanged: (t) => setState(() => _selectedTopic = t));
+          onTopicChanged: (t) => setState(() => _selectedTopic = t),
+          searchQuery: widget.searchQuery);
     }
 
     return Column(
@@ -122,6 +109,7 @@ class _AhadeesTabState extends State<AhadeesTab> with SingleTickerProviderStateM
                 onBack: () {}, // No back needed in tab view
                 onTopicChanged: (t) => setState(() => _selectedTopic = t),
                 isTabView: true,
+                searchQuery: widget.searchQuery,
               ),
             ],
           ),
@@ -209,12 +197,12 @@ class _AhadeesTabState extends State<AhadeesTab> with SingleTickerProviderStateM
 
   // ── Hadith of the Day banner ───────────────────────────────────────────────
   Widget _buildDailyBanner() {
-    String displayText = '"The best among you are those who have the best manners."';
+    String displayText = '"The best among you are those who have the best manners.';
     String sourceText  = 'Sahih Bukhari';
 
-    if (!_loadingDaily && _dailyHadith != null) {
-      final eng = _dailyHadith!['id'] as String? ?? '';
-      final ar  = _dailyHadith!['arab'] as String? ?? '';
+    if (_dailyHadith != null) {
+      final eng = _dailyHadith!['id'] ?? '';
+      final ar  = _dailyHadith!['arabic'] ?? '';
       if (eng.isNotEmpty) {
         displayText = eng.length > 220 ? '"${eng.substring(0, 220)}..."' : '"$eng"';
       } else if (ar.isNotEmpty) {
@@ -234,7 +222,7 @@ class _AhadeesTabState extends State<AhadeesTab> with SingleTickerProviderStateM
           child: Stack(fit: StackFit.expand, children: [
             Image.asset('assets/images/mosque interior.png',
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(color: AppColors.primaryDarkest)),
+                errorBuilder: (_, __, ___) => Container(color: AppColors.primaryDarkest)),
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -250,14 +238,10 @@ class _AhadeesTabState extends State<AhadeesTab> with SingleTickerProviderStateM
                     fontFamily: 'Cairo', fontSize: 11, fontWeight: FontWeight.w700,
                     color: AppColors.gold, letterSpacing: 2.5)),
                 const SizedBox(height: 12),
-                if (_loadingDaily)
-                  const SizedBox(height: 32,
-                      child: CircularProgressIndicator(color: AppColors.gold, strokeWidth: 2))
-                else
-                  Text(displayText, textAlign: TextAlign.center,
-                      style: const TextStyle(fontFamily: 'Cairo', fontSize: 14,
-                          fontWeight: FontWeight.w600, color: AppColors.textWhite,
-                          fontStyle: FontStyle.italic, height: 1.55)),
+                Text(displayText, textAlign: TextAlign.center,
+                    style: const TextStyle(fontFamily: 'Cairo', fontSize: 14,
+                        fontWeight: FontWeight.w600, color: AppColors.textWhite,
+                        fontStyle: FontStyle.italic, height: 1.55)),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 9),
@@ -285,11 +269,10 @@ class _AhadeesTabState extends State<AhadeesTab> with SingleTickerProviderStateM
       ]),
     );
   }
-
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// BOOK READ SCREEN — paginated via vercel hadith api
+// BOOK READ SCREEN — local hadith data
 // ══════════════════════════════════════════════════════════════════════════════
 class _BookReadScreen extends StatefulWidget {
   final _BookInfo book;
@@ -301,85 +284,24 @@ class _BookReadScreen extends StatefulWidget {
 }
 
 class _BookReadScreenState extends State<_BookReadScreen> {
-  List<dynamic> _hadiths = [];
+  List<Map<String, String>> _hadiths = [];
   bool _loading = true;
-  bool _loadingMore = false;
-  String? _error;
-  int _rangeStart = 1;
-  static const int _perPage = 20;
-  bool _hasMore = true;
-
-  final ScrollController _scroll = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _fetch();
-    _scroll.addListener(() {
-      if (_scroll.position.pixels > _scroll.position.maxScrollExtent - 400
-          && !_loadingMore && _hasMore) {
-        _fetchMore();
-      }
-    });
   }
-
-  @override
-  void dispose() { _scroll.dispose(); super.dispose(); }
 
   Future<void> _fetch() async {
-    setState(() { _loading = true; _error = null; });
-    try {
-      final rangeEnd = _rangeStart + _perPage - 1;
-      final url = '$_kBase/books/${widget.book.slug}?range=$_rangeStart-$rangeEnd';
-      final r = await http.get(Uri.parse(url))
-          .timeout(const Duration(seconds: 12));
-      if (r.statusCode == 200) {
-        final body = jsonDecode(r.body);
-        final list = (body['data']['hadiths'] as List?) ?? [];
-        if (mounted) {
-          setState(() {
-          _hadiths = list;
-          _loading = false;
-          _rangeStart += _perPage;
-          _hasMore = list.length >= _perPage;
-        });
-        }
-        return;
-      }
-    } catch (e) {
-      debugPrint('_fetch error: $e');
-    }
+    // Load from local data
+    final bookHadiths = AhadeesData.getBookHadiths(widget.book.slug);
     if (mounted) {
       setState(() {
-      _loading = false;
-      _error = 'Could not load hadiths.\nCheck your connection and try again.';
-    });
+        _hadiths = bookHadiths;
+        _loading = false;
+      });
     }
-  }
-
-  Future<void> _fetchMore() async {
-    if (_loadingMore || !_hasMore) return;
-    setState(() => _loadingMore = true);
-    try {
-      final rangeEnd = _rangeStart + _perPage - 1;
-      final url = '$_kBase/books/${widget.book.slug}?range=$_rangeStart-$rangeEnd';
-      final r = await http.get(Uri.parse(url))
-          .timeout(const Duration(seconds: 12));
-      if (r.statusCode == 200) {
-        final body = jsonDecode(r.body);
-        final list = (body['data']['hadiths'] as List?) ?? [];
-        if (mounted) {
-          setState(() {
-          _hadiths.addAll(list);
-          _rangeStart += _perPage;
-          _hasMore = list.length >= _perPage;
-          _loadingMore = false;
-        });
-        }
-        return;
-      }
-    } catch (_) {}
-    if (mounted) setState(() => _loadingMore = false);
   }
 
   @override
@@ -391,22 +313,12 @@ class _BookReadScreenState extends State<_BookReadScreen> {
         if (_loading)
           const Expanded(child: Center(
               child: CircularProgressIndicator(color: AppColors.gold)))
-        else if (_error != null)
-          _buildError()
         else
           Expanded(child: ListView.builder(
-            controller: _scroll,
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.only(top: 8, bottom: 24),
-            itemCount: _hadiths.length + (_loadingMore ? 1 : 0),
+            itemCount: _hadiths.length,
             itemBuilder: (_, i) {
-              if (i == _hadiths.length) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator(
-                      color: AppColors.gold, strokeWidth: 2)),
-                );
-              }
               return _HadithCard(
                 hadith: _hadiths[i], 
                 bookName: widget.book.name,
@@ -438,7 +350,7 @@ class _BookReadScreenState extends State<_BookReadScreen> {
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(widget.book.name, style: const TextStyle(fontFamily: 'Cairo',
               fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textWhite)),
-          Text('${widget.book.total} Hadiths', style: const TextStyle(
+          Text('${_hadiths.length} Hadiths', style: const TextStyle(
               fontFamily: 'Cairo', fontSize: 11, color: AppColors.textGreenMuted)),
         ])),
         Text(widget.book.arabic, textDirection: TextDirection.rtl,
@@ -446,32 +358,11 @@ class _BookReadScreenState extends State<_BookReadScreen> {
       ]),
     );
   }
-
-  Widget _buildError() {
-    return Expanded(child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.wifi_off, size: 48, color: AppColors.textLightGrey),
-      const SizedBox(height: 12),
-      Text(_error!, textAlign: TextAlign.center,
-          style: const TextStyle(fontFamily: 'Cairo', fontSize: 14, color: AppColors.textGrey)),
-      const SizedBox(height: 10),
-      Text('Book: ${widget.book.slug}', style: const TextStyle(fontSize: 10, color: AppColors.textLightGrey)),
-      const SizedBox(height: 20),
-      GestureDetector(
-        onTap: _fetch,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-          decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(24)),
-          child: const Text('Retry', style: TextStyle(fontFamily: 'Cairo',
-              fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primaryDarkest)),
-        ),
-      ),
-    ])));
-  }
 }
 
-// ── Hadith card for API response ──────────────────────────────────────────────
+// ── Hadith card for local response ─────────────────────────────────────────────
 class _HadithCard extends StatelessWidget {
-  final dynamic hadith;
+  final Map<String, String> hadith;
   final String bookName;
   final String? arabicFont;
   final bool useUrduFont;
@@ -479,9 +370,9 @@ class _HadithCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final num    = hadith['number']?.toString() ?? '';
-    final arabic = hadith['arab']   as String? ?? '';
-    final eng    = hadith['id']     as String? ?? '';
+    final num    = hadith['number'] ?? '';
+    final arabic = hadith['arabic'] ?? '';
+    final eng    = hadith['id'] ?? '';
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -546,8 +437,9 @@ class _TopicFilterScreen extends StatefulWidget {
   final VoidCallback onBack;
   final ValueChanged<String> onTopicChanged;
   final bool isTabView;
+  final String searchQuery;
   const _TopicFilterScreen({
-    required this.topic, required this.onBack, required this.onTopicChanged, this.isTabView = false});
+    required this.topic, required this.onBack, required this.onTopicChanged, this.isTabView = false, this.searchQuery = ''});
   @override State<_TopicFilterScreen> createState() => _TopicFilterScreenState();
 }
 
@@ -557,7 +449,18 @@ class _TopicFilterScreenState extends State<_TopicFilterScreen> {
   @override
   void initState() { super.initState(); _topic = widget.topic; }
 
-  List<Map<String, String>> get _filtered => AhadeesData.byTopic(_topic);
+  List<Map<String, String>> _filterHadiths(List<Map<String, String>> hadiths) {
+    if (widget.searchQuery.isEmpty) return hadiths;
+    final q = widget.searchQuery.toLowerCase();
+    return hadiths.where((h) {
+      final text = h['text']?.toLowerCase() ?? '';
+      final narrator = h['narrator']?.toLowerCase() ?? '';
+      final book = h['book']?.toLowerCase() ?? '';
+      return text.contains(q) || narrator.contains(q) || book.contains(q);
+    }).toList();
+  }
+
+  List<Map<String, String>> get _filtered => _filterHadiths(AhadeesData.byTopic(_topic));
 
   @override
   Widget build(BuildContext context) {
@@ -567,8 +470,8 @@ class _TopicFilterScreenState extends State<_TopicFilterScreen> {
         if (!widget.isTabView) _buildHeader(),
         _buildTopicChips(),
         Expanded(child: _filtered.isEmpty
-            ? const Center(child: Text('No hadiths found for this topic.',
-            style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)))
+            ? Center(child: Text(widget.searchQuery.isEmpty ? 'No hadiths found for this topic.' : 'No hadiths found for your search.',
+            style: const TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)))
             : ListView(
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -661,7 +564,7 @@ class _LocalHadithCard extends StatelessWidget {
           const Spacer(),
           const Icon(Icons.share_outlined, size: 16, color: AppColors.textGreenMuted),
           const SizedBox(width: 10),
-          const Icon(Icons.bookmark_outline, size: 16, color: AppColors.textGreenMuted),
+          const Icon(Icons.bookmark_outlined, size: 16, color: AppColors.textGreenMuted),
         ]),
         const SizedBox(height: 14),
         Text(hadith['text']!, style: const TextStyle(fontFamily: 'Cairo', fontSize: 15,

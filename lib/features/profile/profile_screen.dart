@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/community_service.dart';
 import '../../core/services/prayer_service.dart';
+import '../../core/providers/locale_provider.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../ibadah/ibadah_screen.dart';
 
@@ -208,18 +211,22 @@ class ProfileScreen extends StatelessWidget {
         onTap: () => _showNotifSettings(context)),
   ]);
 
-  Widget _buildSupportSection(BuildContext context) => _glassSection('Support & Safety', [
-    _actionRow(Icons.report_gmailerrorred_rounded, 'Report an Issue', 'Technical or content feedback', 
-        onTap: () => _showReportDialog(context)),
-    _actionRow(Icons.help_outline_rounded, 'Help Centre', 'FAQs and contact support', 
-        onTap: () => _showHelpCentre(context)),
-    _actionRow(Icons.privacy_tip_outlined, 'Privacy Policy', 'Data protection and usage', 
-        onTap: () => _showPrivacyPolicy(context)),
-    _actionRow(Icons.info_outline_rounded, 'About Ask Iman', 'Version 1.0.4 (Stable)', 
-        onTap: () => _showAboutDialog(context)),
-    _actionRow(Icons.language_rounded, 'App Language', 'Coming Soon', isComingSoon: true),
-    _actionRow(Icons.dark_mode_outlined, 'Appearance', 'Coming Soon', isComingSoon: true),
-  ]);
+  Widget _buildSupportSection(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return _glassSection(loc.translate('supportAndSafety'), [
+      _actionRow(Icons.report_gmailerrorred_rounded, loc.translate('reportAnIssue'), 'Technical or content feedback', 
+          onTap: () => _showReportDialog(context)),
+      _actionRow(Icons.help_outline_rounded, loc.translate('helpCentre'), 'FAQs and contact support', 
+          onTap: () => _showHelpCentre(context)),
+      _actionRow(Icons.privacy_tip_outlined, loc.translate('privacyPolicy'), 'Data protection and usage', 
+          onTap: () => _showPrivacyPolicy(context)),
+      _actionRow(Icons.info_outline_rounded, loc.translate('aboutAskIman'), 'Version 1.0.4 (Stable)', 
+          onTap: () => _showAboutDialog(context)),
+      _actionRow(Icons.language_rounded, loc.translate('appLanguage'), 'English / اردو / پښتو', 
+          onTap: () => _showLanguageDialog(context)),
+      _actionRow(Icons.dark_mode_outlined, loc.translate('appearance'), loc.translate('comingSoon'), isComingSoon: true),
+    ]);
+  }
 
   Widget _glassSection(String title, List<Widget> children) {
     return Column(
@@ -486,6 +493,61 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.bgCream,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.borderLight, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(loc.translate('selectLanguage'), style: const TextStyle(fontFamily: 'Cairo', fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+                ),
+                const SizedBox(height: 24),
+                _languageTile(loc.translate('english'), '🇬🇧', const Locale('en'), ctx),
+                _languageTile(loc.translate('urdu'), '🇵🇰', const Locale('ur'), ctx),
+                _languageTile(loc.translate('pashto'), '🇦🇫', const Locale('ps'), ctx),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _languageTile(String name, String flag, Locale locale, BuildContext context) {
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, child) {
+        return ListTile(
+          leading: Text(flag, style: const TextStyle(fontSize: 24)),
+          title: Text(name, style: const TextStyle(fontFamily: 'Cairo', fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+          trailing: localeProvider.locale == locale 
+                      ? const Icon(Icons.check_circle_rounded, color: AppColors.primaryDark)
+                      : null,
+          onTap: () {
+            localeProvider.setLocale(locale);
+            Navigator.pop(context);
+          },
+        );
+      },
     );
   }
 

@@ -175,6 +175,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _runSequence() async {
+    // Start the animation sequence
     _bgCtrl.forward();
     await Future.delayed(const Duration(milliseconds: 350));
     _bookCtrl.forward();
@@ -183,11 +184,13 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 3100));
     _textCtrl.forward();
     await Future.delayed(const Duration(milliseconds: 2600));
+    
+    // Fade out splash and navigate WITHOUT waiting for any network calls!
     await _exitCtrl.forward();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, _, _) => const MainShell(),
+        pageBuilder: (_, __, ___) => const MainShell(),
         transitionDuration: Duration.zero,
       ),
     );

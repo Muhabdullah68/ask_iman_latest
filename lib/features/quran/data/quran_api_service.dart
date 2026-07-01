@@ -29,7 +29,7 @@ class QuranAyah {
     return QuranAyah(
       number: arabic['numberInSurah'] as int,
       numberInQuran: arabic['number'] as int,
-      arabic: arabic['text'] as String,
+      arabic: cleanArabicText(arabic['text'] as String),
       translation: translation['text'] as String,
       audioUrl: arabic['audio'] as String? ?? '',
     );
@@ -158,18 +158,32 @@ class _LocalData {
   };
 }
 
+// Helper: Clean problematic Unicode characters to fix overlaps, keep important diacritics
+String cleanArabicText(String text) {
+  return text
+      // Only remove zero-width characters and problematic tatweel (kashida)
+      .replaceAll(RegExp(r'[\u0640\u06DD-\u06ED\u08F0-\u08FF]'), '');
+}
+
 class QuranApiService {
   QuranApiService._();
 
   static const String _base    = 'https://api.alquran.cloud/v1';
-  // CHANGED: quran-uthmani for proper Naskh/Mushaf rendering
-  static const String _arabic  = 'quran-uthmani';
+  // CHANGED: quran-uthmani-hafs for authentic Uthmani script with proper diacritics
+  static const String _arabic  = 'quran-uthmani-hafs';
   static const String _english = 'en.sahih';
   static const String _urdu    = 'ur.ahmedali';
   static const String _audio   = 'ar.alafasy';
 
   static Future<List<Map<String, String>>?> getLocalAyahs(int surahNum) async {
-    return _LocalData.ayahs[surahNum];
+    final ayahs = _LocalData.ayahs[surahNum];
+    if (ayahs == null) return null;
+    return ayahs.map((ayah) => {
+      'a': cleanArabicText(ayah['a']!),
+      't': ayah['t']!,
+      'tu': ayah['tu']!,
+      'num': ayah['num']!,
+    }).toList();
   }
 
   /// Fetches Arabic + English + Urdu (fast mode now includes both translations)
@@ -188,7 +202,7 @@ class QuranApiService {
       final urAyahs = jsonDecode(results[2].body)['data']['ayahs'] as List;
 
       return List.generate(arAyahs.length, (i) => {
-        'a':     arAyahs[i]['text'] as String,
+        'a':     cleanArabicText(arAyahs[i]['text'] as String),
         't':     enAyahs[i]['text'] as String,
         'tu':    urAyahs[i]['text'] as String,
         'num':   '${arAyahs[i]['numberInSurah']}',
@@ -216,7 +230,7 @@ class QuranApiService {
       final urAyahs = jsonDecode(results[2].body)['data']['ayahs'] as List;
 
       return List.generate(arAyahs.length, (i) => {
-        'a':     arAyahs[i]['text']  as String,
+        'a':     cleanArabicText(arAyahs[i]['text']  as String),
         't':     enAyahs[i]['text']  as String,
         'tu':    urAyahs[i]['text']  as String,
         'num':   '${arAyahs[i]['numberInSurah']}',
@@ -253,7 +267,7 @@ class QuranApiService {
 
         buf.putIfAbsent(sNum, () => _SurahBuf(sNum, sName, sArabic));
         buf[sNum]!.ayahs.add({
-          'a':   ar['text'] as String,
+          'a':   cleanArabicText(ar['text'] as String),
           't':   en['text'] as String,
           'tu':  ur['text'] as String,
           'num': '${ar['numberInSurah']}',
@@ -371,7 +385,7 @@ class QuranApiService {
       return QuranAyah(
         number: ad['numberInSurah'] as int,
         numberInQuran: ad['number'] as int,
-        arabic: ad['text'] as String,
+        arabic: cleanArabicText(ad['text'] as String),
         translation: td['text'] as String,
         audioUrl: au['audio'] as String? ?? '',
       );

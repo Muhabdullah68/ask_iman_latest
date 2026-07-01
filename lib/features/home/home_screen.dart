@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../ibadah/qiblah_screen.dart';
 import '../ibadah/tasbeeh_screen.dart';
@@ -21,31 +22,44 @@ class _HomeScreenState extends State<HomeScreen> {
   int _ayahPageIndex = 0;
   final PageController _ayahController =
   PageController(viewportFraction: 0.88);
-  
+
   Map<String, double> _soulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
 
-  // ── Daily Data ─────────────────────────────────────────────────────────────
+  // ── Daily Data ──────────────────────────────────────────────────────────────
   late final List<Map<String, String>> _dailyAyahs;
   late final List<Map<String, String>> _dailyHadiths;
 
-  final List<Map<String, dynamic>> _sacredItems = [
-    {'image': 'assets/images/Holy Quran.png',      'label': 'Quran',   'tab': 1},
-    {'image': 'assets/images/Kaaba.png',           'label': 'Qiblah',  'tab': 2},
-    {'image': 'assets/images/mosque interior.png', 'label': 'Prayers', 'tab': 2},
-    {'image': 'assets/images/AI orb.png',          'label': 'Ask AI',  'tab': 4},
-    {'image': 'assets/images/tasbih beads.png',    'label': 'Tasbeeh', 'tab': 2},
-    {'image': 'assets/images/islamic lanterns.png','label': 'Events',  'tab': 3},
-  ];
+  List<Map<String, dynamic>> _sacredItems(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return [
+      {'image': 'assets/images/Holy Quran.png', 'label': loc.translate('quran'), 'tab': 1},
+      {'image': 'assets/images/Kaaba.png', 'label': loc.translate('qiblah'), 'tab': 2},
+      {'image': 'assets/images/mosque interior.png', 'label': loc.translate('prayers'), 'tab': 2},
+      {'image': 'assets/images/AI orb.png', 'label': loc.translate('askAI'), 'tab': 4},
+      {'image': 'assets/images/tasbih beads.png', 'label': loc.translate('tasbeeh'), 'tab': 2},
+      {'image': 'assets/images/islamic lanterns.png','label': loc.translate('events'), 'tab': 3},
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
     _dailyAyahs = DailyData.getDailyAyahs(5);
     _dailyHadiths = DailyData.getDailyHadiths(5);
+    // Try to use cached data first!
     _loadSoulProgress();
   }
 
   Future<void> _loadSoulProgress() async {
+    // First, check if CommunityService has cached data to use immediately!
+    if (CommunityService.instance.cachedSoulProgress != null) {
+      if (mounted) {
+        setState(() {
+          _soulProgress = CommunityService.instance.cachedSoulProgress!;
+        });
+      }
+    }
+    // Still, load the data in case the cache is not available or needs refresh!
     final progress = await CommunityService.instance.getSoulProgress();
     if (mounted) {
       setState(() {
@@ -63,26 +77,26 @@ class _HomeScreenState extends State<HomeScreen> {
   // ── Helpers ────────────────────────────────────────────────────────────────
   void _navigateTo(int tab) => widget.onNavigateToTab?.call(tab);
 
-  void _handleSacredTap(String label, int tab) {
-    switch (label) {
-      case 'Qiblah':
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const QiblahScreen()));
-        break;
-      case 'Tasbeeh':
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const TasbeehScreen()));
-        break;
-      case 'Ask AI':
-      case 'Events':
-        _showComingSoon(label);
-        break;
-      default:
-        _navigateTo(tab);
+  void _handleSacredTap(String label, int tab, BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final qiblahLabel = loc.translate('qiblah');
+    final tasbeehLabel = loc.translate('tasbeeh');
+    final askAILabel = loc.translate('askAI');
+    final eventsLabel = loc.translate('events');
+
+    if (label == qiblahLabel) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const QiblahScreen()));
+    } else if (label == tasbeehLabel) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const TasbeehScreen()));
+    } else if (label == askAILabel || label == eventsLabel) {
+      _showComingSoon(label, context);
+    } else {
+      _navigateTo(tab);
     }
   }
 
-  void _showComingSoon(String feature) {
+  void _showComingSoon(String feature, BuildContext context) {
+    final loc = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -90,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const Icon(Icons.auto_awesome, color: AppColors.gold, size: 20),
             const SizedBox(width: 12),
             Text(
-              '$feature is coming soon! 🌙',
+              '$feature ${loc.translate('isComingSoon')}',
               style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w600),
             ),
           ],
@@ -134,15 +148,15 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            _buildAyahOfDay(),
+            _buildAyahOfDay(context),
             const SizedBox(height: 28),
-            _buildSacredJourney(),
+            _buildSacredJourney(context),
             const SizedBox(height: 28),
-            _buildSoulProgress(),
+            _buildSoulProgress(context),
             const SizedBox(height: 28),
-            _buildStreakSection(),
+            _buildStreakSection(context),
             const SizedBox(height: 28),
-            _buildDailyInspiration(),
+            _buildDailyInspiration(context),
             const SizedBox(height: 40),
           ],
         ),
@@ -153,11 +167,12 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   // SECTION 1 — Ayah of the Day
   // ════════════════════════════════════════════════════════════════════════════
-  Widget _buildAyahOfDay() {
+  Widget _buildAyahOfDay(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('Ayah of the Day'),
+        _sectionHeader(loc.translate('ayahOfTheDay')),
         const SizedBox(height: 14),
         SizedBox(
           height: 310,
@@ -194,11 +209,13 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   // SECTION 2 — Sacred Journey Grid
   // ════════════════════════════════════════════════════════════════════════════
-  Widget _buildSacredJourney() {
+  Widget _buildSacredJourney(BuildContext context) {
+    final items = _sacredItems(context);
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('Sacred Journey'),
+        _sectionHeader(loc.translate('sacredJourney')),
         const SizedBox(height: 14),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -211,13 +228,14 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSpacing: 12,
               childAspectRatio: 1.0,
             ),
-            itemCount: _sacredItems.length,
+            itemCount: items.length,
             itemBuilder: (_, i) => _SacredJourneyTile(
-              image: _sacredItems[i]['image'] as String,
-              label: _sacredItems[i]['label'] as String,
+              image: items[i]['image'] as String,
+              label: items[i]['label'] as String,
               onTap: () => _handleSacredTap(
-                _sacredItems[i]['label'] as String,
-                _sacredItems[i]['tab'] as int,
+                items[i]['label'] as String,
+                items[i]['tab'] as int,
+                context,
               ),
             ),
           ),
@@ -229,33 +247,34 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   // SECTION 3 — Soul Progress
   // ════════════════════════════════════════════════════════════════════════════
-  Widget _buildSoulProgress() {
+  Widget _buildSoulProgress(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('Soul Progress'),
+        _sectionHeader(loc.translate('soulProgress')),
         const SizedBox(height: 14),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [
               _SoulProgressCard(
-                label: 'Namaz',
-                sub: 'WEEKLY',
+                label: loc.translate('namaz'),
+                sub: loc.translate('weekly'),
                 value: _soulProgress['namaz']!,
                 display: '${(_soulProgress['namaz']! * 100).toInt()}%',
               ),
               const SizedBox(height: 10),
               _SoulProgressCard(
-                label: 'Quran',
-                sub: 'WEEKLY',
+                label: loc.translate('quran'),
+                sub: loc.translate('weekly'),
                 value: _soulProgress['quran']!,
                 display: '${(_soulProgress['quran']! * 100).toInt()}%',
               ),
               const SizedBox(height: 10),
               _SoulProgressCard(
-                label: 'Zikr',
-                sub: 'WEEKLY',
+                label: loc.translate('zikr'),
+                sub: loc.translate('weekly'),
                 value: _soulProgress['zikr']!,
                 display: '${(_soulProgress['zikr']! * 100).toInt()}%',
               ),
@@ -269,7 +288,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   // SECTION 3.5 — Streak Section
   // ════════════════════════════════════════════════════════════════════════════
-  Widget _buildStreakSection() {
+  Widget _buildStreakSection(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return StreamBuilder<AppUser?>(
       stream: CommunityService.instance.watchCurrentUser(),
       builder: (context, snapshot) {
@@ -301,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: AppColors.gold.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.local_fire_department_rounded, 
+                  child: const Icon(Icons.local_fire_department_rounded,
                     color: AppColors.gold, size: 32),
                 ),
                 const SizedBox(width: 16),
@@ -309,9 +329,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Current Streak',
-                        style: TextStyle(
+                      Text(
+                        loc.translate('currentStreak'),
+                        style: const TextStyle(
                           fontFamily: 'Cairo',
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -320,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       Text(
-                        '$streak Days',
+                        '$streak ${loc.translate('days')}',
                         style: const TextStyle(
                           fontFamily: 'Cairo',
                           fontSize: 24,
@@ -338,9 +358,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
-                  child: const Text(
-                    'KEEP IT UP!',
-                    style: TextStyle(
+                  child: Text(
+                    loc.translate('keepItUp'),
+                    style: const TextStyle(
                       fontFamily: 'Cairo',
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -359,11 +379,12 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   // SECTION 4 — Daily Inspiration
   // ════════════════════════════════════════════════════════════════════════════
-  Widget _buildDailyInspiration() {
+  Widget _buildDailyInspiration(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader('Daily Inspiration'),
+        _sectionHeader(loc.translate('dailyInspiration')),
         const SizedBox(height: 14),
         SizedBox(
           height: 310, // Match Ayah card height

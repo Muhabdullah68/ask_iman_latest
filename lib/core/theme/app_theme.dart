@@ -5,10 +5,17 @@ import 'app_colors.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get theme {
+  static ThemeData getTheme(Locale locale) {
+    // For Urdu, use a different font (e.g., NotoNastaliqUrdu or Jameel Noori if available)
+    String fontFamily = 'Cairo';
+    if (locale.languageCode == 'ur') {
+      // If Jameel Noori is added, use that, else fall back to NotoNastaliq
+      fontFamily = 'NotoNastaliq';
+    }
+
     return ThemeData(
       useMaterial3: true,
-      fontFamily: 'Cairo',
+      fontFamily: fontFamily,
       scaffoldBackgroundColor: AppColors.bgCream,
       primaryColor: AppColors.primaryDark,
 

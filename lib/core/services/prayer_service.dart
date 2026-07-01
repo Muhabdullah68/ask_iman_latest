@@ -22,7 +22,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
-import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -174,6 +173,7 @@ class PrayerService extends ChangeNotifier {
   String?      _error;
   Timer?       _midnightTimer;
   Timer?       _countdownTimer;
+  Prayer?      _previousNextPrayer;
 
   CalculationMethod _calcMethod = CalculationMethod.umm_al_qura;
   String _calcMethodName = 'Umm Al-Qura';
@@ -196,7 +196,20 @@ class PrayerService extends ChangeNotifier {
 
   Future<void> initialize(FlutterLocalNotificationsPlugin plugin) async {
     _notifPlugin = plugin;
-    tz_data.initializeTimeZones();
+    // tz already initialized in NotificationService
+    
+    // Create notification channel for prayer reminders
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'prayer_channel',
+      'Prayer Reminders',
+      description: 'Adhan and prayer time notifications',
+      importance: Importance.high,
+      sound: RawResourceAndroidNotificationSound('allah_hu_allah_hu'),
+      playSound: true,
+    );
+    
+    await _notifPlugin?.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
+    
     await refresh();
     _scheduleMidnightRefresh();
     _startCountdownTimer();
@@ -220,7 +233,7 @@ class PrayerService extends ChangeNotifier {
   }
 
   void setCalculationMethod(String name) {
-    if (kCalculationMethods.containsKey(name)) {
+    if (kCalculationMethods.containsKey(name) && _calcMethodName != name) {
       _calcMethodName = name;
       _calcMethod = kCalculationMethods[name]!;
       _calculatePrayerTimes();
@@ -230,23 +243,29 @@ class PrayerService extends ChangeNotifier {
   }
 
   void setMadhab(String name) {
-    _madhabName = name;
-    _calculatePrayerTimes();
-    if (_notifEnabled) _scheduleAllNotifications();
-    notifyListeners();
+    if (_madhabName != name) {
+      _madhabName = name;
+      _calculatePrayerTimes();
+      if (_notifEnabled) _scheduleAllNotifications();
+      notifyListeners();
+    }
   }
 
   void setNotificationsEnabled(bool v) {
-    _notifEnabled = v;
-    if (v) { _scheduleAllNotifications(); }
-    else   { _notifPlugin?.cancelAll(); }
-    notifyListeners();
+    if (_notifEnabled != v) {
+      _notifEnabled = v;
+      if (v) { _scheduleAllNotifications(); }
+      else   { _notifPlugin?.cancelAll(); }
+      notifyListeners();
+    }
   }
 
   void setReminderMinutes(int m) {
-    _reminderMins = m;
-    if (_notifEnabled) _scheduleAllNotifications();
-    notifyListeners();
+    if (_reminderMins != m) {
+      _reminderMins = m;
+      if (_notifEnabled) _scheduleAllNotifications();
+      notifyListeners();
+    }
   }
 
   List<PrayerInfo> getTodayPrayers({DateTime? at}) {
@@ -340,12 +359,14 @@ class PrayerService extends ChangeNotifier {
       ('Isha',    _prayerTimes!.isha,    4),
     ];
     final details = NotificationDetails(
-      android: const AndroidNotificationDetails(
+      android: AndroidNotificationDetails(
         'prayer_channel', 'Prayer Reminders',
         channelDescription: 'Adhan and prayer time notifications',
         importance: Importance.high,
         priority: Priority.high,
         icon: '@mipmap/ic_launcher',
+        sound: const RawResourceAndroidNotificationSound('allah_hu_allah_hu'),
+        playSound: true,
       ),
       iOS: const DarwinNotificationDetails(
           presentAlert: true, presentBadge: true, presentSound: true),
@@ -363,7 +384,9 @@ class PrayerService extends ChangeNotifier {
             uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
           );
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('Error scheduling reminder for $name: $e');
+        }
       }
       if (time.isAfter(now)) {
         try {
@@ -375,7 +398,9 @@ class PrayerService extends ChangeNotifier {
             uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
           );
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('Error scheduling adhan for $name: $e');
+        }
       }
     }
   }
@@ -391,8 +416,14 @@ class PrayerService extends ChangeNotifier {
   }
 
   void _startCountdownTimer() {
-    _countdownTimer =
-        Timer.periodic(const Duration(seconds: 30), (_) => notifyListeners());
+    _countdownTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_prayerTimes == null) return;
+      final currentNext = _prayerTimes!.nextPrayer();
+      if (currentNext != _previousNextPrayer) {
+        _previousNextPrayer = currentNext;
+        notifyListeners();
+      }
+    });
   }
 
   @override

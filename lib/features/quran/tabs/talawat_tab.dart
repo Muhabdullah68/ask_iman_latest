@@ -31,6 +31,7 @@
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/quran_download_service.dart';
 import '../../../core/services/quran_audio_service.dart';
@@ -86,7 +87,7 @@ const kJuzList = [
 // ── Arabic font helper ────────────────────────────────────────────────────────
 // Uses ScheherazadeNew if available in assets, else falls back to Amiri.
 // To enable ScheherazadeNew: add font asset in pubspec.yaml (see header).
-const _kQuranicFont = 'Amiri'; // Amiri is the available Quranic font in pubspec
+const _kQuranicFont = 'AlMushaf'; // Default Quranic font (Al Mushaf)
 
 // ── Bismillah text (Uthmani script) ──────────────────────────────────────────
 const _kBismillah = 'بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ';
@@ -397,6 +398,12 @@ class _EmptySearchState extends StatelessWidget {
   }
 }
 
+// Helper function to get surah PDF asset path
+String getSurahPdfAssetPath(Map<String, dynamic> surah) {
+  final slug = surah['pdfSlug'] as String;
+  return 'assets/pdf/surah_pdfs/_islam_pdfsurat_Arabic_Surah-$slug-in-Arabic.pdf';
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // SHARED SURAH CARD
 // ══════════════════════════════════════════════════════════════════════════════
@@ -410,7 +417,11 @@ class SharedSurahCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMakki = surah['type'] == 'MAKKI';
-    final actualArabicFont = arabicFont ?? (useUrduFont ? 'NotoNastaliq' : _kQuranicFont);
+    // Use valid fonts only
+    final validFonts = ['AlMushaf', 'AlMajeed', 'AlQalam', 'PDMS_Saleem', 'KfgqpcHafs'];
+    final actualArabicFont = (arabicFont != null && validFonts.contains(arabicFont)) 
+        ? arabicFont! 
+        : _kQuranicFont;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -540,6 +551,7 @@ class SharedSurahCard extends StatelessWidget {
                       
                       // Build PDF status widget
                       Widget buildPdfStatus() {
+                        final pdfAssetPath = getSurahPdfAssetPath(surah);
                         final pdfDownloaded = service.isDownloaded(id, DownloadType.pdf);
                         final pdfProgress = service.getProgress(id, DownloadType.pdf);
                         
@@ -555,20 +567,31 @@ class SharedSurahCard extends StatelessWidget {
                           );
                         } else if (pdfProgress?.error != null) {
                           return const Icon(Icons.error_outline, color: Colors.red, size: 16);
-                        } else if (pdfDownloaded) {
+                        } else { 
+                          // Check if PDF is available before showing button
+                          if (!SurahsData.isPdfAvailable(surah)) {
+                            return const Icon(Icons.picture_as_pdf_rounded, color: AppColors.textGrey, size: 18);
+                          }
+                          
                           return InkWell(
                             onTap: () async {
-                              final path = await service.getFilePath(id, DownloadType.pdf);
-                              if (context.mounted) {
-                                Navigator.push(context, MaterialPageRoute(
-                                  builder: (_) => PdfViewerScreen(title: surah['name'], localPath: path),
-                                ));
+                              if (pdfDownloaded) {
+                                final path = await service.getFilePath(id, DownloadType.pdf);
+                                if (context.mounted) {
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (_) => PdfViewerScreen(title: surah['name'], localPath: path),
+                                  ));
+                                }
+                              } else {
+                                if (context.mounted) {
+                                  Navigator.push(context, MaterialPageRoute(
+                                    builder: (_) => PdfViewerScreen(title: surah['name'], assetPath: pdfAssetPath),
+                                  ));
+                                }
                               }
                             },
                             child: const Icon(Icons.picture_as_pdf_rounded, color: AppColors.goldDark, size: 18),
                           );
-                        } else {
-                          return const SizedBox.shrink();
                         }
                       }
                       
@@ -654,7 +677,11 @@ class SharedJuzCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actualArabicFont = arabicFont ?? (useUrduFont ? 'NotoNastaliq' : _kQuranicFont);
+    // Use valid fonts only
+    final validFonts = ['AlMushaf', 'AlMajeed', 'AlQalam', 'PDMS_Saleem', 'KfgqpcHafs'];
+    final actualArabicFont = (arabicFont != null && validFonts.contains(arabicFont)) 
+        ? arabicFont! 
+        : _kQuranicFont;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -911,14 +938,19 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   List<Map<String, String>>? _surahAyahs;
   bool _loading = true;
   String? _error;
-  double _fontSize = 26;
+  double _fontSize = 28; // Larger default size
   bool _showUrdu = false; // EN/UR toggle for translation mode
   late String _currentArabicFont;
 
   @override
   void initState() {
     super.initState();
-    _currentArabicFont = widget.arabicFont ?? (widget.useUrduFont ? 'NotoNastaliq' : _kQuranicFont);
+    final validFonts = ['AlMushaf', 'AlMajeed', 'AlQalam', 'PDMS_Saleem', 'KfgqpcHafs'];
+    if (widget.arabicFont != null && validFonts.contains(widget.arabicFont)) {
+      _currentArabicFont = widget.arabicFont!;
+    } else {
+      _currentArabicFont = _kQuranicFont;
+    }
     _showUrdu = widget.useUrduFont; // Initialize with preference
     _load();
   }
@@ -928,7 +960,12 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
     super.didUpdateWidget(oldWidget);
     if (widget.useUrduFont != oldWidget.useUrduFont || widget.arabicFont != oldWidget.arabicFont) {
       setState(() {
-        _currentArabicFont = widget.arabicFont ?? (widget.useUrduFont ? 'NotoNastaliq' : _kQuranicFont);
+        final validFonts = ['AlMushaf', 'AlMajeed', 'AlQalam', 'PDMS_Saleem', 'KfgqpcHafs'];
+        if (widget.arabicFont != null && validFonts.contains(widget.arabicFont)) {
+          _currentArabicFont = widget.arabicFont!;
+        } else {
+          _currentArabicFont = _kQuranicFont;
+        }
         _showUrdu = widget.useUrduFont;
       });
     }
@@ -1027,6 +1064,27 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
           _langBtn('اردو', _showUrdu),
           const SizedBox(width: 8),
         ],
+        // PDF button — only for single surah mode
+        if (!widget.isJuzMode) ...[
+          if (SurahsData.isPdfAvailable(widget.surah!)) ...[
+            GestureDetector(
+              onTap: () {
+                final pdfAssetPath = getSurahPdfAssetPath(widget.surah!);
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => PdfViewerScreen(title: widget.surah!['name'] as String, assetPath: pdfAssetPath),
+                ));
+              },
+              child: Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(
+                    color: AppColors.primaryMid,
+                    borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.picture_as_pdf, color: AppColors.gold, size: 18),
+              ),
+            ),
+            const SizedBox(width: 6),
+          ],
+        ],
         // Font selector button
         GestureDetector(
           onTap: _showFontPicker,
@@ -1039,19 +1097,21 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
           ),
         ),
         const SizedBox(width: 6),
-        _fontBtn('−', () { if (_fontSize > 18) setState(() => _fontSize -= 2); }),
+        _fontBtn('−', () { if (_fontSize > 20) setState(() => _fontSize -= 2); }),
         const SizedBox(width: 6),
-        _fontBtn('+', () { if (_fontSize < 42) setState(() => _fontSize += 2); }),
+        _fontBtn('+', () { if (_fontSize < 48) setState(() => _fontSize += 2); }),
       ]),
     );
   }
 
-  void _showFontPicker() {
+  void _showFontPicker() async {
+    final prefs = await SharedPreferences.getInstance();
     final fonts = [
+      {'name': 'Al Mushaf', 'id': 'AlMushaf'},
+      {'name': 'Al Majeed', 'id': 'AlMajeed'},
       {'name': 'Indo-Pak (Al Qalam)', 'id': 'AlQalam'},
-      {'name': 'Uthmani (Amiri)', 'id': 'Amiri'},
-      {'name': 'Modern (Cairo)', 'id': 'Cairo'},
-      {'name': 'Urdu (Noto)', 'id': 'NotoNastaliq'},
+      {'name': 'Saleem (PDMS)', 'id': 'PDMS_Saleem'},
+      {'name': 'Hafs Uthmanic Script', 'id': 'KfgqpcHafs'},
     ];
 
     showModalBottomSheet(
@@ -1075,8 +1135,9 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
               children: fonts.map((f) {
                 final isSel = _currentArabicFont == f['id'];
                 return GestureDetector(
-                  onTap: () {
+                  onTap: () async {
                     setState(() => _currentArabicFont = f['id']!);
+                    await prefs.setString('quran_font', f['id']!);
                     Navigator.pop(ctx);
                   },
                   child: Container(
@@ -1090,6 +1151,36 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
                 );
               }).toList(),
             ),
+            // PDF button (only for single surah mode)
+            if (!widget.isJuzMode && SurahsData.isPdfAvailable(widget.surah!)) ...[
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  final pdfAssetPath = getSurahPdfAssetPath(widget.surah!);
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => PdfViewerScreen(title: widget.surah!['name'] as String, assetPath: pdfAssetPath),
+                  ));
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryDark.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primaryDark.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.picture_as_pdf, color: AppColors.primaryDark, size: 22),
+                      const SizedBox(width: 8),
+                      Text('Open PDF', style: const TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primaryDark)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
           ],
         ),
@@ -1286,9 +1377,38 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildBismillahBanner() {
     final isAlQalam = _currentArabicFont == 'AlQalam';
+    final isPDMS = _currentArabicFont == 'PDMS_Saleem';
+    final isHafs = _currentArabicFont == 'KfgqpcHafs';
+    final isAlMushaf = _currentArabicFont == 'AlMushaf';
+    final isAlMajeed = _currentArabicFont == 'AlMajeed';
+
+    double actualFontSize = _fontSize;
+    double actualHeight = 2.0;
+    double horizontalPadding = 20;
+
+    if (isAlQalam) {
+      actualFontSize = _fontSize * 1.3;
+      actualHeight = 1.8;
+    } else if (isPDMS) {
+      actualFontSize = _fontSize;
+      actualHeight = 2.5;
+    } else if (isHafs) {
+      actualFontSize = _fontSize * 1.1;
+      actualHeight = 2.8;
+      horizontalPadding = 28;
+    } else if (isAlMushaf) {
+      actualFontSize = _fontSize * 1.05;
+      actualHeight = 2.7;
+      horizontalPadding = 26;
+    } else if (isAlMajeed) {
+      actualFontSize = _fontSize * 1.0;
+      actualHeight = 2.6;
+      horizontalPadding = 24;
+    }
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      padding: EdgeInsets.symmetric(vertical: 18, horizontal: horizontalPadding),
       decoration: BoxDecoration(
         color: AppColors.bgWhite,
         borderRadius: BorderRadius.circular(14),
@@ -1304,9 +1424,9 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
         textAlign: TextAlign.center,
         style: TextStyle(
           fontFamily: _currentArabicFont,
-          fontSize: isAlQalam ? _fontSize * 1.4 : (_currentArabicFont == 'NotoNastaliq' ? _fontSize - 4 : _fontSize + 2),
+          fontSize: actualFontSize + 2,
           color: AppColors.primaryDark,
-          height: isAlQalam ? 1.4 : 1.8,
+          height: actualHeight,
         ),
       ),
     );
@@ -1319,14 +1439,52 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   Widget _buildMushaafBlock(List<Map<String, String>> ayahs, int surahNum) {
     if (ayahs.isEmpty) return const SizedBox.shrink();
 
+    final isAlQalam = _currentArabicFont == 'AlQalam';
+    final isPDMS = _currentArabicFont == 'PDMS_Saleem';
+    final isHafs = _currentArabicFont == 'KfgqpcHafs';
+    final isAlMushaf = _currentArabicFont == 'AlMushaf';
+    final isAlMajeed = _currentArabicFont == 'AlMajeed';
+
+    double actualFontSize = _fontSize;
+    double actualHeight = 2.35;
+    double ayahMarkerSizeRatio = 0.80;
+    double horizontalPadding = 24;
+    double verticalPadding = 20;
+    double letterSpacing = 0;
+
+    if (isAlQalam) {
+      actualFontSize = _fontSize * 1.3;
+      actualHeight = 1.7;
+      letterSpacing = 0.5;
+    } else if (isPDMS) {
+      actualFontSize = _fontSize;
+      actualHeight = 2.55;
+    } else if (isHafs) {
+      actualFontSize = _fontSize * 1.1;
+      actualHeight = 3.2;
+      ayahMarkerSizeRatio = 0.85;
+      horizontalPadding = 28;
+      verticalPadding = 24;
+    } else if (isAlMushaf) {
+      actualFontSize = _fontSize * 1.05;
+      actualHeight = 3.0;
+      ayahMarkerSizeRatio = 0.82;
+      horizontalPadding = 26;
+      verticalPadding = 22;
+    } else if (isAlMajeed) {
+      actualFontSize = _fontSize * 1.0;
+      actualHeight = 2.9;
+      ayahMarkerSizeRatio = 0.83;
+      horizontalPadding = 24;
+      verticalPadding = 21;
+    }
+
     final spans = <InlineSpan>[];
     for (int i = 0; i < ayahs.length; i++) {
       final ayahNum = ayahs[i]['num']!;
       if (i > 0) {
-        spans.add(const TextSpan(text: '\u200C')); // zero-width non-joiner spacing
+        spans.add(const TextSpan(text: '\u00A0'));
       }
-      
-      final isAlQalam = _currentArabicFont == 'AlQalam';
       
       // Ayah text
       spans.add(TextSpan(
@@ -1336,28 +1494,28 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
         },
         style: TextStyle(
           fontFamily: _currentArabicFont,
-          fontSize: isAlQalam ? _fontSize * 1.3 : (_currentArabicFont == 'NotoNastaliq' ? _fontSize - 4 : _fontSize),
+          fontSize: actualFontSize,
           color: AppColors.textDark,
-          height: isAlQalam ? 1.6 : 2.2,
-          letterSpacing: isAlQalam ? 0.5 : 0,
+          height: actualHeight,
+          letterSpacing: letterSpacing,
         ),
       ));
-      // Ayah number marker  ﴿n﴾  in gold
+      // Ayah number marker  ﴿n﴾  in gold with proper spacing
       spans.add(TextSpan(
-        text: ' \u06DD${ayahs[i]['num']!}\u0020',
+        text: ' \u06DD${ayahs[i]['num']!}\u06DE ',
         style: TextStyle(
-          fontFamily: isAlQalam ? 'Amiri' : _currentArabicFont, // Use standard font for markers if AlQalam is too ornate
-          fontSize: (isAlQalam ? _fontSize : (_currentArabicFont == 'NotoNastaliq' ? _fontSize - 4 : _fontSize)) * 0.70,
+          fontFamily: isAlQalam ? 'Amiri' : _currentArabicFont,
+          fontSize: actualFontSize * ayahMarkerSizeRatio,
           color: AppColors.goldDark,
           fontWeight: FontWeight.w700,
-          height: 2.2,
+          height: actualHeight,
         ),
       ));
     }
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
       decoration: BoxDecoration(
         color: AppColors.bgWhite,
         borderRadius: BorderRadius.circular(16),
@@ -1369,7 +1527,7 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
       ),
       child: RichText(
         textDirection: TextDirection.rtl,
-        textAlign: TextAlign.justify,
+        textAlign: TextAlign.right,
         text: TextSpan(children: spans),
       ),
     );
@@ -1381,6 +1539,38 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   Widget _buildAyahCard(String arabic, String trans, String num, int surahNum, {String urduTrans = '', String audioUrl = '', bool showUrdu = false}) {
     final displayTrans = (showUrdu && urduTrans.isNotEmpty) ? urduTrans : trans;
     final isUrdu     = showUrdu && urduTrans.isNotEmpty;
+
+    final isAlQalam = _currentArabicFont == 'AlQalam';
+    final isPDMS = _currentArabicFont == 'PDMS_Saleem';
+    final isHafs = _currentArabicFont == 'KfgqpcHafs';
+    final isAlMushaf = _currentArabicFont == 'AlMushaf';
+    final isAlMajeed = _currentArabicFont == 'AlMajeed';
+
+    double actualFontSize = _fontSize;
+    double actualHeight = 2.12;
+    double horizontalPadding = 16;
+    double letterSpacing = 0;
+
+    if (isAlQalam) {
+      actualFontSize = _fontSize * 1.3;
+      actualHeight = 1.7;
+      letterSpacing = 0.5;
+    } else if (isPDMS) {
+      actualFontSize = _fontSize;
+      actualHeight = 2.35;
+    } else if (isHafs) {
+      actualFontSize = _fontSize * 1.1;
+      actualHeight = 2.8;
+      horizontalPadding = 20;
+    } else if (isAlMushaf) {
+      actualFontSize = _fontSize * 1.05;
+      actualHeight = 2.6;
+      horizontalPadding = 18;
+    } else if (isAlMajeed) {
+      actualFontSize = _fontSize * 1.0;
+      actualHeight = 2.5;
+      horizontalPadding = 17;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1395,7 +1585,7 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         // Arabic text row
         Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 14, horizontalPadding, 8),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             // Gold ayah number circle
             Container(
@@ -1410,27 +1600,27 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                '$arabic \u06DD$num\u0020',
+                '$arabic \u06DD$num\u06DE ',
                 textDirection: TextDirection.rtl,
-                textAlign: TextAlign.right, // Standardized right alignment for Arabic
+                textAlign: TextAlign.right,
                 style: TextStyle(
                   fontFamily: _currentArabicFont,
-                  fontSize: _currentArabicFont == 'AlQalam' ? _fontSize * 1.3 : (_currentArabicFont == 'NotoNastaliq' ? _fontSize - 4 : _fontSize),
+                  fontSize: actualFontSize,
                   color: AppColors.textDark,
-                  height: _currentArabicFont == 'AlQalam' ? 1.6 : 2.0,
-                  letterSpacing: _currentArabicFont == 'AlQalam' ? 0.5 : 0,
+                  height: actualHeight,
+                  letterSpacing: letterSpacing,
                 ),
               ),
             ),
           ]),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: Container(height: 1, color: AppColors.gold.withValues(alpha: 0.25)),
         ),
         // Translation row
         Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 8, horizontalPadding, 4),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('$surahNum:$num ',
                 style: const TextStyle(fontFamily: 'Cairo', fontSize: 10,
@@ -1441,14 +1631,14 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
               style: TextStyle(
                   fontFamily: isUrdu ? 'NotoNastaliq' : 'Cairo',
                   fontSize: isUrdu ? 13 : 13,
-                  color: AppColors.textGrey, height: 1.6,
+                  color: AppColors.textGrey, height: 1.7,
                   fontStyle: isUrdu ? FontStyle.normal : FontStyle.italic),
             )),
           ]),
         ),
         // Audio play row
         Padding(
-          padding: const EdgeInsets.fromLTRB(14, 2, 14, 10),
+          padding: EdgeInsets.fromLTRB(horizontalPadding, 2, horizontalPadding, 10),
           child: ListenableBuilder(
             listenable: QuranAudioService(),
             builder: (context, _) {

@@ -366,6 +366,10 @@ class CommunityService {
   bool get isGuestUser => _isGuest;
 
   final _guestUpdateController = StreamController<Object?>.broadcast();
+  
+  // Caching fields
+  Map<String, double>? cachedSoulProgress;
+  AppUser? cachedCurrentUser;
 
   Future<AppUser> _getGuestUser() async {
     final prefs = await SharedPreferences.getInstance();
@@ -403,9 +407,10 @@ class CommunityService {
   // ── Current user ───────────────────────────────────────────────────────────
 
   Future<AppUser?> getCurrentUser() async {
-    if (_isGuest) return _getGuestUser();
+    if (cachedCurrentUser != null) return cachedCurrentUser;
+    if (_isGuest) return cachedCurrentUser = await _getGuestUser();
     final doc = await _db.collection('users').doc(_uid).get();
-    return doc.exists ? AppUser.fromDoc(doc) : null;
+    return cachedCurrentUser = doc.exists ? AppUser.fromDoc(doc) : null;
   }
 
   Stream<AppUser?> watchCurrentUser() {
@@ -669,12 +674,13 @@ class CommunityService {
   }
 
   Future<Map<String, double>> getSoulProgress() async {
+    if (cachedSoulProgress != null) return cachedSoulProgress!;
     if (_isGuest) {
       final prefs = await SharedPreferences.getInstance();
       final streaksJson = prefs.getString('guest_streaks') ?? '{}';
       final Map<String, dynamic> streaks = jsonDecode(streaksJson);
       
-      if (streaks.isEmpty) return {'namaz': 0, 'quran': 0, 'zikr': 0};
+      if (streaks.isEmpty) return cachedSoulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
 
       final now = DateTime.now();
       final sevenDaysAgo = now.subtract(const Duration(days: 7));
@@ -695,7 +701,7 @@ class CommunityService {
         }
       });
 
-      return {
+      return cachedSoulProgress = {
         'namaz': namazCount / 7,
         'quran': quranCount / 7,
         'zikr': zikrCount / 7,
@@ -713,7 +719,7 @@ class CommunityService {
           .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(sevenDaysAgo))
           .get();
 
-      if (snapshot.docs.isEmpty) return {'namaz': 0, 'quran': 0, 'zikr': 0};
+      if (snapshot.docs.isEmpty) return cachedSoulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
 
       int namazCount = 0;
       int quranCount = 0;
@@ -736,14 +742,14 @@ class CommunityService {
         }
       }
 
-      return {
+      return cachedSoulProgress = {
         'namaz': namazCount / 7,
         'quran': quranCount / 7,
         'zikr': zikrCount / 7,
       };
     } catch (e) {
       debugPrint('Error getting soul progress: $e');
-      return {'namaz': 0, 'quran': 0, 'zikr': 0};
+      return cachedSoulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
     }
   }
 
