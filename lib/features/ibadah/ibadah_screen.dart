@@ -22,11 +22,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/l10n/app_localizations.dart';
 import '../../core/services/prayer_service.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
+import '../../shared/widgets/tooltip_overlay.dart';
+import '../../core/services/tutorial_service.dart';
 import 'qiblah_screen.dart';
 import 'tasbeeh_screen.dart';
-import 'alarm_screen.dart';
 
 class IbadahScreen extends StatefulWidget {
   const IbadahScreen({super.key});
@@ -43,7 +45,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
   late int _viewHijriMonth;
 
   // Interactive calendar state
-  int? _selectedDay;            // tapped day in the current viewed month
+  int? _selectedDay; // tapped day in the current viewed month
   bool _showAllOccasions = false; // show-more toggle for occasions list
 
   @override
@@ -52,7 +54,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
     _svc.addListener(_onUpdate);
     if (_svc.prayerTimes == null && !_svc.isLoading) _svc.refresh();
     final today = HijriDate.today;
-    _viewHijriYear  = today.year;
+    _viewHijriYear = today.year;
     _viewHijriMonth = today.month;
   }
 
@@ -62,7 +64,9 @@ class _IbadahScreenState extends State<IbadahScreen> {
     super.dispose();
   }
 
-  void _onUpdate() { if (mounted) setState(() {}); }
+  void _onUpdate() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +79,8 @@ class _IbadahScreenState extends State<IbadahScreen> {
         onRefresh: _svc.refresh,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics()),
+            parent: BouncingScrollPhysics(),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -102,7 +107,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
   // 1. Next Prayer Banner
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildNextPrayerBanner(BuildContext context) {
-    final sw   = MediaQuery.of(context).size.width;
+    final sw = MediaQuery.of(context).size.width;
     final next = _svc.nextPrayerInfo;
     return ClipPath(
       clipper: _ArchClipper(),
@@ -131,7 +136,8 @@ class _IbadahScreenState extends State<IbadahScreen> {
             ),
             _svc.isLoading
                 ? const Center(
-                child: CircularProgressIndicator(color: AppColors.gold))
+                    child: CircularProgressIndicator(color: AppColors.gold),
+                  )
                 : _svc.error != null
                 ? _buildBannerError()
                 : _buildBannerContent(next),
@@ -148,29 +154,42 @@ class _IbadahScreenState extends State<IbadahScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.location_off_rounded,
-                color: AppColors.textGreenMuted, size: 36),
+            const Icon(
+              Icons.location_off_rounded,
+              color: AppColors.textGreenMuted,
+              size: 36,
+            ),
             const SizedBox(height: 10),
-            Text(_svc.error ?? 'Enable location for prayer times',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontFamily: 'Cairo', fontSize: 14,
-                    color: AppColors.textCream)),
+            Text(
+              _svc.error ?? 'Enable location for prayer times',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 14,
+                color: AppColors.textCream,
+              ),
+            ),
             const SizedBox(height: 12),
             GestureDetector(
               onTap: _svc.refresh,
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 22, vertical: 8),
+                  horizontal: 22,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
-                    color: AppColors.gold,
-                    borderRadius: BorderRadius.circular(20)),
-                child: const Text('Try Again',
-                    style: TextStyle(
-                      fontFamily: 'Cairo', fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primaryDarkest,
-                    )),
+                  color: AppColors.gold,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Try Again',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryDarkest,
+                  ),
+                ),
               ),
             ),
           ],
@@ -185,62 +204,85 @@ class _IbadahScreenState extends State<IbadahScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('All prayers complete',
-                style: TextStyle(
-                  fontFamily: 'Cairo', fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textWhite,
-                )),
+            const Text(
+              'All prayers complete',
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textWhite,
+              ),
+            ),
             const SizedBox(height: 6),
-            const Text('JazakAllah Khair',
-                style: TextStyle(
-                    fontFamily: 'Amiri', fontSize: 22,
-                    color: AppColors.gold)),
+            const Text(
+              'JazakAllah Khair',
+              style: TextStyle(
+                fontFamily: 'Amiri',
+                fontSize: 22,
+                color: AppColors.gold,
+              ),
+            ),
           ],
         ),
       );
     }
     final mins = next.minutesUntil();
-    final hrs  = mins ~/ 60;
-    final rem  = mins % 60;
-    final countdownText =
-    hrs > 0 ? '${hrs}h ${rem}m remaining' : '${mins}m remaining';
+    final hrs = mins ~/ 60;
+    final rem = mins % 60;
+    final countdownText = hrs > 0
+        ? '${hrs}h ${rem}m remaining'
+        : '${mins}m remaining';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          const Text('NEXT PRAYER',
-              style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.gold, letterSpacing: 2.5,
-              )),
+          const Text(
+            'NEXT PRAYER',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gold,
+              letterSpacing: 2.5,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(next.name,
-              style: const TextStyle(
-                fontFamily: 'Cairo', fontSize: 34,
-                fontWeight: FontWeight.w800, color: Colors.white,
-              )),
-          Text(next.timeFormatted,
-              style: const TextStyle(
-                fontFamily: 'Cairo', fontSize: 22,
-                fontWeight: FontWeight.w600, color: AppColors.gold,
-              )),
+          Text(
+            next.name,
+            style: const TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 34,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            next.timeFormatted,
+            style: const TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gold,
+            ),
+          ),
           const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
-            child: Text(countdownText,
-                style: const TextStyle(
-                    fontFamily: 'Cairo', fontSize: 13,
-                    color: AppColors.textCream)),
+            child: Text(
+              countdownText,
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 13,
+                color: AppColors.textCream,
+              ),
+            ),
           ),
         ],
       ),
@@ -252,8 +294,8 @@ class _IbadahScreenState extends State<IbadahScreen> {
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildPrayersList() {
     final prayers = _svc.todayPrayers;
-    final hijri   = HijriDate.today;
-    final greg    = DateFormat('EEEE, d MMMM').format(DateTime.now());
+    final hijri = HijriDate.today;
+    final greg = DateFormat('EEEE, d MMMM').format(DateTime.now());
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -262,24 +304,36 @@ class _IbadahScreenState extends State<IbadahScreen> {
         children: [
           Row(
             children: [
-              const Text('Prayer Times',
-                  style: TextStyle(
-                    fontFamily: 'Cairo', fontSize: 18,
-                    fontWeight: FontWeight.w700, color: AppColors.textDark,
-                  )),
+              const Text(
+                'Prayer Times',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
               const Spacer(),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(greg,
-                      style: const TextStyle(
-                          fontFamily: 'Cairo', fontSize: 11,
-                          color: AppColors.textGrey)),
-                  Text(hijri.formatted,
-                      style: const TextStyle(
-                          fontFamily: 'Cairo', fontSize: 10,
-                          color: AppColors.gold,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    greg,
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 11,
+                      color: AppColors.textGrey,
+                    ),
+                  ),
+                  Text(
+                    hijri.formatted,
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 10,
+                      color: AppColors.gold,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -297,17 +351,19 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 border: Border.all(color: AppColors.borderLight),
               ),
               child: Column(
-                children: List.generate(prayers.length, (i) => _PrayerRow(
-                  prayer: prayers[i],
-                  showDivider: i < prayers.length - 1,
-                )),
+                children: List.generate(
+                  prayers.length,
+                  (i) => _PrayerRow(
+                    prayer: prayers[i],
+                    showDivider: i < prayers.length - 1,
+                  ),
+                ),
               ),
             ),
           if (_svc.prayerTimes != null) ...[
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: AppColors.bgWhite,
                 borderRadius: BorderRadius.circular(12),
@@ -315,19 +371,30 @@ class _IbadahScreenState extends State<IbadahScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.wb_sunny_outlined,
-                      color: AppColors.gold, size: 18),
+                  const Icon(
+                    Icons.wb_sunny_outlined,
+                    color: AppColors.gold,
+                    size: 18,
+                  ),
                   const SizedBox(width: 10),
-                  const Text('Sunrise',
-                      style: TextStyle(fontFamily: 'Cairo',
-                          fontSize: 14, color: AppColors.textDark)),
+                  const Text(
+                    'Sunrise',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 14,
+                      color: AppColors.textDark,
+                    ),
+                  ),
                   const Spacer(),
-                  Text(_svc.sunriseFormatted,
-                      style: const TextStyle(
-                        fontFamily: 'Cairo', fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textDark,
-                      )),
+                  Text(
+                    _svc.sunriseFormatted,
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textDark,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -340,17 +407,24 @@ class _IbadahScreenState extends State<IbadahScreen> {
   Widget _buildPrayersShimmer() {
     return Container(
       height: 280,
-      decoration: BoxDecoration(color: AppColors.bgWhite,
-          borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: AppColors.bgWhite,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(color: AppColors.gold),
             SizedBox(height: 12),
-            Text('Calculating prayer times…',
-                style: TextStyle(fontFamily: 'Cairo', fontSize: 13,
-                    color: AppColors.textGrey)),
+            Text(
+              'Calculating prayer times…',
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 13,
+                color: AppColors.textGrey,
+              ),
+            ),
           ],
         ),
       ),
@@ -361,24 +435,37 @@ class _IbadahScreenState extends State<IbadahScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-          color: AppColors.bgWhite,
-          borderRadius: BorderRadius.circular(16)),
+        color: AppColors.bgWhite,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         children: [
-          const Icon(Icons.access_time_rounded,
-              color: AppColors.textLightGrey, size: 40),
+          const Icon(
+            Icons.access_time_rounded,
+            color: AppColors.textLightGrey,
+            size: 40,
+          ),
           const SizedBox(height: 12),
-          const Text('Prayer times unavailable',
-              style: TextStyle(fontFamily: 'Cairo', fontSize: 14,
-                  color: AppColors.textGrey)),
+          const Text(
+            'Prayer times unavailable',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 14,
+              color: AppColors.textGrey,
+            ),
+          ),
           const SizedBox(height: 12),
           GestureDetector(
             onTap: _svc.refresh,
-            child: const Text('Tap to retry',
-                style: TextStyle(
-                  fontFamily: 'Cairo', fontSize: 13,
-                  fontWeight: FontWeight.w600, color: AppColors.gold,
-                )),
+            child: const Text(
+              'Tap to retry',
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.gold,
+              ),
+            ),
           ),
         ],
       ),
@@ -396,13 +483,12 @@ class _IbadahScreenState extends State<IbadahScreen> {
     final selectedOccasion = _selectedDay == null
         ? null
         : allOccasions.firstWhere(
-          (o) =>
-      o['month'] as int == _viewHijriMonth &&
-          o['day'] as int == _selectedDay,
-      orElse: () => {},
-    );
-    final hasOccasion =
-        selectedOccasion != null && selectedOccasion.isNotEmpty;
+            (o) =>
+                o['month'] as int == _viewHijriMonth &&
+                o['day'] as int == _selectedDay,
+            orElse: () => {},
+          );
+    final hasOccasion = selectedOccasion != null && selectedOccasion.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -412,17 +498,21 @@ class _IbadahScreenState extends State<IbadahScreen> {
           // ── Section heading row ──
           Row(
             children: [
-              const Text('Hijri Calendar',
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                  )),
+              const Text(
+                'Hijri Calendar',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
               const Spacer(),
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primaryDark.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
@@ -510,16 +600,18 @@ class _IbadahScreenState extends State<IbadahScreen> {
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 5),
+                              horizontal: 12,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.10),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.18)),
+                                color: Colors.white.withValues(alpha: 0.18),
+                              ),
                             ),
                             child: Text(
-                              DateFormat('EEE, d MMM y')
-                                  .format(DateTime.now()),
+                              DateFormat('EEE, d MMM y').format(DateTime.now()),
                               style: const TextStyle(
                                 fontFamily: 'Cairo',
                                 fontSize: 11,
@@ -536,7 +628,9 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 // ── Thin gold divider ──
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 14),
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
                   child: Container(
                     height: 1,
                     decoration: BoxDecoration(
@@ -556,23 +650,26 @@ class _IbadahScreenState extends State<IbadahScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
-                      _calNavBtn(Icons.chevron_left, () => setState(() {
-                        _viewHijriMonth--;
-                        _selectedDay = null;
-                        if (_viewHijriMonth < 1) {
-                          _viewHijriMonth = 12;
-                          _viewHijriYear--;
-                        }
-                      })),
+                      _calNavBtn(
+                        Icons.chevron_left,
+                        () => setState(() {
+                          _viewHijriMonth--;
+                          _selectedDay = null;
+                          if (_viewHijriMonth < 1) {
+                            _viewHijriMonth = 12;
+                            _viewHijriYear--;
+                          }
+                        }),
+                      ),
                       Expanded(
                         child: Column(
                           children: [
                             Text(
                               HijriDate(
-                                  day: 1,
-                                  month: _viewHijriMonth,
-                                  year: _viewHijriYear)
-                                  .monthName,
+                                day: 1,
+                                month: _viewHijriMonth,
+                                year: _viewHijriYear,
+                              ).monthName,
                               style: const TextStyle(
                                 fontFamily: 'Cairo',
                                 fontSize: 16,
@@ -591,14 +688,17 @@ class _IbadahScreenState extends State<IbadahScreen> {
                           ],
                         ),
                       ),
-                      _calNavBtn(Icons.chevron_right, () => setState(() {
-                        _viewHijriMonth++;
-                        _selectedDay = null;
-                        if (_viewHijriMonth > 12) {
-                          _viewHijriMonth = 1;
-                          _viewHijriYear++;
-                        }
-                      })),
+                      _calNavBtn(
+                        Icons.chevron_right,
+                        () => setState(() {
+                          _viewHijriMonth++;
+                          _selectedDay = null;
+                          if (_viewHijriMonth > 12) {
+                            _viewHijriMonth = 1;
+                            _viewHijriYear++;
+                          }
+                        }),
+                      ),
                     ],
                   ),
                 ),
@@ -613,22 +713,24 @@ class _IbadahScreenState extends State<IbadahScreen> {
                     children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
                         .asMap()
                         .entries
-                        .map((e) => SizedBox(
-                      width: 36,
-                      child: Center(
-                        child: Text(
-                          e.value,
-                          style: TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: e.key == 5
-                                ? AppColors.gold
-                                : Colors.white.withValues(alpha: 0.45),
+                        .map(
+                          (e) => SizedBox(
+                            width: 36,
+                            child: Center(
+                              child: Text(
+                                e.value,
+                                style: TextStyle(
+                                  fontFamily: 'Cairo',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: e.key == 5
+                                      ? AppColors.gold
+                                      : Colors.white.withValues(alpha: 0.45),
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ))
+                        )
                         .toList(),
                   ),
                 ),
@@ -648,10 +750,12 @@ class _IbadahScreenState extends State<IbadahScreen> {
                   child: _selectedDay == null
                       ? const SizedBox(height: 16)
                       : _buildDayTooltip(
-                    _selectedDay!,
-                    today,
-                    hasOccasion ? selectedOccasion['name'] as String : null,
-                  ),
+                          _selectedDay!,
+                          today,
+                          hasOccasion
+                              ? selectedOccasion['name'] as String
+                              : null,
+                        ),
                 ),
               ],
             ),
@@ -685,7 +789,8 @@ class _IbadahScreenState extends State<IbadahScreen> {
 
   // ── Day tooltip that appears below the grid ──────────────────────────────
   Widget _buildDayTooltip(int day, HijriDate today, String? occasionName) {
-    final isToday = day == today.day &&
+    final isToday =
+        day == today.day &&
         _viewHijriMonth == today.month &&
         _viewHijriYear == today.year;
 
@@ -694,7 +799,10 @@ class _IbadahScreenState extends State<IbadahScreen> {
     final gregFormatted = DateFormat('EEEE, d MMMM y').format(gregDate);
 
     final hDate = HijriDate(
-        day: day, month: _viewHijriMonth, year: _viewHijriYear);
+      day: day,
+      month: _viewHijriMonth,
+      year: _viewHijriYear,
+    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
@@ -740,9 +848,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                     fontFamily: 'Cairo',
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: occasionName != null
-                        ? AppColors.gold
-                        : Colors.white,
+                    color: occasionName != null ? AppColors.gold : Colors.white,
                   ),
                 ),
               ),
@@ -755,8 +861,11 @@ class _IbadahScreenState extends State<IbadahScreen> {
                   if (occasionName != null) ...[
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded,
-                            color: AppColors.gold, size: 13),
+                        const Icon(
+                          Icons.star_rounded,
+                          color: AppColors.gold,
+                          size: 13,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
@@ -796,13 +905,13 @@ class _IbadahScreenState extends State<IbadahScreen> {
             ),
             if (isToday)
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.gold.withValues(alpha: 0.20),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                      color: AppColors.gold.withValues(alpha: 0.50)),
+                    color: AppColors.gold.withValues(alpha: 0.50),
+                  ),
                 ),
                 child: const Text(
                   'Today',
@@ -823,9 +932,9 @@ class _IbadahScreenState extends State<IbadahScreen> {
   Widget _buildMonthGrid(HijriDate today) {
     final daysInMonth = _hijriDaysInMonth(_viewHijriMonth, _viewHijriYear);
     final firstDayGreg = _hijriToGregorian(1, _viewHijriMonth, _viewHijriYear);
-    final startOffset  = (firstDayGreg.weekday % 7);
+    final startOffset = (firstDayGreg.weekday % 7);
     final cells = startOffset + daysInMonth;
-    final rows  = (cells / 7).ceil();
+    final rows = (cells / 7).ceil();
 
     // Occasion days in this month
     final occasionDays = HijriDate.islamicOccasions(_viewHijriYear)
@@ -841,18 +950,19 @@ class _IbadahScreenState extends State<IbadahScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(7, (col) {
               final cellIndex = row * 7 + col;
-              final day       = cellIndex - startOffset + 1;
+              final day = cellIndex - startOffset + 1;
 
               if (day < 1 || day > daysInMonth) {
                 return const SizedBox(width: 36, height: 40);
               }
 
-              final isToday = day == today.day &&
+              final isToday =
+                  day == today.day &&
                   _viewHijriMonth == today.month &&
-                  _viewHijriYear  == today.year;
-              final isSelected  = day == _selectedDay;
-              final isFriday    = col == 5;
-              final isOccasion  = occasionDays.contains(day);
+                  _viewHijriYear == today.year;
+              final isSelected = day == _selectedDay;
+              final isFriday = col == 5;
+              final isOccasion = occasionDays.contains(day);
 
               Color bgColor;
               Color textColor;
@@ -860,34 +970,37 @@ class _IbadahScreenState extends State<IbadahScreen> {
               FontWeight fw = FontWeight.w400;
 
               if (isSelected && isToday) {
-                bgColor   = AppColors.gold;
+                bgColor = AppColors.gold;
                 textColor = AppColors.primaryDarkest;
-                border    = null;
-                fw        = FontWeight.w800;
+                border = null;
+                fw = FontWeight.w800;
               } else if (isSelected) {
-                bgColor   = AppColors.gold.withValues(alpha: 0.22);
+                bgColor = AppColors.gold.withValues(alpha: 0.22);
                 textColor = AppColors.gold;
-                border    = Border.all(color: AppColors.gold, width: 1.5);
-                fw        = FontWeight.w700;
+                border = Border.all(color: AppColors.gold, width: 1.5);
+                fw = FontWeight.w700;
               } else if (isToday) {
-                bgColor   = AppColors.primaryDark;
+                bgColor = AppColors.primaryDark;
                 textColor = AppColors.gold;
-                border    = Border.all(color: AppColors.gold, width: 1.5);
-                fw        = FontWeight.w800;
+                border = Border.all(color: AppColors.gold, width: 1.5);
+                fw = FontWeight.w800;
               } else if (isOccasion) {
-                bgColor   = AppColors.gold.withValues(alpha: 0.15);
+                bgColor = AppColors.gold.withValues(alpha: 0.15);
                 textColor = AppColors.gold;
-                border    = Border.all(color: AppColors.gold.withValues(alpha: 0.55), width: 1.2);
-                fw        = FontWeight.w700;
+                border = Border.all(
+                  color: AppColors.gold.withValues(alpha: 0.55),
+                  width: 1.2,
+                );
+                fw = FontWeight.w700;
               } else if (isFriday) {
-                bgColor   = Colors.white.withValues(alpha: 0.06);
+                bgColor = Colors.white.withValues(alpha: 0.06);
                 textColor = AppColors.gold.withValues(alpha: 0.85);
-                border    = null;
-                fw        = FontWeight.w500;
+                border = null;
+                fw = FontWeight.w500;
               } else {
-                bgColor   = Colors.transparent;
+                bgColor = Colors.transparent;
                 textColor = Colors.white.withValues(alpha: 0.80);
-                border    = null;
+                border = null;
               }
 
               return GestureDetector(
@@ -945,13 +1058,13 @@ class _IbadahScreenState extends State<IbadahScreen> {
     // Sort all occasions: upcoming first (from today), then wrap around to
     // start of year so nothing is hidden. Passed ones go to the bottom.
     final upcoming = <Map<String, dynamic>>[];
-    final passed   = <Map<String, dynamic>>[];
+    final passed = <Map<String, dynamic>>[];
 
     for (final o in allOccasions) {
       final om = o['month'] as int;
-      final od = o['day']   as int;
-      final isUpcoming = om > today.month ||
-          (om == today.month && od >= today.day);
+      final od = o['day'] as int;
+      final isUpcoming =
+          om > today.month || (om == today.month && od >= today.day);
       if (isUpcoming) {
         upcoming.add(o);
       } else {
@@ -960,9 +1073,9 @@ class _IbadahScreenState extends State<IbadahScreen> {
     }
 
     // Always-shown = first 2 upcoming; rest shown when expanded
-    final sorted    = [...upcoming, ...passed];
+    final sorted = [...upcoming, ...passed];
     final showCount = _showAllOccasions ? sorted.length : 2;
-    final visible   = sorted.take(showCount).toList();
+    final visible = sorted.take(showCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1001,18 +1114,18 @@ class _IbadahScreenState extends State<IbadahScreen> {
         const SizedBox(height: 12),
 
         ...visible.asMap().entries.map((entry) {
-          final i    = entry.key;
-          final o    = entry.value;
-          final name  = o['name']  as String;
+          final i = entry.key;
+          final o = entry.value;
+          final name = o['name'] as String;
           final month = o['month'] as int;
-          final day   = o['day']   as int;
+          final day = o['day'] as int;
 
           final hDate = HijriDate(day: day, month: month, year: today.year);
           final gregDate = _hijriToGregorian(day, month, today.year);
           final gregFormatted = DateFormat('d MMM').format(gregDate);
 
-          final isUpcomingItem = month > today.month ||
-              (month == today.month && day >= today.day);
+          final isUpcomingItem =
+              month > today.month || (month == today.month && day >= today.day);
           final isNear = month == today.month && (day - today.day).abs() <= 7;
           final isFirst = i == 0 && isUpcomingItem;
 
@@ -1024,10 +1137,10 @@ class _IbadahScreenState extends State<IbadahScreen> {
             decoration: BoxDecoration(
               gradient: isFirst
                   ? const LinearGradient(
-                colors: [Color(0xFF0D2818), Color(0xFF1A3D28)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
+                      colors: [Color(0xFF0D2818), Color(0xFF1A3D28)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
                   : null,
               color: isFirst
                   ? null
@@ -1045,12 +1158,12 @@ class _IbadahScreenState extends State<IbadahScreen> {
               ),
               boxShadow: isFirst
                   ? [
-                BoxShadow(
-                  color: AppColors.primaryDarkest.withValues(alpha: 0.18),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                )
-              ]
+                      BoxShadow(
+                        color: AppColors.primaryDarkest.withValues(alpha: 0.18),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
                   : null,
             ),
             child: Padding(
@@ -1070,10 +1183,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                       borderRadius: BorderRadius.circular(13),
                     ),
                     child: Center(
-                      child: Text(
-                        icon,
-                        style: const TextStyle(fontSize: 20),
-                      ),
+                      child: Text(icon, style: const TextStyle(fontSize: 20)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1088,9 +1198,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                             fontFamily: 'Cairo',
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: isFirst
-                                ? Colors.white
-                                : AppColors.textDark,
+                            color: isFirst ? Colors.white : AppColors.textDark,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -1111,7 +1219,9 @@ class _IbadahScreenState extends State<IbadahScreen> {
                   if (isFirst)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.gold,
                         borderRadius: BorderRadius.circular(10),
@@ -1129,7 +1239,9 @@ class _IbadahScreenState extends State<IbadahScreen> {
                   else if (isNear)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.gold.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
@@ -1145,14 +1257,14 @@ class _IbadahScreenState extends State<IbadahScreen> {
                       ),
                     )
                   else if (!isUpcomingItem)
-                      Text(
-                        gregFormatted,
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 11,
-                          color: AppColors.textLightGrey,
-                        ),
+                    Text(
+                      gregFormatted,
+                      style: TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 11,
+                        color: AppColors.textLightGrey,
                       ),
+                    ),
                 ],
               ),
             ),
@@ -1205,16 +1317,16 @@ class _IbadahScreenState extends State<IbadahScreen> {
 
   /// Returns an emoji icon for each Islamic occasion name
   String _occasionIcon(String name) {
-    if (name.contains('New Year'))    return '🌙';
-    if (name.contains('Ashura'))      return '🕌';
-    if (name.contains('Mawlid'))      return '⭐';
-    if (name.contains('Isra'))        return '✨';
-    if (name.contains("Bara'ah"))     return '🤲';
-    if (name.contains('Ramadan'))     return '🌙';
-    if (name.contains('Qadr'))        return '✨';
-    if (name.contains('Fitr'))        return '🎉';
-    if (name.contains('Arafah'))      return '🕋';
-    if (name.contains('Adha'))        return '🎊';
+    if (name.contains('New Year')) return '🌙';
+    if (name.contains('Ashura')) return '🕌';
+    if (name.contains('Mawlid')) return '⭐';
+    if (name.contains('Isra')) return '✨';
+    if (name.contains("Bara'ah")) return '🤲';
+    if (name.contains('Ramadan')) return '🌙';
+    if (name.contains('Qadr')) return '✨';
+    if (name.contains('Fitr')) return '🎉';
+    if (name.contains('Arafah')) return '🕋';
+    if (name.contains('Adha')) return '🎊';
     return '📅';
   }
 
@@ -1236,18 +1348,23 @@ class _IbadahScreenState extends State<IbadahScreen> {
 
   DateTime _hijriToGregorian(int day, int month, int year) {
     // Convert Hijri to JDN then to DateTime
-    final n  = day + (29.5001 * (month - 1)).ceil() + (year - 1) * 354 +
-        (3 + 11 * year) ~/ 30 + 1948440 - 385;
+    final n =
+        day +
+        (29.5001 * (month - 1)).ceil() +
+        (year - 1) * 354 +
+        (3 + 11 * year) ~/ 30 +
+        1948440 -
+        385;
     final jd = n.toDouble();
 
     // JDN to Gregorian
-    var z  = jd.floor();
+    var z = jd.floor();
     final a = ((z - 1867216.25) / 36524.25).floor();
     z += 1 + a - (a ~/ 4);
-    final b  = z + 1524;
-    final c  = ((b - 122.1) / 365.25).floor();
-    final d  = (365.25 * c).floor();
-    final e  = ((b - d) / 30.6001).floor();
+    final b = z + 1524;
+    final c = ((b - 122.1) / 365.25).floor();
+    final d = (365.25 * c).floor();
+    final e = ((b - d) / 30.6001).floor();
     final dd = b - d - (30.6001 * e).floor();
     final mm = e < 14 ? e - 1 : e - 13;
     final yy = mm > 2 ? c - 4716 : c - 4715;
@@ -1258,54 +1375,67 @@ class _IbadahScreenState extends State<IbadahScreen> {
   // 4. Quick Tools (Qiblah + Tasbeeh only)
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildQuickTools(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Ibadah Tools',
+      child: TooltipOverlay(
+        id: 'tut_ibadah',
+        title: loc.translate('tutIbadahPrayerTitle'),
+        description: loc.translate('tutIbadahPrayerDesc'),
+        arrowDirection: TooltipArrowDirection.down,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Ibadah Tools',
               style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 18,
-                fontWeight: FontWeight.w700, color: AppColors.textDark,
-              )),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildToolCard(
-                  imagePath: 'assets/images/Kaaba.png',
-                  label: 'Qiblah',
-                  subtitle: 'Find direction',
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(
-                          builder: (_) => const QiblahScreen())),
-                ),
+                fontFamily: 'Cairo',
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildToolCard(
-                  imagePath: 'assets/images/tasbih beads.png',
-                  label: 'Tasbeeh',
-                  subtitle: 'Dhikr counter',
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(
-                          builder: (_) => const TasbeehScreen())),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildToolCard(
+                    imagePath: 'assets/images/Kaaba.png',
+                    label: 'Qiblah',
+                    subtitle: 'Find direction',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const QiblahScreen()),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildToolCard(
-                  imagePath: 'assets/images/tasbih beads.png',
-                  label: 'Reminders',
-                  subtitle: 'Set alarms',
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(
-                          builder: (_) => const AlarmScreen())),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildToolCard(
+                    imagePath: 'assets/images/tasbih beads.png',
+                    label: 'Tasbeeh',
+                    subtitle: 'Dhikr counter',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TasbeehScreen()),
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                // const SizedBox(width: 12),
+                // Expanded(
+                //   child: _buildToolCard(
+                //     imagePath: 'assets/images/tasbih beads.png',
+                //     label: 'Reminders',
+                //     subtitle: 'Set alarms',
+                //     onTap: () => Navigator.push(context,
+                //         MaterialPageRoute(
+                //             builder: (_) => const AlarmScreen())),
+                //   ),
+                // ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1329,9 +1459,11 @@ class _IbadahScreenState extends State<IbadahScreen> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Image.asset(imagePath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const SizedBox()),
+              Image.asset(
+                imagePath,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const SizedBox(),
+              ),
               Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -1342,21 +1474,30 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 ),
               ),
               Positioned(
-                left: 12, right: 12, bottom: 12,
+                left: 12,
+                right: 12,
+                bottom: 12,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(label,
-                        style: const TextStyle(
-                          fontFamily: 'Cairo', fontSize: 15,
-                          fontWeight: FontWeight.w700, color: Colors.white,
-                        )),
-                    Text(subtitle,
-                        style: const TextStyle(
-                          fontFamily: 'Cairo', fontSize: 11,
-                          color: AppColors.textGreenMuted,
-                        )),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 11,
+                        color: AppColors.textGreenMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1372,10 +1513,12 @@ class _IbadahScreenState extends State<IbadahScreen> {
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildSunnahTimes() {
     if (_svc.sunnahTimes == null) return const SizedBox.shrink();
-    final midnight  = DateFormat('h:mm a')
-        .format(_svc.sunnahTimes!.middleOfTheNight);
-    final lastThird = DateFormat('h:mm a')
-        .format(_svc.sunnahTimes!.lastThirdOfTheNight);
+    final midnight = DateFormat(
+      'h:mm a',
+    ).format(_svc.sunnahTimes!.middleOfTheNight);
+    final lastThird = DateFormat(
+      'h:mm a',
+    ).format(_svc.sunnahTimes!.lastThirdOfTheNight);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1390,26 +1533,37 @@ class _IbadahScreenState extends State<IbadahScreen> {
           children: [
             const Row(
               children: [
-                Icon(Icons.nightlight_round,
-                    color: AppColors.gold, size: 18),
+                Icon(Icons.nightlight_round, color: AppColors.gold, size: 18),
                 SizedBox(width: 8),
-                Text('Sunnah Times',
-                    style: TextStyle(
-                      fontFamily: 'Cairo', fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textWhite,
-                    )),
+                Text(
+                  'Sunnah Times',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textWhite,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 14),
             Row(
               children: [
-                Expanded(child: _sunnahItem(
-                    'Middle of Night', midnight, Icons.bedtime_outlined)),
+                Expanded(
+                  child: _sunnahItem(
+                    'Middle of Night',
+                    midnight,
+                    Icons.bedtime_outlined,
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: _sunnahItem(
-                    'Last Third (Tahajjud)', lastThird,
-                    Icons.star_outline_rounded)),
+                Expanded(
+                  child: _sunnahItem(
+                    'Last Third (Tahajjud)',
+                    lastThird,
+                    Icons.star_outline_rounded,
+                  ),
+                ),
               ],
             ),
           ],
@@ -1430,17 +1584,25 @@ class _IbadahScreenState extends State<IbadahScreen> {
         children: [
           Icon(icon, color: AppColors.gold, size: 16),
           const SizedBox(height: 6),
-          Text(label,
-              style: const TextStyle(
-                fontFamily: 'Cairo', fontSize: 11,
-                color: AppColors.textGreenMuted, height: 1.3,
-              )),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 11,
+              color: AppColors.textGreenMuted,
+              height: 1.3,
+            ),
+          ),
           const SizedBox(height: 3),
-          Text(time,
-              style: const TextStyle(
-                fontFamily: 'Cairo', fontSize: 15,
-                fontWeight: FontWeight.w700, color: AppColors.textWhite,
-              )),
+          Text(
+            time,
+            style: const TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textWhite,
+            ),
+          ),
         ],
       ),
     );
@@ -1462,16 +1624,21 @@ class _IbadahScreenState extends State<IbadahScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Prayer Settings',
-                style: TextStyle(
-                  fontFamily: 'Cairo', fontSize: 15,
-                  fontWeight: FontWeight.w700, color: AppColors.textDark,
-                )),
+            const Text(
+              'Prayer Settings',
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
+            ),
             const SizedBox(height: 4),
             const Text(
               'Customize your prayer settings below.',
               style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 11,
+                fontFamily: 'Cairo',
+                fontSize: 11,
                 color: AppColors.textGrey,
               ),
             ),
@@ -1518,20 +1685,30 @@ class _IbadahScreenState extends State<IbadahScreen> {
             Icon(icon, color: AppColors.primaryDark, size: 18),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(label,
-                  style: const TextStyle(
-                    fontFamily: 'Cairo', fontSize: 13,
-                    color: AppColors.textDark,
-                  )),
-            ),
-            Text(value,
+              child: Text(
+                label,
                 style: const TextStyle(
-                  fontFamily: 'Cairo', fontSize: 12,
-                  fontWeight: FontWeight.w600, color: AppColors.textGrey,
-                )),
+                  fontFamily: 'Cairo',
+                  fontSize: 13,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ),
+            Text(
+              value,
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textGrey,
+              ),
+            ),
             const SizedBox(width: 6),
-            const Icon(Icons.chevron_right,
-                size: 16, color: AppColors.textLightGrey),
+            const Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: AppColors.textLightGrey,
+            ),
           ],
         ),
       ),
@@ -1543,7 +1720,8 @@ class _IbadahScreenState extends State<IbadahScreen> {
       context: context,
       backgroundColor: AppColors.bgCream,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (_) => _MadhabPickerSheet(
         selected: _svc.madhabName,
         onSelect: (v) {
@@ -1559,7 +1737,8 @@ class _IbadahScreenState extends State<IbadahScreen> {
       context: context,
       backgroundColor: AppColors.bgCream,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (_) => NotifSettingsSheet(service: _svc),
     );
   }
@@ -1574,11 +1753,11 @@ class _PrayerRow extends StatelessWidget {
   const _PrayerRow({required this.prayer, required this.showDivider});
 
   static const _icons = {
-    'Fajr':    Icons.wb_twilight,
-    'Dhuhr':   Icons.wb_sunny_rounded,
-    'Asr':     Icons.light_mode_outlined,
+    'Fajr': Icons.wb_twilight,
+    'Dhuhr': Icons.wb_sunny_rounded,
+    'Asr': Icons.light_mode_outlined,
     'Maghrib': Icons.wb_twilight,
-    'Isha':    Icons.nightlight_round,
+    'Isha': Icons.nightlight_round,
   };
 
   @override
@@ -1595,7 +1774,8 @@ class _PrayerRow extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 36, height: 36,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: isNext ? AppColors.primaryDark : AppColors.bgCream,
                   borderRadius: BorderRadius.circular(10),
@@ -1608,52 +1788,63 @@ class _PrayerRow extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(prayer.name,
-                    style: TextStyle(
-                      fontFamily: 'Cairo', fontSize: 15,
-                      fontWeight:
-                      isNext ? FontWeight.w700 : FontWeight.w500,
-                      color: AppColors.textDark,
-                    )),
+                child: Text(
+                  prayer.name,
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 15,
+                    fontWeight: isNext ? FontWeight.w700 : FontWeight.w500,
+                    color: AppColors.textDark,
+                  ),
+                ),
               ),
               if (isNext)
                 Container(
                   margin: const EdgeInsets.only(right: 10),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.gold.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: AppColors.gold.withValues(alpha: 0.4)),
+                      color: AppColors.gold.withValues(alpha: 0.4),
+                    ),
                   ),
-                  child: const Text('NEXT',
-                      style: TextStyle(
-                        fontFamily: 'Cairo', fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.goldDark, letterSpacing: 0.5,
-                      )),
+                  child: const Text(
+                    'NEXT',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.goldDark,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(prayer.timeShort,
-                      style: TextStyle(
-                        fontFamily: 'Cairo', fontSize: 16,
-                        fontWeight: isNext
-                            ? FontWeight.w800
-                            : FontWeight.w600,
-                        color: isNext
-                            ? AppColors.primaryDark
-                            : AppColors.textDark,
-                      )),
-                  Text(prayer.amPm,
-                      style: TextStyle(
-                        fontFamily: 'Cairo', fontSize: 10,
-                        color: isNext
-                            ? AppColors.gold
-                            : AppColors.textGrey,
-                      )),
+                  Text(
+                    prayer.timeShort,
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 16,
+                      fontWeight: isNext ? FontWeight.w800 : FontWeight.w600,
+                      color: isNext
+                          ? AppColors.primaryDark
+                          : AppColors.textDark,
+                    ),
+                  ),
+                  Text(
+                    prayer.amPm,
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 10,
+                      color: isNext ? AppColors.gold : AppColors.textGrey,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -1676,18 +1867,17 @@ class _PrayerRow extends StatelessWidget {
 class _MadhabPickerSheet extends StatelessWidget {
   final String selected;
   final void Function(String) onSelect;
-  const _MadhabPickerSheet(
-      {required this.selected, required this.onSelect});
+  const _MadhabPickerSheet({required this.selected, required this.onSelect});
 
   static const _descriptions = {
     'Hanafi':
-    "Asr begins when shadow = 2× object length. Named after Imam Abu Hanifa.",
+        "Asr begins when shadow = 2× object length. Named after Imam Abu Hanifa.",
     'Maliki':
-    "Asr begins when shadow = 1× object length. Named after Imam Malik.",
+        "Asr begins when shadow = 1× object length. Named after Imam Malik.",
     "Shafi'i":
-    "Asr begins when shadow = 1× object length. Named after Imam al-Shafi'i.",
+        "Asr begins when shadow = 1× object length. Named after Imam al-Shafi'i.",
     'Hanbali':
-    "Asr begins when shadow = 1× object length. Named after Imam Ahmad ibn Hanbal.",
+        "Asr begins when shadow = 1× object length. Named after Imam Ahmad ibn Hanbal.",
   };
 
   @override
@@ -1697,7 +1887,8 @@ class _MadhabPickerSheet extends StatelessWidget {
       children: [
         Container(
           margin: const EdgeInsets.only(top: 12),
-          width: 44, height: 4,
+          width: 44,
+          height: 4,
           decoration: BoxDecoration(
             color: AppColors.borderLight,
             borderRadius: BorderRadius.circular(2),
@@ -1705,11 +1896,15 @@ class _MadhabPickerSheet extends StatelessWidget {
         ),
         const Padding(
           padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
-          child: Text('Select Your Ferka',
-              style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 17,
-                fontWeight: FontWeight.w700, color: AppColors.textDark,
-              )),
+          child: Text(
+            'Select Your Ferka',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+            ),
+          ),
         ),
         Container(height: 1, color: AppColors.borderLight),
         ...kMadhabs.keys.map((name) {
@@ -1717,22 +1912,23 @@ class _MadhabPickerSheet extends StatelessWidget {
           return GestureDetector(
             onTap: () => onSelect(name),
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 20, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: BoxDecoration(
                 color: active
                     ? AppColors.primaryDark.withValues(alpha: 0.05)
                     : Colors.transparent,
                 border: Border(
                   bottom: BorderSide(
-                      color: AppColors.borderLight.withValues(alpha: 0.5)),
+                    color: AppColors.borderLight.withValues(alpha: 0.5),
+                  ),
                 ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 20, height: 20,
+                    width: 20,
+                    height: 20,
                     margin: const EdgeInsets.only(top: 2),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
@@ -1747,8 +1943,11 @@ class _MadhabPickerSheet extends StatelessWidget {
                           : Colors.transparent,
                     ),
                     child: active
-                        ? const Icon(Icons.check,
-                        color: AppColors.gold, size: 12)
+                        ? const Icon(
+                            Icons.check,
+                            color: AppColors.gold,
+                            size: 12,
+                          )
                         : null,
                   ),
                   const SizedBox(width: 12),
@@ -1756,20 +1955,27 @@ class _MadhabPickerSheet extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name,
-                            style: TextStyle(
-                              fontFamily: 'Cairo', fontSize: 15,
-                              fontWeight: active
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: AppColors.textDark,
-                            )),
+                        Text(
+                          name,
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 15,
+                            fontWeight: active
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: AppColors.textDark,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text(_descriptions[name] ?? '',
-                            style: const TextStyle(
-                              fontFamily: 'Cairo', fontSize: 11,
-                              color: AppColors.textGrey, height: 1.4,
-                            )),
+                        Text(
+                          _descriptions[name] ?? '',
+                          style: const TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 11,
+                            color: AppColors.textGrey,
+                            height: 1.4,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1797,7 +2003,7 @@ class NotifSettingsSheet extends StatefulWidget {
 
 class _NotifSettingsSheetState extends State<NotifSettingsSheet> {
   late bool _enabled;
-  late int  _minutes;
+  late int _minutes;
 
   @override
   void initState() {
@@ -1816,7 +2022,8 @@ class _NotifSettingsSheetState extends State<NotifSettingsSheet> {
         children: [
           Center(
             child: Container(
-              width: 44, height: 4,
+              width: 44,
+              height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
                 color: AppColors.borderLight,
@@ -1824,18 +2031,27 @@ class _NotifSettingsSheetState extends State<NotifSettingsSheet> {
               ),
             ),
           ),
-          const Text('Prayer Reminders',
-              style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 17,
-                fontWeight: FontWeight.w700, color: AppColors.textDark,
-              )),
+          const Text(
+            'Prayer Reminders',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+            ),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
               const Expanded(
-                child: Text('Enable notifications',
-                    style: TextStyle(fontFamily: 'Cairo', fontSize: 14,
-                        color: AppColors.textDark)),
+                child: Text(
+                  'Enable notifications',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 14,
+                    color: AppColors.textDark,
+                  ),
+                ),
               ),
               Switch(
                 value: _enabled,
@@ -1847,12 +2063,19 @@ class _NotifSettingsSheetState extends State<NotifSettingsSheet> {
           ),
           if (_enabled) ...[
             const SizedBox(height: 16),
-            Text('Remind me $_minutes minutes before',
-                style: const TextStyle(fontFamily: 'Cairo', fontSize: 14,
-                    color: AppColors.textDark)),
+            Text(
+              'Remind me $_minutes minutes before',
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 14,
+                color: AppColors.textDark,
+              ),
+            ),
             Slider(
               value: _minutes.toDouble(),
-              min: 5, max: 30, divisions: 5,
+              min: 5,
+              max: 30,
+              divisions: 5,
               activeColor: AppColors.primaryDark,
               inactiveColor: AppColors.borderLight,
               label: '$_minutes min',
@@ -1874,11 +2097,15 @@ class _NotifSettingsSheetState extends State<NotifSettingsSheet> {
                 borderRadius: BorderRadius.circular(28),
               ),
               child: const Center(
-                child: Text('Save',
-                    style: TextStyle(
-                      fontFamily: 'Cairo', fontSize: 15,
-                      fontWeight: FontWeight.w700, color: AppColors.gold,
-                    )),
+                child: Text(
+                  'Save',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.gold,
+                  ),
+                ),
               ),
             ),
           ),

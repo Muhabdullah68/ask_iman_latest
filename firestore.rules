@@ -1,0 +1,177 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Charity Causes ────────────────────────────────────────────────────
+    match /charity_causes/{docId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Charity Donations ────────────────────────────────────────────────
+    match /charity_donations/{docId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Charity Requests ─────────────────────────────────────────────────
+    match /charity_requests/{docId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Family Groups ────────────────────────────────────────────────────
+    match /family_groups/{docId} {
+      // Allow any signed-in user to read (to check invite code)
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      // Allow updating: admin, in group, OR just adding yourself
+      allow update: if isAdmin() 
+        || (isSignedIn() && request.auth.uid in resource.data.memberIds)
+        || (isSignedIn() 
+            && request.auth.uid in request.resource.data.memberIds 
+            && !(request.auth.uid in resource.data.memberIds));
+      allow delete: if isAdmin();
+    }
+    
+    // ── Community Groups ────────────────────────────────────────────────────
+    match /groups/{docId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() 
+        && (request.auth.uid in resource.data.members 
+            || resource.data.creatorId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+    
+    // ── Reports ────────────────────────────────────────────────────
+    match /reports/{docId} {
+      allow read: if isAdmin() || isSignedIn() && (request.auth.uid == resource.data.reporterId || request.auth.uid == resource.data.targetId);
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Family Reminders ─────────────────────────────────────────────────
+    match /family_reminders/{docId} {
+      // Must be signed in AND a member of the group
+      function isGroupMember() {
+        return isSignedIn()
+          && request.auth.uid in get(
+            /databases/$(database)/documents/family_groups/$(resource.data.groupId)
+          ).data.memberIds;
+      }
+      allow read: if isGroupMember();
+      allow create: if isSignedIn();
+      allow update: if isGroupMember() || isAdmin();
+      allow delete: if isAdmin() || isOwner(resource.data.createdBy);
+    }
+
+    // ── Family Messages ──────────────────────────────────────────────────
+    match /family_group_messages/{docId} {
+      allow read, update: if isSignedIn()
+        && request.auth.uid in get(
+          /databases/$(database)/documents/family_groups/$(resource.data.groupId)
+        ).data.memberIds;
+      allow create: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // ── Classes ──────────────────────────────────────────────────────────
+    match /classes/{docId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update: if isOwner(resource.data.teacherId)
+        || isAdmin()
+        || (isSignedIn() && request.auth.uid in request.resource.data.studentIds);
+      allow delete: if isAdmin();
+    }
+
+    // ── Messages (class chat & DMs) ──────────────────────────────────────
+    match /messages/{docId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+      match /msgs/{msgId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn();
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /friendships/{docId} {
+      allow read: if isSignedIn()
+        && (request.auth.uid == resource.data.fromUid
+         || request.auth.uid == resource.data.toUid);
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    match /approvals/{docId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Enrollments (student applications) ─────────────────────────────────
+    match /enrollments/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Teacher Applications ────────────────────────────────────────────────
+    match /teacher_applications/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /meetings/{docId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin()
+        || (isSignedIn() && request.auth.uid == resource.data.teacherId);
+      allow delete: if isAdmin();
+    }
+
+    match /streaks/{userId}/{docId} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+  }
+}

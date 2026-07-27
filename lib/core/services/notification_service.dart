@@ -1,43 +1,30 @@
-// lib/core/services/notification_service.dart
-// ─────────────────────────────────────────────────────────────────────────────
-// NOTIFICATION SERVICE
-//
-// Initializes FlutterLocalNotificationsPlugin.
-// Called once in main() before runApp().
-// The plugin instance is then injected into PrayerService.
-// ─────────────────────────────────────────────────────────────────────────────
-
+// STUBBED FOR v1.0.5 — Notification system disabled
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
   NotificationService._();
 
   static final FlutterLocalNotificationsPlugin plugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize({
     DidReceiveNotificationResponseCallback? onDidReceiveNotificationResponse,
-    DidReceiveBackgroundNotificationResponseCallback? onDidReceiveBackgroundNotificationResponse,
-  }) async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iOS     = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-    const settings = InitializationSettings(android: android, iOS: iOS);
-    await plugin.initialize(
-      settings,
-      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
-      onDidReceiveBackgroundNotificationResponse: onDidReceiveBackgroundNotificationResponse,
-    );
-  }
+    DidReceiveBackgroundNotificationResponseCallback?
+        onDidReceiveBackgroundNotificationResponse,
+  }) async {}
 
-  /// Request Android 13+ notification permission (call once after init).
-  static Future<void> requestPermission() async {
-    await plugin
-        .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
-  }
+  static Future<void> requestPermission() async {}
+
+  static Future<void> scheduleReminder({
+    required int id,
+    required String title,
+    required String body,
+    required tz.TZDateTime scheduledDate,
+    String? soundName,
+    bool recurring = false,
+    List<int>? days,
+  }) async {}
+
+  static Future<void> cancelReminder(int notificationId) async {}
 }

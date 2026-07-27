@@ -11,6 +11,11 @@
 //   friendships    — id, fromUid, toUid, status(pending/accepted)
 //   meetings       — classId, scheduledAt, duration, purpose, meetUrl
 //   approvals      — id, type(teacher/class/charity), refId, status, createdAt
+//   enrollments    — uid, firstName, lastName, email, phone, location, selectedCourses,
+//                    status(pending/approved/rejected), assignedClassIds, createdAt
+//   teacher_applications — uid, firstName, lastName, email, phone, address, cnicNumber,
+//                    cnicFrontUrl, cnicBackUrl, certifications, experience,
+//                    subjects, preferredTimings, status, createdAt
 //   streaks        — userId subcollection → date, prayers, quran, classes, tasks
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -77,45 +82,48 @@ class AppUser {
 
   factory AppUser.fromMap(Map<String, dynamic> d, String id) {
     return AppUser(
-      uid:            id,
-      name:           d['name']           ?? '',
-      email:          d['email']          ?? '',
-      role:           _roleFrom(d['role']),
-      bio:            d['bio']            ?? '',
-      photoUrl:       d['photoUrl'],
-      isBlocked:      d['isBlocked']      ?? false,
-      isApproved:     d['isApproved']     ?? false,
-      qualification:  d['qualification']  ?? '',
+      uid: id,
+      name: d['name'] ?? '',
+      email: d['email'] ?? '',
+      role: _roleFrom(d['role']),
+      bio: d['bio'] ?? '',
+      photoUrl: d['photoUrl'],
+      isBlocked: d['isBlocked'] ?? false,
+      isApproved: d['isApproved'] ?? false,
+      qualification: d['qualification'] ?? '',
       specialization: d['specialization'] ?? '',
-      friends:        List<String>.from(d['friends'] ?? []),
-      groups:         List<String>.from(d['groups']  ?? []),
-      reportCount:    d['reportCount']    ?? 0,
-      streakCount:    d['streakCount']    ?? 0,
+      friends: List<String>.from(d['friends'] ?? []),
+      groups: List<String>.from(d['groups'] ?? []),
+      reportCount: d['reportCount'] ?? 0,
+      streakCount: d['streakCount'] ?? 0,
     );
   }
 
   static UserRole _roleFrom(String? r) {
     switch (r) {
-      case 'teacher': return UserRole.teacher;
-      case 'admin':   return UserRole.admin;
-      default:        return UserRole.student;
+      case 'teacher':
+        return UserRole.teacher;
+      case 'admin':
+        return UserRole.admin;
+      default:
+        return UserRole.student;
     }
   }
 
   Map<String, dynamic> toMap() => {
-    'name':           name,
-    'email':          email,
-    'role':           role.name,
-    'bio':            bio,
-    'photoUrl':       photoUrl,
-    'isBlocked':      isBlocked,
-    'isApproved':     isApproved,
-    'qualification':  qualification,
+    'name': name,
+    'email': email,
+    'role': role.name,
+    'bio': bio,
+    'photoUrl': photoUrl,
+    'isBlocked': isBlocked,
+    'isApproved': isApproved,
+    'qualification': qualification,
     'specialization': specialization,
-    'friends':        friends,
-    'groups':         groups,
-    'reportCount':    reportCount,
-    'streakCount':    streakCount,
+    'friends': friends,
+    'groups': groups,
+    'reportCount': reportCount,
+    'streakCount': streakCount,
   };
 }
 
@@ -155,37 +163,37 @@ class ClassModel {
   factory ClassModel.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     return ClassModel(
-      id:                     doc.id,
-      title:                  d['title']                  ?? '',
-      description:            d['description']            ?? '',
-      category:               d['category']               ?? 'General',
-      teacherId:              d['teacherId']              ?? '',
-      teacherName:            d['teacherName']            ?? '',
-      studentIds:             List<String>.from(d['studentIds'] ?? []),
-      status:                 d['status']                 ?? 'pending',
-      enrolled:               d['enrolled']               ?? 0,
-      videoUrl:               d['videoUrl'],
-      durationMinutes:        d['durationMinutes']        ?? 60,
+      id: doc.id,
+      title: d['title'] ?? '',
+      description: d['description'] ?? '',
+      category: d['category'] ?? 'General',
+      teacherId: d['teacherId'] ?? '',
+      teacherName: d['teacherName'] ?? '',
+      studentIds: List<String>.from(d['studentIds'] ?? []),
+      status: d['status'] ?? 'pending',
+      enrolled: d['enrolled'] ?? 0,
+      videoUrl: d['videoUrl'],
+      durationMinutes: d['durationMinutes'] ?? 60,
       exceededDurationReason: d['exceededDurationReason'],
-      materials:              List<Map<String, dynamic>>.from(d['materials'] ?? []),
-      rating:                 (d['rating'] ?? 0.0).toDouble(),
+      materials: List<Map<String, dynamic>>.from(d['materials'] ?? []),
+      rating: (d['rating'] ?? 0.0).toDouble(),
     );
   }
 
   Map<String, dynamic> toMap() => {
-    'title':                  title,
-    'description':            description,
-    'category':               category,
-    'teacherId':              teacherId,
-    'teacherName':            teacherName,
-    'studentIds':             studentIds,
-    'status':                 status,
-    'enrolled':               enrolled,
-    'videoUrl':               videoUrl,
-    'durationMinutes':        durationMinutes,
+    'title': title,
+    'description': description,
+    'category': category,
+    'teacherId': teacherId,
+    'teacherName': teacherName,
+    'studentIds': studentIds,
+    'status': status,
+    'enrolled': enrolled,
+    'videoUrl': videoUrl,
+    'durationMinutes': durationMinutes,
     'exceededDurationReason': exceededDurationReason,
-    'materials':              materials,
-    'rating':                 rating,
+    'materials': materials,
+    'rating': rating,
   };
 }
 
@@ -209,12 +217,12 @@ class GroupModel {
   factory GroupModel.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     return GroupModel(
-      id:          doc.id,
-      name:        d['name']      ?? '',
-      creatorId:   d['creatorId'] ?? '',
-      members:     List<String>.from(d['members'] ?? []),
+      id: doc.id,
+      name: d['name'] ?? '',
+      creatorId: d['creatorId'] ?? '',
+      members: List<String>.from(d['memberIds'] ?? []),
       notifConfig: Map<String, bool>.from(d['notifConfig'] ?? {}),
-      createdAt:   (d['createdAt'] as Timestamp).toDate(),
+      createdAt: (d['createdAt'] as Timestamp).toDate(),
     );
   }
 }
@@ -239,12 +247,12 @@ class ReportModel {
   factory ReportModel.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     return ReportModel(
-      id:         doc.id,
+      id: doc.id,
       reporterId: d['reporterId'] ?? '',
-      targetId:   d['targetId']   ?? '',
-      reason:     d['reason']     ?? '',
-      timestamp:  (d['timestamp'] as Timestamp).toDate(),
-      status:     d['status']     ?? 'pending',
+      targetId: d['targetId'] ?? '',
+      reason: d['reason'] ?? '',
+      timestamp: (d['timestamp'] as Timestamp).toDate(),
+      status: d['status'] ?? 'pending',
     );
   }
 }
@@ -273,14 +281,14 @@ class CharityModel {
   factory CharityModel.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     return CharityModel(
-      id:          doc.id,
-      title:       d['title']       ?? '',
+      id: doc.id,
+      title: d['title'] ?? '',
       description: d['description'] ?? '',
-      category:    d['category']    ?? 'General',
-      goal:        (d['goal']   ?? 0).toDouble(),
-      raised:      (d['raised'] ?? 0).toDouble(),
-      status:      d['status']      ?? 'pending',
-      verified:    d['verified']    ?? false,
+      category: d['category'] ?? 'General',
+      goal: (d['goal'] ?? 0).toDouble(),
+      raised: (d['raised'] ?? 0).toDouble(),
+      status: d['status'] ?? 'pending',
+      verified: d['verified'] ?? false,
     );
   }
 
@@ -309,11 +317,11 @@ class FriendshipModel {
     final d = doc.data() as Map<String, dynamic>;
     final isFrom = d['fromUid'] == myUid;
     return FriendshipModel(
-      id:            doc.id,
-      fromUid:       d['fromUid'] ?? '',
-      toUid:         d['toUid']   ?? '',
-      status:        d['status']  ?? 'pending',
-      otherName:     isFrom ? (d['toName'] ?? '') : (d['fromName'] ?? ''),
+      id: doc.id,
+      fromUid: d['fromUid'] ?? '',
+      toUid: d['toUid'] ?? '',
+      status: d['status'] ?? 'pending',
+      otherName: isFrom ? (d['toName'] ?? '') : (d['fromName'] ?? ''),
       otherPhotoUrl: isFrom ? d['toPhoto'] : d['fromPhoto'],
     );
   }
@@ -339,12 +347,12 @@ class MeetingModel {
   factory MeetingModel.fromDoc(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
     return MeetingModel(
-      id:              doc.id,
-      classId:         d['classId']  ?? '',
-      purpose:         d['purpose']  ?? '',
-      scheduledAt:     (d['scheduledAt'] as Timestamp).toDate(),
+      id: doc.id,
+      classId: d['classId'] ?? '',
+      purpose: d['purpose'] ?? '',
+      scheduledAt: (d['scheduledAt'] as Timestamp).toDate(),
       durationMinutes: d['duration'] ?? 60,
-      meetUrl:         d['meetUrl'],
+      meetUrl: d['meetUrl'],
     );
   }
 }
@@ -366,7 +374,7 @@ class CommunityService {
   bool get isGuestUser => _isGuest;
 
   final _guestUpdateController = StreamController<Object?>.broadcast();
-  
+
   // Caching fields
   Map<String, double>? cachedSoulProgress;
   AppUser? cachedCurrentUser;
@@ -395,7 +403,10 @@ class CommunityService {
 
   Future<String?> uploadImage(File file, String path) async {
     try {
-      final ref = _storage.ref().child(path).child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final ref = _storage
+          .ref()
+          .child(path)
+          .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
       final uploadTask = await ref.putFile(file);
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
@@ -430,7 +441,10 @@ class CommunityService {
       );
       return controller.stream;
     }
-    return _db.collection('users').doc(_uid).snapshots()
+    return _db
+        .collection('users')
+        .doc(_uid)
+        .snapshots()
         .map((d) => d.exists ? AppUser.fromDoc(d) : null);
   }
 
@@ -462,31 +476,31 @@ class CommunityService {
     final userRef = _db.collection('users').doc(_uid);
 
     batch.set(userRef, {
-      'name':           name,
-      'email':          email,
-      'role':           role.name,
-      'bio':            bio,
-      'isBlocked':      false,
-      'isApproved':     role == UserRole.student || role == UserRole.admin,
-      'qualification':  qualification ?? '',
+      'name': name,
+      'email': email,
+      'role': role.name,
+      'bio': bio,
+      'isBlocked': false,
+      'isApproved': role == UserRole.student || role == UserRole.admin,
+      'qualification': qualification ?? '',
       'specialization': specialization ?? '',
-      'friends':        [],
-      'groups':         [],
-      'reportCount':    0,
-      'createdAt':      FieldValue.serverTimestamp(),
+      'friends': [],
+      'groups': [],
+      'reportCount': 0,
+      'createdAt': FieldValue.serverTimestamp(),
     });
 
     // Teachers go into approval queue
     if (role == UserRole.teacher) {
       final approvalRef = _db.collection('approvals').doc();
       batch.set(approvalRef, {
-        'type':           'teacher',
-        'refId':          _uid,
-        'applicantName':  name,
-        'qualification':  qualification ?? '',
+        'type': 'teacher',
+        'refId': _uid,
+        'applicantName': name,
+        'qualification': qualification ?? '',
         'specialization': specialization ?? '',
-        'status':         'pending',
-        'createdAt':      FieldValue.serverTimestamp(),
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
       });
     }
 
@@ -496,13 +510,18 @@ class CommunityService {
   // ── Friends ────────────────────────────────────────────────────────────────
 
   Stream<List<FriendshipModel>> watchFriends() {
-    return _db.collection('friendships')
-        .where(Filter.or(
-      Filter('fromUid', isEqualTo: _uid),
-      Filter('toUid',   isEqualTo: _uid),
-    ))
+    return _db
+        .collection('friendships')
+        .where(
+          Filter.or(
+            Filter('fromUid', isEqualTo: _uid),
+            Filter('toUid', isEqualTo: _uid),
+          ),
+        )
         .snapshots()
-        .map((s) => s.docs.map((d) => FriendshipModel.fromDoc(d, _uid)).toList());
+        .map(
+          (s) => s.docs.map((d) => FriendshipModel.fromDoc(d, _uid)).toList(),
+        );
   }
 
   List<FriendshipModel> filterAccepted(List<FriendshipModel> list) =>
@@ -513,20 +532,21 @@ class CommunityService {
 
   Future<void> sendFriendRequest(AppUser target) async {
     await _db.collection('friendships').add({
-      'fromUid':   _uid,
-      'toUid':     target.uid,
-      'fromName':  (await getCurrentUser())?.name ?? '',
-      'toName':    target.name,
+      'fromUid': _uid,
+      'toUid': target.uid,
+      'fromName': (await getCurrentUser())?.name ?? '',
+      'toName': target.name,
       'fromPhoto': null,
-      'toPhoto':   target.photoUrl,
-      'status':    'pending',
+      'toPhoto': target.photoUrl,
+      'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
   Future<void> acceptFriendRequest(String friendshipId) async {
-    await _db.collection('friendships').doc(friendshipId)
-        .update({'status': 'accepted'});
+    await _db.collection('friendships').doc(friendshipId).update({
+      'status': 'accepted',
+    });
   }
 
   Future<void> declineFriendRequest(String friendshipId) async {
@@ -535,49 +555,52 @@ class CommunityService {
 
   Stream<List<AppUser>> searchUsers(String query) {
     if (query.isEmpty) return Stream.value([]);
-    return _db.collection('users')
+    return _db
+        .collection('users')
         .where('name', isGreaterThanOrEqualTo: query)
         .where('name', isLessThan: '${query}z')
         .where('isBlocked', isEqualTo: false)
         .limit(20)
         .snapshots()
-        .map((s) => s.docs
-        .map(AppUser.fromDoc)
-        .where((u) => u.uid != _uid)
-        .toList());
+        .map(
+          (s) =>
+              s.docs.map(AppUser.fromDoc).where((u) => u.uid != _uid).toList(),
+        );
   }
 
   Stream<List<AppUser>> watchSuggestedFriends() {
-    return _db.collection('users')
+    return _db
+        .collection('users')
         .where('isBlocked', isEqualTo: false)
         .limit(20)
         .snapshots()
-        .map((s) => s.docs
-        .map(AppUser.fromDoc)
-        .where((u) => u.uid != _uid)
-        .toList());
+        .map(
+          (s) =>
+              s.docs.map(AppUser.fromDoc).where((u) => u.uid != _uid).toList(),
+        );
   }
 
   // ── Groups ─────────────────────────────────────────────────────────────────
 
   Future<void> createGroup(String name, Map<String, bool> notifConfig) async {
-    final groupRef = _db.collection('groups').doc();
+    final groupRef = _db.collection('family_groups').doc();
     await groupRef.set({
-      'name':        name,
-      'creatorId':   _uid,
-      'members':     [_uid],
+      'name': name,
+      'creatorId': _uid,
+      'memberIds': [_uid],
       'notifConfig': notifConfig,
-      'createdAt':   FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
     });
     // Add group to user's list
     await _db.collection('users').doc(_uid).update({
-      'groups': FieldValue.arrayUnion([groupRef.id])
+      'groups': FieldValue.arrayUnion([groupRef.id]),
     });
   }
 
   Stream<List<GroupModel>> watchMyGroups() {
-    return _db.collection('groups')
-        .where('members', arrayContains: _uid)
+    return _db
+        .collection('family_groups')
+        .where('memberIds', arrayContains: _uid)
         .snapshots()
         .map((s) => s.docs.map(GroupModel.fromDoc).toList());
   }
@@ -588,14 +611,14 @@ class CommunityService {
     final reportRef = _db.collection('reports').doc();
     await reportRef.set({
       'reporterId': _uid,
-      'targetId':   targetId,
-      'reason':     reason,
-      'timestamp':  FieldValue.serverTimestamp(),
-      'status':     'pending',
+      'targetId': targetId,
+      'reason': reason,
+      'timestamp': FieldValue.serverTimestamp(),
+      'status': 'pending',
     });
     // Increment report count on target user
     await _db.collection('users').doc(targetId).update({
-      'reportCount': FieldValue.increment(1)
+      'reportCount': FieldValue.increment(1),
     });
   }
 
@@ -609,57 +632,59 @@ class CommunityService {
     if (_isGuest) {
       final prefs = await SharedPreferences.getInstance();
       final today = DateTime.now();
-      final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
-      
+      final dateKey =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
       final streaksJson = prefs.getString('guest_streaks') ?? '{}';
       final Map<String, dynamic> streaks = jsonDecode(streaksJson);
-      
+
       streaks[dateKey] = {
-        'prayers':       prayers,
-        'quran':         quran,
+        'prayers': prayers,
+        'quran': quran,
         'classAttended': classAttended,
-        'date':          today.toIso8601String(),
+        'date': today.toIso8601String(),
       };
-      
+
       await prefs.setString('guest_streaks', jsonEncode(streaks));
-      
+
       // Update guest profile streak count
       final guest = await _getGuestUser();
       final newStreakCount = await getStreakForUser('guest_user');
-      
+
       final updated = AppUser(
-        uid:            guest.uid,
-        name:           guest.name,
-        email:          guest.email,
-        role:           guest.role,
-        bio:            guest.bio,
-        photoUrl:       guest.photoUrl,
-        isBlocked:      guest.isBlocked,
-        isApproved:     guest.isApproved,
-        qualification:  guest.qualification,
+        uid: guest.uid,
+        name: guest.name,
+        email: guest.email,
+        role: guest.role,
+        bio: guest.bio,
+        photoUrl: guest.photoUrl,
+        isBlocked: guest.isBlocked,
+        isApproved: guest.isApproved,
+        qualification: guest.qualification,
         specialization: guest.specialization,
-        friends:        guest.friends,
-        groups:         guest.groups,
-        reportCount:    guest.reportCount,
-        streakCount:    newStreakCount,
+        friends: guest.friends,
+        groups: guest.groups,
+        reportCount: guest.reportCount,
+        streakCount: newStreakCount,
       );
       await _saveGuestUser(updated);
       return;
     }
     final today = DateTime.now();
-    final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
+    final dateKey =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     await _db
         .collection('streaks')
         .doc(_uid)
         .collection('logs')
         .doc(dateKey)
         .set({
-      'prayers':       prayers,
-      'quran':         quran,
-      'classAttended': classAttended,
-      'date':          Timestamp.fromDate(today),
-      'loginCount':    FieldValue.increment(1),
-    }, SetOptions(merge: true));
+          'prayers': prayers,
+          'quran': quran,
+          'classAttended': classAttended,
+          'date': Timestamp.fromDate(today),
+          'loginCount': FieldValue.increment(1),
+        }, SetOptions(merge: true));
 
     // Update streak counter on user doc
     final newStreak = await getStreakForUser(_uid);
@@ -679,12 +704,14 @@ class CommunityService {
       final prefs = await SharedPreferences.getInstance();
       final streaksJson = prefs.getString('guest_streaks') ?? '{}';
       final Map<String, dynamic> streaks = jsonDecode(streaksJson);
-      
-      if (streaks.isEmpty) return cachedSoulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
+
+      if (streaks.isEmpty) {
+        return cachedSoulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
+      }
 
       final now = DateTime.now();
       final sevenDaysAgo = now.subtract(const Duration(days: 7));
-      
+
       int namazCount = 0;
       int quranCount = 0;
       int zikrCount = 0;
@@ -695,7 +722,9 @@ class CommunityService {
           if (value['prayers'] == true) namazCount++;
           if (value['quran'] == true) quranCount++;
           // Any activity counts for zikr in this simple demo
-          if (value['prayers'] == true || value['quran'] == true || value['classAttended'] == true) {
+          if (value['prayers'] == true ||
+              value['quran'] == true ||
+              value['classAttended'] == true) {
             zikrCount++;
           }
         }
@@ -707,19 +736,24 @@ class CommunityService {
         'zikr': zikrCount / 7,
       };
     }
-    
+
     try {
       final now = DateTime.now();
       final sevenDaysAgo = now.subtract(const Duration(days: 7));
-      
+
       final snapshot = await _db
           .collection('streaks')
           .doc(_uid)
           .collection('logs')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(sevenDaysAgo))
+          .where(
+            'date',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(sevenDaysAgo),
+          )
           .get();
 
-      if (snapshot.docs.isEmpty) return cachedSoulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
+      if (snapshot.docs.isEmpty) {
+        return cachedSoulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
+      }
 
       int namazCount = 0;
       int quranCount = 0;
@@ -729,13 +763,16 @@ class CommunityService {
         final data = doc.data();
         if (data['prayers'] == true) namazCount++;
         if (data['quran'] == true) quranCount++;
-        
+
         // Zikr: check if any custom task is done or if "zikr" specifically is done
         final custom = data['customTasks'];
         if (custom is Map) {
           bool done = false;
           custom.forEach((key, value) {
-            if (key.toString().toLowerCase().contains('zikr') && value == true) done = true;
+            if (key.toString().toLowerCase().contains('zikr') &&
+                value == true) {
+              done = true;
+            }
             if (value == true) done = true; // any custom task counts for demo
           });
           if (done) zikrCount++;
@@ -760,23 +797,27 @@ class CommunityService {
       final prefs = await SharedPreferences.getInstance();
       final streaksJson = prefs.getString('guest_streaks') ?? '{}';
       final Map<String, dynamic> streaks = jsonDecode(streaksJson);
-      
+
       if (streaks.isEmpty) return 0;
-      
+
       final now = DateTime.now();
       DateTime checkDate = DateTime(now.year, now.month, now.day);
       int streak = 0;
-      
+
       final sortedKeys = streaks.keys.toList()..sort((a, b) => b.compareTo(a));
       if (sortedKeys.isEmpty) return 0;
-      
+
       final latestDate = DateTime.parse(sortedKeys.first);
-      if (latestDate.isBefore(checkDate.subtract(const Duration(days: 1)))) return 0;
+      if (latestDate.isBefore(checkDate.subtract(const Duration(days: 1)))) {
+        return 0;
+      }
       if (latestDate.isBefore(checkDate)) checkDate = latestDate;
-      
+
       for (var key in sortedKeys) {
         final date = DateTime.parse(key);
-        if (date.year == checkDate.year && date.month == checkDate.month && date.day == checkDate.day) {
+        if (date.year == checkDate.year &&
+            date.month == checkDate.month &&
+            date.day == checkDate.day) {
           streak++;
           checkDate = checkDate.subtract(const Duration(days: 1));
         } else if (date.isBefore(checkDate)) {
@@ -785,11 +826,11 @@ class CommunityService {
       }
       return streak;
     }
-    
+
     try {
       final now = DateTime.now();
       final oneYearAgo = now.subtract(const Duration(days: 365));
-      
+
       final snapshot = await _db
           .collection('streaks')
           .doc(userId)
@@ -803,26 +844,35 @@ class CommunityService {
 
       int streak = 0;
       DateTime checkDate = DateTime(now.year, now.month, now.day);
-      
+
       // If today isn't logged yet, check if yesterday was logged to continue streak
-      final latestDocDate = (snapshot.docs.first.data()['date'] as Timestamp).toDate();
-      final latestDate = DateTime(latestDocDate.year, latestDocDate.month, latestDocDate.day);
-      
+      final latestDocDate = (snapshot.docs.first.data()['date'] as Timestamp)
+          .toDate();
+      final latestDate = DateTime(
+        latestDocDate.year,
+        latestDocDate.month,
+        latestDocDate.day,
+      );
+
       if (latestDate.isBefore(checkDate.subtract(const Duration(days: 1)))) {
         // Streak broken (more than 1 day since last log)
         return 0;
       }
-      
+
       if (latestDate.isBefore(checkDate)) {
-        // Today hasn't been logged yet, but yesterday was. 
+        // Today hasn't been logged yet, but yesterday was.
         // We start counting from yesterday.
         checkDate = latestDate;
       }
 
       for (var doc in snapshot.docs) {
         final docDateRaw = (doc.data()['date'] as Timestamp).toDate();
-        final docDate = DateTime(docDateRaw.year, docDateRaw.month, docDateRaw.day);
-        
+        final docDate = DateTime(
+          docDateRaw.year,
+          docDateRaw.month,
+          docDateRaw.day,
+        );
+
         if (docDate.isAtSameMomentAs(checkDate)) {
           streak++;
           checkDate = checkDate.subtract(const Duration(days: 1));
@@ -831,7 +881,7 @@ class CommunityService {
           break;
         }
       }
-      
+
       return streak;
     } catch (e) {
       debugPrint('Error calculating streak: $e');
@@ -842,7 +892,8 @@ class CommunityService {
   // ── Classes ────────────────────────────────────────────────────────────────
 
   Stream<List<ClassModel>> watchActiveClasses() {
-    return _db.collection('classes')
+    return _db
+        .collection('classes')
         .where('status', isEqualTo: 'active')
         .snapshots()
         .map((s) => s.docs.map(ClassModel.fromDoc).toList());
@@ -850,7 +901,8 @@ class CommunityService {
 
   Stream<List<ClassModel>> watchMyClasses() {
     if (_uid.isEmpty) return Stream.value([]);
-    return _db.collection('classes')
+    return _db
+        .collection('classes')
         .where('teacherId', isEqualTo: _uid)
         .snapshots()
         .map((s) => s.docs.map(ClassModel.fromDoc).toList());
@@ -858,7 +910,8 @@ class CommunityService {
 
   Stream<List<ClassModel>> watchEnrolledClasses() {
     if (_uid.isEmpty) return Stream.value([]);
-    return _db.collection('classes')
+    return _db
+        .collection('classes')
         .where('studentIds', arrayContains: _uid)
         .snapshots()
         .map((s) => s.docs.map(ClassModel.fromDoc).toList());
@@ -868,14 +921,14 @@ class CommunityService {
     if (_uid.isEmpty) return;
     await _db.collection('classes').doc(classId).update({
       'studentIds': FieldValue.arrayUnion([_uid]),
-      'enrolled':   FieldValue.increment(1),
+      'enrolled': FieldValue.increment(1),
     });
   }
 
   Future<void> leaveClass(String classId) async {
     await _db.collection('classes').doc(classId).update({
       'studentIds': FieldValue.arrayRemove([_uid]),
-      'enrolled':   FieldValue.increment(-1),
+      'enrolled': FieldValue.increment(-1),
     });
   }
 
@@ -888,31 +941,31 @@ class CommunityService {
     int durationMinutes = 60,
   }) async {
     final classRef = _db.collection('classes').doc();
-    final batch    = _db.batch();
+    final batch = _db.batch();
 
     batch.set(classRef, {
-      'title':           title,
-      'description':     description,
-      'category':        category,
-      'teacherId':       _uid,
-      'teacherName':     teacherName,
-      'studentIds':      [],
-      'enrolled':        0,
-      'status':          'pending',
-      'videoUrl':        videoUrl,
+      'title': title,
+      'description': description,
+      'category': category,
+      'teacherId': _uid,
+      'teacherName': teacherName,
+      'studentIds': [],
+      'enrolled': 0,
+      'status': 'pending',
+      'videoUrl': videoUrl,
       'durationMinutes': durationMinutes,
-      'materials':       [],
-      'rating':          0.0,
-      'createdAt':       FieldValue.serverTimestamp(),
+      'materials': [],
+      'rating': 0.0,
+      'createdAt': FieldValue.serverTimestamp(),
     });
 
     final approvalRef = _db.collection('approvals').doc();
     batch.set(approvalRef, {
-      'type':      'class',
-      'refId':     classRef.id,
-      'title':     title,
+      'type': 'class',
+      'refId': classRef.id,
+      'title': title,
       'teacherId': _uid,
-      'status':    'pending',
+      'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
     });
 
@@ -921,7 +974,7 @@ class CommunityService {
 
   Future<void> rateClass(String classId, double rating, String comment) async {
     final classRef = _db.collection('classes').doc(classId);
-    
+
     await _db.runTransaction((transaction) async {
       final snapshot = await transaction.get(classRef);
       if (!snapshot.exists) return;
@@ -929,10 +982,11 @@ class CommunityService {
       final data = snapshot.data() as Map<String, dynamic>;
       final currentRating = (data['rating'] ?? 0.0).toDouble();
       final enrolledCount = (data['enrolled'] ?? 1).toInt();
-      
+
       // Simple moving average for demonstration
-      final newRating = ((currentRating * (enrolledCount - 1)) + rating) / enrolledCount;
-      
+      final newRating =
+          ((currentRating * (enrolledCount - 1)) + rating) / enrolledCount;
+
       transaction.update(classRef, {'rating': newRating});
     });
   }
@@ -948,19 +1002,20 @@ class CommunityService {
     String? meetUrl,
   }) async {
     await _db.collection('meetings').add({
-      'classId':         classId,
-      'className':       className,
-      'purpose':         purpose,
-      'scheduledAt':     Timestamp.fromDate(scheduledAt),
-      'duration':        durationMinutes,
-      'meetUrl':         meetUrl,
-      'teacherId':       _uid,
-      'createdAt':       FieldValue.serverTimestamp(),
+      'classId': classId,
+      'className': className,
+      'purpose': purpose,
+      'scheduledAt': Timestamp.fromDate(scheduledAt),
+      'duration': durationMinutes,
+      'meetUrl': meetUrl,
+      'teacherId': _uid,
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
   Stream<List<MeetingModel>> watchUpcomingMeetings(String classId) {
-    return _db.collection('meetings')
+    return _db
+        .collection('meetings')
         .where('classId', isEqualTo: classId)
         .where('scheduledAt', isGreaterThan: Timestamp.now())
         .orderBy('scheduledAt')
@@ -981,22 +1036,29 @@ class CommunityService {
         .snapshots();
   }
 
-  Future<void> sendClassMessage(String classId, String text, {Map<String, dynamic>? material}) async {
+  Future<void> sendClassMessage(
+    String classId,
+    String text, {
+    Map<String, dynamic>? material,
+  }) async {
     final user = await getCurrentUser();
     await _db
         .collection('messages')
         .doc('class_$classId')
         .collection('msgs')
         .add({
-      'senderId':   _uid,
-      'senderName': user?.name ?? 'Unknown',
-      'text':       text,
-      'material':   material,
-      'createdAt':  FieldValue.serverTimestamp(),
-    });
+          'senderId': _uid,
+          'senderName': user?.name ?? 'Unknown',
+          'text': text,
+          'material': material,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
   }
 
-  Stream<QuerySnapshot> watchDmMessages(String otherUid, {String? explicitDmId}) {
+  Stream<QuerySnapshot> watchDmMessages(
+    String otherUid, {
+    String? explicitDmId,
+  }) {
     if (explicitDmId != null) {
       return _db
           .collection('messages')
@@ -1021,22 +1083,20 @@ class CommunityService {
     final ids = [_uid, otherUid]..sort();
     final dmId = ids.join('_');
     final user = await getCurrentUser();
-    await _db
-        .collection('messages')
-        .doc('dm_$dmId')
-        .collection('msgs')
-        .add({
-      'senderId':   _uid,
+    await _db.collection('messages').doc('dm_$dmId').collection('msgs').add({
+      'senderId': _uid,
       'senderName': user?.name ?? 'Unknown',
-      'text':       text,
-      'createdAt':  FieldValue.serverTimestamp(),
+      'text': text,
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
   // ── Charity ────────────────────────────────────────────────────────────────
 
   Stream<List<CharityModel>> watchActiveCharities({String? category}) {
-    Query q = _db.collection('charities').where('status', isEqualTo: 'active');
+    Query q = _db
+        .collection('charity_causes')
+        .where('status', isEqualTo: 'active');
     if (category != null && category != 'All') {
       q = q.where('category', isEqualTo: category);
     }
@@ -1049,28 +1109,28 @@ class CommunityService {
     required String category,
     required double goal,
   }) async {
-    final charityRef = _db.collection('charities').doc();
-    final batch      = _db.batch();
+    final charityRef = _db.collection('charity_causes').doc();
+    final batch = _db.batch();
 
     batch.set(charityRef, {
-      'title':       title,
+      'title': title,
       'description': description,
-      'category':    category,
-      'goal':        goal,
-      'raised':      0.0,
-      'status':      'pending',
-      'verified':    false,
-      'createdBy':   _uid,
-      'createdAt':   FieldValue.serverTimestamp(),
+      'category': category,
+      'goal': goal,
+      'raised': 0.0,
+      'status': 'pending',
+      'verified': false,
+      'createdBy': _uid,
+      'createdAt': FieldValue.serverTimestamp(),
     });
 
     final approvalRef = _db.collection('approvals').doc();
     batch.set(approvalRef, {
-      'type':    'charity',
-      'refId':   charityRef.id,
-      'title':   title,
-      'goal':    goal,
-      'status':  'pending',
+      'type': 'charity',
+      'refId': charityRef.id,
+      'title': title,
+      'goal': goal,
+      'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
     });
 
@@ -1078,7 +1138,7 @@ class CommunityService {
   }
 
   Future<void> contributeToCharity(String charityId, double amount) async {
-    final docRef = _db.collection('charities').doc(charityId);
+    final docRef = _db.collection('charity_causes').doc(charityId);
     await _db.runTransaction((tx) async {
       final snap = await tx.get(docRef);
       if (!snap.exists) return;
@@ -1091,36 +1151,44 @@ class CommunityService {
 
   Stream<QuerySnapshot> watchPendingApprovals() {
     // No orderBy — avoids composite index requirement. Sort client-side.
-    return _db.collection('approvals')
+    return _db
+        .collection('approvals')
         .where('status', isEqualTo: 'pending')
         .snapshots();
   }
 
   Future<void> approveItem(String approvalId, String type, String refId) async {
     final batch = _db.batch();
-    batch.update(_db.collection('approvals').doc(approvalId),
-        {'status': 'approved'});
+    batch.update(_db.collection('approvals').doc(approvalId), {
+      'status': 'approved',
+    });
 
     if (type == 'teacher') {
       batch.update(_db.collection('users').doc(refId), {'isApproved': true});
     } else if (type == 'class') {
       batch.update(_db.collection('classes').doc(refId), {'status': 'active'});
     } else if (type == 'charity') {
-      batch.update(_db.collection('charities').doc(refId),
-          {'status': 'active', 'verified': true});
+      batch.update(_db.collection('charity_causes').doc(refId), {
+        'status': 'active',
+        'verified': true,
+      });
     }
     await batch.commit();
   }
 
   Future<void> rejectItem(String approvalId, String type, String refId) async {
     final batch = _db.batch();
-    batch.update(_db.collection('approvals').doc(approvalId),
-        {'status': 'rejected'});
+    batch.update(_db.collection('approvals').doc(approvalId), {
+      'status': 'rejected',
+    });
     if (type == 'class') {
-      batch.update(_db.collection('classes').doc(refId), {'status': 'rejected'});
+      batch.update(_db.collection('classes').doc(refId), {
+        'status': 'rejected',
+      });
     } else if (type == 'charity') {
-      batch.update(_db.collection('charities').doc(refId),
-          {'status': 'rejected'});
+      batch.update(_db.collection('charity_causes').doc(refId), {
+        'status': 'rejected',
+      });
     }
     await batch.commit();
   }
@@ -1167,10 +1235,7 @@ class CommunityService {
       await _saveGuestUser(updated);
       return;
     }
-    final data = {
-      'name': name,
-      'bio': bio,
-    };
+    final data = {'name': name, 'bio': bio};
     if (photoUrl != null) data['photoUrl'] = photoUrl;
     await _db.collection('users').doc(_uid).update(data);
   }
@@ -1179,20 +1244,20 @@ class CommunityService {
     if (_isGuest) {
       final guest = await _getGuestUser();
       final updated = AppUser(
-        uid:            guest.uid,
-        name:           guest.name,
-        email:          guest.email,
-        role:           guest.role,
-        bio:            guest.bio,
-        photoUrl:       guest.photoUrl,
-        isBlocked:      guest.isBlocked,
-        isApproved:     guest.isApproved,
-        qualification:  guest.qualification,
+        uid: guest.uid,
+        name: guest.name,
+        email: guest.email,
+        role: guest.role,
+        bio: guest.bio,
+        photoUrl: guest.photoUrl,
+        isBlocked: guest.isBlocked,
+        isApproved: guest.isApproved,
+        qualification: guest.qualification,
         specialization: guest.specialization,
-        friends:        guest.friends,
-        groups:         guest.groups,
-        reportCount:    guest.reportCount,
-        streakCount:    count,
+        friends: guest.friends,
+        groups: guest.groups,
+        reportCount: guest.reportCount,
+        streakCount: count,
       );
       await _saveGuestUser(updated);
     } else {
@@ -1205,7 +1270,8 @@ class CommunityService {
 
   // Live list of approved teachers (for student Featured Teachers section)
   Stream<List<AppUser>> watchApprovedTeachers() {
-    return _db.collection('users')
+    return _db
+        .collection('users')
         .where('role', isEqualTo: 'teacher')
         .where('isApproved', isEqualTo: true)
         .where('isBlocked', isEqualTo: false)
@@ -1229,11 +1295,192 @@ class CommunityService {
         .doc(conversationId)
         .collection('msgs')
         .add({
-      'senderId':   _uid,
-      'senderName': '(Admin) ${user?.name ?? 'Admin'}',
-      'text':       text,
-      'createdAt':  FieldValue.serverTimestamp(),
-      'isAdminMsg': true,
+          'senderId': _uid,
+          'senderName': '(Admin) ${user?.name ?? 'Admin'}',
+          'text': text,
+          'createdAt': FieldValue.serverTimestamp(),
+          'isAdminMsg': true,
+        });
+  }
+
+  // ── Enrollment ──────────────────────────────────────────────────────────────
+
+  Future<void> createStudentEnrollment({
+    required String uid,
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+    required String location,
+    required List<String> selectedCourses,
+  }) async {
+    await _db.collection('users').doc(uid).set({
+      'name': '$firstName $lastName',
+      'email': email,
+      'role': 'student',
+      'phone': phone,
+      'location': location,
+      'bio': '',
+      'photoUrl': null,
+      'isBlocked': false,
+      'isApproved': false,
+      'friends': [],
+      'groups': [],
+      'reportCount': 0,
+      'streakCount': 0,
+      'createdAt': FieldValue.serverTimestamp(),
     });
+    await _db.collection('enrollments').doc(uid).set({
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': email,
+      'phone': phone,
+      'location': location,
+      'selectedCourses': selectedCourses,
+      'status': 'pending',
+      'assignedClassIds': [],
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<Map<String, dynamic>?> watchMyEnrollment() {
+    if (_uid.isEmpty) return Stream.value(null);
+    return _db
+        .collection('enrollments')
+        .doc(_uid)
+        .snapshots()
+        .map((d) => d.exists ? d.data()! : null);
+  }
+
+  Future<Map<String, dynamic>?> getEnrollment(String uid) async {
+    final snap = await _db.collection('enrollments').doc(uid).get();
+    return snap.exists ? snap.data()! : null;
+  }
+
+  Stream<QuerySnapshot> watchAllEnrollments() {
+    return _db.collection('enrollments').snapshots();
+  }
+
+  Future<void> approveEnrollment(
+    String uid, {
+    List<String>? assignedClassIds,
+  }) async {
+    final batch = _db.batch();
+    batch.update(_db.collection('enrollments').doc(uid), {
+      'status': 'approved',
+      'assignedClassIds': assignedClassIds ?? [],
+    });
+    batch.update(_db.collection('users').doc(uid), {'isApproved': true});
+    await batch.commit();
+  }
+
+  Future<void> rejectEnrollment(String uid) async {
+    await _db.collection('enrollments').doc(uid).update({'status': 'rejected'});
+  }
+
+  // ── Teacher Application ──────────────────────────────────────────────────────
+
+  Future<String?> _uploadFile(String storagePath, File file) async {
+    try {
+      final ref = _storage.ref().child(storagePath);
+      await ref.putFile(file);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('Upload error: $e');
+      return null;
+    }
+  }
+
+  Future<void> createTeacherApplication({
+    required String uid,
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+    required String address,
+    required String cnicNumber,
+    required File cnicFront,
+    required File cnicBack,
+    required List<Map<String, File>> certifications,
+    required String experience,
+    required List<String> subjects,
+    required List<String> preferredTimings,
+  }) async {
+    final basePath = 'teacher_applications/$uid';
+
+    final cnicFrontUrl = await _uploadFile(
+      '$basePath/cnic_front.jpg',
+      cnicFront,
+    );
+    final cnicBackUrl = await _uploadFile('$basePath/cnic_back.jpg', cnicBack);
+
+    List<Map<String, String>> certUrls = [];
+    for (final cert in certifications) {
+      final name = cert.keys.first;
+      final file = cert.values.first;
+      final url = await _uploadFile(
+        '$basePath/certs/${name}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        file,
+      );
+      if (url != null) {
+        certUrls.add({'name': name, 'url': url});
+      }
+    }
+
+    final batch = _db.batch();
+
+    batch.set(_db.collection('users').doc(uid), {
+      'name': '$firstName $lastName',
+      'email': email,
+      'role': 'teacher',
+      'phone': phone,
+      'address': address,
+      'bio': '',
+      'photoUrl': null,
+      'isBlocked': false,
+      'isApproved': false,
+      'friends': [],
+      'groups': [],
+      'reportCount': 0,
+      'streakCount': 0,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    batch.set(_db.collection('teacher_applications').doc(uid), {
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': email,
+      'phone': phone,
+      'address': address,
+      'cnicNumber': cnicNumber,
+      'cnicFrontUrl': cnicFrontUrl,
+      'cnicBackUrl': cnicBackUrl,
+      'certifications': certUrls,
+      'experience': experience,
+      'subjects': subjects,
+      'preferredTimings': preferredTimings,
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    batch.set(_db.collection('approvals').doc(uid), {
+      'type': 'teacher',
+      'refId': uid,
+      'title': '$firstName $lastName',
+      'applicantName': '$firstName $lastName',
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+  }
+
+  Stream<Map<String, dynamic>?> watchTeacherApplication() {
+    if (_uid.isEmpty) return Stream.value(null);
+    return _db
+        .collection('teacher_applications')
+        .doc(_uid)
+        .snapshots()
+        .map((d) => d.exists ? d.data()! : null);
   }
 }

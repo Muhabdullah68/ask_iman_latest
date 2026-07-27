@@ -16,13 +16,19 @@ class TranslationTab extends StatefulWidget {
   final String searchQuery;
   final bool useUrduFont;
   final String? arabicFont;
-  const TranslationTab({super.key, this.searchQuery = '', this.useUrduFont = false, this.arabicFont});
+  const TranslationTab({
+    super.key,
+    this.searchQuery = '',
+    this.useUrduFont = false,
+    this.arabicFont,
+  });
 
   @override
   State<TranslationTab> createState() => _TranslationTabState();
 }
 
-class _TranslationTabState extends State<TranslationTab> with SingleTickerProviderStateMixin {
+class _TranslationTabState extends State<TranslationTab>
+    with SingleTickerProviderStateMixin {
   late TabController _sub;
 
   @override
@@ -39,29 +45,34 @@ class _TranslationTabState extends State<TranslationTab> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      SharedSubTabBar(controller: _sub),
-      Expanded(
-        child: TabBarView(
-          controller: _sub,
-          children: [
-            TalawatSubListView(
-              mode: ReadMode.tarjuma,
-              searchQuery: widget.searchQuery,
-              useUrduFont: widget.useUrduFont,
-              arabicFont: widget.arabicFont,
-              isJuz: false,
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          SharedSubTabBar(controller: _sub),
+          Expanded(
+            child: TabBarView(
+              controller: _sub,
+              children: [
+                TalawatSubListView(
+                  mode: ReadMode.tarjuma,
+                  searchQuery: widget.searchQuery,
+                  useUrduFont: widget.useUrduFont,
+                  arabicFont: widget.arabicFont,
+                  isJuz: false,
+                ),
+                TalawatSubListView(
+                  mode: ReadMode.tarjuma,
+                  searchQuery: widget.searchQuery,
+                  useUrduFont: widget.useUrduFont,
+                  arabicFont: widget.arabicFont,
+                  isJuz: true,
+                ),
+              ],
             ),
-            TalawatSubListView(
-              mode: ReadMode.tarjuma,
-              searchQuery: widget.searchQuery,
-              useUrduFont: widget.useUrduFont,
-              arabicFont: widget.arabicFont,
-              isJuz: true,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ]);
+    );
   }
 }

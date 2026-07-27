@@ -46,7 +46,9 @@ class AyahCard extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.gold.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -62,11 +64,17 @@ class AyahCard extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                const Icon(Icons.bookmark_outline,
-                    size: 18, color: AppColors.textGrey),
+                const Icon(
+                  Icons.bookmark_outline,
+                  size: 18,
+                  color: AppColors.textGrey,
+                ),
                 const SizedBox(width: 10),
-                const Icon(Icons.share_outlined,
-                    size: 18, color: AppColors.textGrey),
+                const Icon(
+                  Icons.share_outlined,
+                  size: 18,
+                  color: AppColors.textGrey,
+                ),
               ],
             ),
           ),

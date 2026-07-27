@@ -7,7 +7,8 @@ import '../../../core/services/community_service.dart';
 class CharityTab extends StatefulWidget {
   final AppUser currentUser;
   const CharityTab({super.key, required this.currentUser});
-  @override State<CharityTab> createState() => _CharityTabState();
+  @override
+  State<CharityTab> createState() => _CharityTabState();
 }
 
 class _CharityTabState extends State<CharityTab> {
@@ -28,12 +29,11 @@ class _CharityTabState extends State<CharityTab> {
           _buildCategoryFilter(),
           StreamBuilder<List<CharityModel>>(
             stream: _svc.watchActiveCharities(
-                category: _category == 'All' ? null : _category),
+              category: _category == 'All' ? null : _category,
+            ),
             builder: (ctx, snap) {
               final list = snap.data ?? [];
-              return Column(
-                children: list.map(_buildCharityCard).toList(),
-              );
+              return Column(children: list.map(_buildCharityCard).toList());
             },
           ),
           const SizedBox(height: 32),
@@ -53,19 +53,33 @@ class _CharityTabState extends State<CharityTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Empower Change with', style: TextStyle(
-            fontFamily: 'Cairo', fontSize: 20,
-            fontWeight: FontWeight.w700, color: AppColors.textWhite,
-          )),
-          const Text('Sadaqah', style: TextStyle(
-            fontFamily: 'Cairo', fontSize: 28,
-            fontWeight: FontWeight.w900, color: AppColors.gold,
-          )),
+          const Text(
+            'Empower Change with',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textWhite,
+            ),
+          ),
+          const Text(
+            'Sadaqah',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: AppColors.gold,
+            ),
+          ),
           const SizedBox(height: 8),
           const Text(
             'Your contributions provide life-changing support to the global Ummah.',
-            style: TextStyle(fontFamily: 'Cairo', fontSize: 13,
-                color: AppColors.textGreenMuted, height: 1.4),
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 13,
+              color: AppColors.textGreenMuted,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 16),
           // BUG FIX: original had overflow — now uses intrinsic height
@@ -77,10 +91,15 @@ class _CharityTabState extends State<CharityTab> {
                 border: Border.all(color: AppColors.gold),
                 borderRadius: BorderRadius.circular(22),
               ),
-              child: const Text('+ Create Charity Campaign', style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 13,
-                fontWeight: FontWeight.w600, color: AppColors.gold,
-              )),
+              child: const Text(
+                '+ Create Charity Campaign',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.gold,
+                ),
+              ),
             ),
           ),
         ],
@@ -114,11 +133,24 @@ class _CharityTabState extends State<CharityTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(val, style: const TextStyle(fontFamily: 'Cairo',
-                fontSize: 22, fontWeight: FontWeight.w800,
-                color: AppColors.textWhite)),
-            Text(label, style: const TextStyle(fontFamily: 'Cairo',
-                fontSize: 11, color: AppColors.textGreenMuted, height: 1.3)),
+            Text(
+              val,
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textWhite,
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 11,
+                color: AppColors.textGreenMuted,
+                height: 1.3,
+              ),
+            ),
           ],
         ),
       ),
@@ -128,10 +160,15 @@ class _CharityTabState extends State<CharityTab> {
   Widget _buildActiveHeader() {
     return const Padding(
       padding: EdgeInsets.fromLTRB(16, 20, 16, 0),
-      child: Text('Active Campaigns', style: TextStyle(
-        fontFamily: 'Cairo', fontSize: 18,
-        fontWeight: FontWeight.w700, color: AppColors.textDark,
-      )),
+      child: Text(
+        'Active Campaigns',
+        style: TextStyle(
+          fontFamily: 'Cairo',
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textDark,
+        ),
+      ),
     );
   }
 
@@ -149,19 +186,27 @@ class _CharityTabState extends State<CharityTab> {
               child: Container(
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 18, vertical: 8),
+                  horizontal: 18,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: active ? AppColors.primaryDark : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: active ? AppColors.primaryDark : AppColors.borderLight,
+                    color: active
+                        ? AppColors.primaryDark
+                        : AppColors.borderLight,
                   ),
                 ),
-                child: Text(c, style: TextStyle(
-                  fontFamily: 'Cairo', fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: active ? AppColors.gold : AppColors.textGrey,
-                )),
+                child: Text(
+                  c,
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: active ? AppColors.gold : AppColors.textGrey,
+                  ),
+                ),
               ),
             );
           }).toList(),
@@ -188,14 +233,22 @@ class _CharityTabState extends State<CharityTab> {
             color: AppColors.primaryDark,
             child: Stack(
               children: [
-                const Center(child: Icon(Icons.account_balance_rounded,
-                    color: AppColors.primaryLight, size: 56)),
+                const Center(
+                  child: Icon(
+                    Icons.account_balance_rounded,
+                    color: AppColors.primaryLight,
+                    size: 56,
+                  ),
+                ),
                 if (c.verified)
                   Positioned(
-                    top: 12, left: 12,
+                    top: 12,
+                    left: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.gold.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(20),
@@ -203,13 +256,21 @@ class _CharityTabState extends State<CharityTab> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.verified, size: 12,
-                              color: AppColors.primaryDarkest),
+                          Icon(
+                            Icons.verified,
+                            size: 12,
+                            color: AppColors.primaryDarkest,
+                          ),
                           SizedBox(width: 4),
-                          Text('Verified', style: TextStyle(
-                              fontFamily: 'Cairo', fontSize: 11,
+                          Text(
+                            'Verified',
+                            style: TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.primaryDarkest)),
+                              color: AppColors.primaryDarkest,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -222,24 +283,46 @@ class _CharityTabState extends State<CharityTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(c.title, style: const TextStyle(fontFamily: 'Cairo',
-                    fontSize: 18, fontWeight: FontWeight.w800,
-                    color: AppColors.textDark)),
+                Text(
+                  c.title,
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text(c.description, style: const TextStyle(
-                    fontFamily: 'Cairo', fontSize: 13,
-                    color: AppColors.textGrey, height: 1.4)),
+                Text(
+                  c.description,
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 13,
+                    color: AppColors.textGrey,
+                    height: 1.4,
+                  ),
+                ),
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    Text('\$${c.raised.toStringAsFixed(0)} Raised',
-                        style: const TextStyle(fontFamily: 'Cairo',
-                            fontSize: 14, fontWeight: FontWeight.w800,
-                            color: AppColors.textDark)),
+                    Text(
+                      '\$${c.raised.toStringAsFixed(0)} Raised',
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                      ),
+                    ),
                     const Spacer(),
-                    Text('${c.progressPct}% of \$${c.goal.toStringAsFixed(0)}',
-                        style: const TextStyle(fontFamily: 'Cairo',
-                            fontSize: 12, color: AppColors.textGrey)),
+                    Text(
+                      '${c.progressPct}% of \$${c.goal.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 12,
+                        color: AppColors.textGrey,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -262,10 +345,17 @@ class _CharityTabState extends State<CharityTab> {
                       color: AppColors.primaryDark,
                       borderRadius: BorderRadius.circular(28),
                     ),
-                    child: const Center(child: Text('Contribute',
-                        style: TextStyle(fontFamily: 'Cairo', fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textWhite))),
+                    child: const Center(
+                      child: Text(
+                        'Contribute',
+                        style: TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textWhite,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -283,13 +373,27 @@ class _CharityTabState extends State<CharityTab> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgCream,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Contribute to ${c.title}',
-            style: const TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+        title: Text(
+          'Contribute to ${c.title}',
+          style: const TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Enter amount to contribute (\$):', style: TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey)),
+            const Text(
+              'Enter amount to contribute (\$):',
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 13,
+                color: AppColors.textGrey,
+              ),
+            ),
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
@@ -299,12 +403,17 @@ class _CharityTabState extends State<CharityTab> {
               ),
               child: TextField(
                 controller: amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 style: const TextStyle(fontFamily: 'Cairo', fontSize: 14),
                 decoration: const InputDecoration(
                   hintText: 'e.g. 50',
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
@@ -313,12 +422,17 @@ class _CharityTabState extends State<CharityTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryDark,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
             onPressed: () async {
               final val = double.tryParse(amountCtrl.text) ?? 0.0;
@@ -329,14 +443,26 @@ class _CharityTabState extends State<CharityTab> {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('JazakAllah! Thank you for donating \$${val.toStringAsFixed(0)} to ${c.title}.',
-                        style: const TextStyle(fontFamily: 'Cairo', color: Colors.white)),
+                    content: Text(
+                      'JazakAllah! Thank you for donating \$${val.toStringAsFixed(0)} to ${c.title}.',
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        color: Colors.white,
+                      ),
+                    ),
                     backgroundColor: AppColors.success,
                   ),
                 );
               }
             },
-            child: const Text('Contribute', style: TextStyle(fontFamily: 'Cairo', color: AppColors.gold, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Contribute',
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                color: AppColors.gold,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -359,17 +485,17 @@ class _CharityTabState extends State<CharityTab> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to submit: $e')));
       }
     }
   }
 
   void _showCreateCharitySheet(BuildContext context) {
     final titleCtrl = TextEditingController();
-    final descCtrl  = TextEditingController();
-    final goalCtrl  = TextEditingController();
+    final descCtrl = TextEditingController();
+    final goalCtrl = TextEditingController();
     String category = 'Education';
 
     showModalBottomSheet(
@@ -377,27 +503,49 @@ class _CharityTabState extends State<CharityTab> {
       isScrollControlled: true,
       backgroundColor: AppColors.bgCream,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx2, setBS) => SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
-              20, 16, 20, MediaQuery.of(ctx2).viewInsets.bottom + 20),
+            20,
+            16,
+            20,
+            MediaQuery.of(ctx2).viewInsets.bottom + 20,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 44, height: 4,
-                  decoration: BoxDecoration(color: AppColors.borderLight,
-                      borderRadius: BorderRadius.circular(2)))),
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
-              const Text('Create Charity Campaign', style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 17,
-                fontWeight: FontWeight.w700, color: AppColors.textDark,
-              )),
+              const Text(
+                'Create Charity Campaign',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
               const SizedBox(height: 6),
-              const Text('Will be sent to admin for approval.',
-                  style: TextStyle(fontFamily: 'Cairo', fontSize: 12,
-                      color: AppColors.textGrey)),
+              const Text(
+                'Will be sent to admin for approval.',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 12,
+                  color: AppColors.textGrey,
+                ),
+              ),
               const SizedBox(height: 14),
               _sheetField('Campaign Title', titleCtrl),
               const SizedBox(height: 10),
@@ -408,17 +556,27 @@ class _CharityTabState extends State<CharityTab> {
               DropdownButtonFormField<String>(
                 initialValue: category,
                 decoration: InputDecoration(
-                  filled: true, fillColor: AppColors.bgWhite,
+                  filled: true,
+                  fillColor: AppColors.bgWhite,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: AppColors.borderLight),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                 ),
                 items: ['Education', 'Health', 'Relief', 'Masjid', 'Orphans']
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c,
-                    style: const TextStyle(fontFamily: 'Cairo'))))
+                    .map(
+                      (c) => DropdownMenuItem(
+                        value: c,
+                        child: Text(
+                          c,
+                          style: const TextStyle(fontFamily: 'Cairo'),
+                        ),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setBS(() => category = v!),
               ),
@@ -427,24 +585,34 @@ class _CharityTabState extends State<CharityTab> {
                 width: double.infinity,
                 child: GestureDetector(
                   onTap: () async {
-                      final goalText = goalCtrl.text.trim();
-                      if (titleCtrl.text.trim().isEmpty || goalText.isEmpty) return;
-                      _submitCampaign({
-                        'title': titleCtrl.text.trim(),
-                        'description': descCtrl.text.trim(),
-                        'goal': double.tryParse(goalText) ?? 0.0,
-                        'category': category,
-                      });
-                    },
+                    final goalText = goalCtrl.text.trim();
+                    if (titleCtrl.text.trim().isEmpty || goalText.isEmpty) {
+                      return;
+                    }
+                    _submitCampaign({
+                      'title': titleCtrl.text.trim(),
+                      'description': descCtrl.text.trim(),
+                      'goal': double.tryParse(goalText) ?? 0.0,
+                      'category': category,
+                    });
+                  },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
                       color: AppColors.primaryDark,
                       borderRadius: BorderRadius.circular(28),
                     ),
-                    child: const Center(child: Text('Submit for Approval',
-                        style: TextStyle(fontFamily: 'Cairo', fontSize: 15,
-                            fontWeight: FontWeight.w700, color: AppColors.gold))),
+                    child: const Center(
+                      child: Text(
+                        'Submit for Approval',
+                        style: TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.gold,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -455,8 +623,11 @@ class _CharityTabState extends State<CharityTab> {
     );
   }
 
-  Widget _sheetField(String hint, TextEditingController ctrl,
-      {int maxLines = 1}) {
+  Widget _sheetField(
+    String hint,
+    TextEditingController ctrl, {
+    int maxLines = 1,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.bgWhite,
@@ -467,15 +638,21 @@ class _CharityTabState extends State<CharityTab> {
         controller: ctrl,
         maxLines: maxLines,
         keyboardType: hint.contains('\$')
-            ? TextInputType.number : TextInputType.text,
+            ? TextInputType.number
+            : TextInputType.text,
         style: const TextStyle(fontFamily: 'Cairo', fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 14,
-              color: AppColors.textLightGrey),
+          hintStyle: const TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 14,
+            color: AppColors.textLightGrey,
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 12),
+            horizontal: 14,
+            vertical: 12,
+          ),
         ),
       ),
     );

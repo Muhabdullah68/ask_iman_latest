@@ -18,46 +18,54 @@ class _AyahTabState extends State<AyahTab> {
   // All ayahs with topic tagging
   static const List<Map<String, String>> _allAyahs = [
     {
-      'ref':         'SURAH AL-BAQARAH 2:286',
-      'arabic':      'لَا يُكَلِّفُ اللَّهُ نَفۡسًا إِلَّا وُسۡعَهَا',
-      'translation': '"Allah does not charge a soul except [with that within] its capacity."',
-      'topic':       'Patience',
+      'ref': 'SURAH AL-BAQARAH 2:286',
+      'arabic': 'لَا يُكَلِّفُ اللَّهُ نَفۡسًا إِلَّا وُسۡعَهَا',
+      'translation':
+          '"Allah does not charge a soul except [with that within] its capacity."',
+      'topic': 'Patience',
     },
     {
-      'ref':         'SURAH ASH-SHARH 94:5',
-      'arabic':      'فَإِنَّ مَعَ الۡعُسۡرِ يُسۡرًا',
+      'ref': 'SURAH ASH-SHARH 94:5',
+      'arabic': 'فَإِنَّ مَعَ الۡعُسۡرِ يُسۡرًا',
       'translation': '"For indeed, with hardship [will be] ease."',
-      'topic':       'Patience',
+      'topic': 'Patience',
     },
     {
-      'ref':         'SURAH AZ-ZUMAR 39:53',
-      'arabic':      'قُلۡ يَٰعِبَادِيَ الَّذِينَ أَسۡرَفُواْ عَلَىٰٓ أَنفُسِهِمۡ لَا تَقۡنَطُواْ مِن رَّحۡمَةِ اللَّهِ إِنَّ اللَّهَ يَغۡفِرُ الذُّنُوبَ جَمِيعًا إِنَّهُۥ هُوَ الۡغَفُورُ الرَّحِيمُ',
-      'translation': '"Say, \'O My servants who have transgressed against themselves [by sinning], do not despair of the mercy of Allah. Indeed, Allah forgives all sins. Indeed, it is He who is the Forgiving, the Merciful.\'"',
-      'topic':       'Tawbah',
+      'ref': 'SURAH AZ-ZUMAR 39:53',
+      'arabic':
+          'قُلۡ يَٰعِبَادِيَ الَّذِينَ أَسۡرَفُواْ عَلَىٰٓ أَنفُسِهِمۡ لَا تَقۡنَطُواْ مِن رَّحۡمَةِ اللَّهِ إِنَّ اللَّهَ يَغۡفِرُ الذُّنُوبَ جَمِيعًا إِنَّهُۥ هُوَ الۡغَفُورُ الرَّحِيمُ',
+      'translation':
+          '"Say, \'O My servants who have transgressed against themselves [by sinning], do not despair of the mercy of Allah. Indeed, Allah forgives all sins. Indeed, it is He who is the Forgiving, the Merciful.\'"',
+      'topic': 'Tawbah',
     },
     {
-      'ref':         'SURAH AR-RAHMAN 55:13',
-      'arabic':      'فَبِأَيِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ',
+      'ref': 'SURAH AR-RAHMAN 55:13',
+      'arabic': 'فَبِأَيِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ',
       'translation': '"So which of the favors of your Lord would you deny?"',
-      'topic':       'Mercy',
+      'topic': 'Mercy',
     },
     {
-      'ref':         'SURAH AL-ANBIYA 21:107',
-      'arabic':      'وَمَآ أَرۡسَلۡنَٰكَ إِلَّا رَحۡمَةً لِّلۡعَٰلَمِينَ',
-      'translation': '"And We have not sent you, [O Muhammad], except as a mercy to the worlds."',
-      'topic':       'Mercy',
+      'ref': 'SURAH AL-ANBIYA 21:107',
+      'arabic': 'وَمَآ أَرۡسَلۡنَٰكَ إِلَّا رَحۡمَةً لِّلۡعَٰلَمِينَ',
+      'translation':
+          '"And We have not sent you, [O Muhammad], except as a mercy to the worlds."',
+      'topic': 'Mercy',
     },
     {
-      'ref':         'SURAH AL-BAQARAH 2:153',
-      'arabic':      'يَٰٓأَيُّهَا الَّذِينَ ءَامَنُواْ اسۡتَعِينُواْ بِالصَّبۡرِ وَالصَّلَوٰةِ إِنَّ اللَّهَ مَعَ الصَّٰبِرِينَ',
-      'translation': '"O you who have believed, seek help through patience and prayer. Indeed, Allah is with the patient."',
-      'topic':       'Patience',
+      'ref': 'SURAH AL-BAQARAH 2:153',
+      'arabic':
+          'يَٰٓأَيُّهَا الَّذِينَ ءَامَنُواْ اسۡتَعِينُواْ بِالصَّبۡرِ وَالصَّلَوٰةِ إِنَّ اللَّهَ مَعَ الصَّٰبِرِينَ',
+      'translation':
+          '"O you who have believed, seek help through patience and prayer. Indeed, Allah is with the patient."',
+      'topic': 'Patience',
     },
     {
-      'ref':         'SURAH AL-BAQARAH 2:222',
-      'arabic':      'إِنَّ اللَّهَ يُحِبُّ التَّوَّٰبِينَ وَيُحِبُّ الۡمُتَطَهِّرِينَ',
-      'translation': '"Indeed, Allah loves those who are constantly repentant and loves those who purify themselves."',
-      'topic':       'Tawbah',
+      'ref': 'SURAH AL-BAQARAH 2:222',
+      'arabic':
+          'إِنَّ اللَّهَ يُحِبُّ التَّوَّٰبِينَ وَيُحِبُّ الۡمُتَطَهِّرِينَ',
+      'translation':
+          '"Indeed, Allah loves those who are constantly repentant and loves those who purify themselves."',
+      'topic': 'Tawbah',
     },
   ];
 
@@ -90,9 +98,7 @@ class _AyahTabState extends State<AyahTab> {
       child: Container(
         width: double.infinity,
         height: 160,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Stack(
@@ -183,13 +189,14 @@ class _AyahTabState extends State<AyahTab> {
                 child: Container(
                   margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 9),
+                    horizontal: 20,
+                    vertical: 9,
+                  ),
                   decoration: BoxDecoration(
                     color: active ? AppColors.gold : Colors.transparent,
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color:
-                      active ? AppColors.gold : AppColors.borderLight,
+                      color: active ? AppColors.gold : AppColors.borderLight,
                     ),
                   ),
                   child: Text(
@@ -238,7 +245,9 @@ class _AyahTabState extends State<AyahTab> {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.gold.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -254,11 +263,17 @@ class _AyahTabState extends State<AyahTab> {
                   ),
                 ),
                 const Spacer(),
-                const Icon(Icons.bookmark_outline,
-                    size: 18, color: AppColors.textGrey),
+                const Icon(
+                  Icons.bookmark_outline,
+                  size: 18,
+                  color: AppColors.textGrey,
+                ),
                 const SizedBox(width: 10),
-                const Icon(Icons.share_outlined,
-                    size: 18, color: AppColors.textGrey),
+                const Icon(
+                  Icons.share_outlined,
+                  size: 18,
+                  color: AppColors.textGrey,
+                ),
               ],
             ),
           ),

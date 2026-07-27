@@ -42,8 +42,7 @@ class HadithCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: isSahih
                       ? AppColors.success.withValues(alpha: 0.2)
@@ -61,11 +60,17 @@ class HadithCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              const Icon(Icons.share_outlined,
-                  size: 16, color: AppColors.textGreenMuted),
+              const Icon(
+                Icons.share_outlined,
+                size: 16,
+                color: AppColors.textGreenMuted,
+              ),
               const SizedBox(width: 12),
-              const Icon(Icons.bookmark_outline,
-                  size: 16, color: AppColors.textGreenMuted),
+              const Icon(
+                Icons.bookmark_outline,
+                size: 16,
+                color: AppColors.textGreenMuted,
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -83,7 +88,9 @@ class HadithCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Container(
-              height: 1, color: AppColors.primaryMid.withValues(alpha: 0.6)),
+            height: 1,
+            color: AppColors.primaryMid.withValues(alpha: 0.6),
+          ),
           const SizedBox(height: 10),
           // Narrator
           Row(
@@ -95,8 +102,11 @@ class HadithCard extends StatelessWidget {
                   color: AppColors.gold.withValues(alpha: 0.18),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person,
-                    size: 12, color: AppColors.gold),
+                child: const Icon(
+                  Icons.person,
+                  size: 12,
+                  color: AppColors.gold,
+                ),
               ),
               const SizedBox(width: 8),
               Text(

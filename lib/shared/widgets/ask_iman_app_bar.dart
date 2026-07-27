@@ -7,7 +7,7 @@ class AskImanAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBackButton;
   final List<Widget>? actions;
   final String? title; // Added for dynamic titles
-  final bool showLogo;  // Added to toggle logo
+  final bool showLogo; // Added to toggle logo
 
   const AskImanAppBar({
     super.key,
@@ -28,23 +28,23 @@ class AskImanAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return Container(
       color: AppColors.primaryDark,
-      padding: EdgeInsets.only(
-        top: topPadding,
-        left: 4,
-        right: 8,
-      ),
+      padding: EdgeInsets.only(top: topPadding, left: 4, right: 8),
       height: preferredSize.height + topPadding,
       child: Row(
         children: [
           if (showBackButton)
             IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18),
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                color: Colors.white,
+                size: 18,
+              ),
               onPressed: () => Navigator.maybePop(context),
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             )
           else
             const SizedBox(width: 8),
-          
+
           // Title / Logo Area
           Expanded(
             child: Row(
@@ -55,7 +55,11 @@ class AskImanAppBar extends StatelessWidget implements PreferredSizeWidget {
                     'assets/images/applogo.png',
                     height: 28,
                     width: 28,
-                    errorBuilder: (ctx, err, stack) => const Icon(Icons.mosque, color: AppColors.gold, size: 24),
+                    errorBuilder: (ctx, err, stack) => const Icon(
+                      Icons.mosque,
+                      color: AppColors.gold,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 6),
                 ],
@@ -103,11 +107,11 @@ class AskImanAppBar extends StatelessWidget implements PreferredSizeWidget {
               ],
             ),
           ),
-          
+
           if (actions != null) ...actions!,
 
           const SizedBox(width: 4),
-          
+
           // Streak badge (Wrapped in Flexible or Fixed width to prevent overflow)
           StreamBuilder<User?>(
             stream: auth.authStateChanges(),
@@ -118,7 +122,10 @@ class AskImanAppBar extends StatelessWidget implements PreferredSizeWidget {
                 builder: (context, profileSnap) {
                   final streak = profileSnap.data?.streakCount ?? 0;
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primaryMid,
                       borderRadius: BorderRadius.circular(16),

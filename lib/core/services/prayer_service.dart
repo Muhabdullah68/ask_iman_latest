@@ -18,10 +18,12 @@
 
 import 'dart:async';
 import 'package:adhan/adhan.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -38,18 +40,36 @@ class HijriDate {
   const HijriDate({required this.day, required this.month, required this.year});
 
   static const List<String> _monthNames = [
-    'Muharram', 'Safar', "Rabi' al-Awwal", "Rabi' al-Thani",
-    'Jumada al-Awwal', 'Jumada al-Thani', 'Rajab', "Sha'ban",
-    'Ramadan', 'Shawwal', "Dhu al-Qi'dah", 'Dhu al-Hijjah',
+    'Muharram',
+    'Safar',
+    "Rabi' al-Awwal",
+    "Rabi' al-Thani",
+    'Jumada al-Awwal',
+    'Jumada al-Thani',
+    'Rajab',
+    "Sha'ban",
+    'Ramadan',
+    'Shawwal',
+    "Dhu al-Qi'dah",
+    'Dhu al-Hijjah',
   ];
 
   static const List<String> _monthNamesAr = [
-    'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني',
-    'جمادى الأولى', 'جمادى الآخرة', 'رجب', 'شعبان',
-    'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة',
+    'محرم',
+    'صفر',
+    'ربيع الأول',
+    'ربيع الثاني',
+    'جمادى الأولى',
+    'جمادى الآخرة',
+    'رجب',
+    'شعبان',
+    'رمضان',
+    'شوال',
+    'ذو القعدة',
+    'ذو الحجة',
   ];
 
-  String get monthName  => _monthNames[month - 1];
+  String get monthName => _monthNames[month - 1];
   String get monthNameAr => _monthNamesAr[month - 1];
 
   /// e.g. "23 Ramadan 1446"
@@ -66,23 +86,30 @@ class HijriDate {
 
   // Julian Day Number from Gregorian date
   static double _gregorianToJd(int y, int m, int d) {
-    if (m <= 2) { y -= 1; m += 12; }
+    if (m <= 2) {
+      y -= 1;
+      m += 12;
+    }
     final a = (y / 100).floor();
     final b = 2 - a + (a / 4).floor();
     return (365.25 * (y + 4716)).floor() +
         (30.6001 * (m + 1)).floor() +
-        d + b - 1524.5;
+        d +
+        b -
+        1524.5;
   }
 
   // Hijri from JDN (Kuwaiti algorithm)
   static HijriDate _jdToHijri(double jd) {
-    final z  = (jd + 0.5).floor();
-    final l  = z - 1948440 + 10632;
-    final n  = ((l - 1) / 10631).floor();
+    final z = (jd + 0.5).floor();
+    final l = z - 1948440 + 10632;
+    final n = ((l - 1) / 10631).floor();
     final ll = l - 10631 * n + 354;
-    final j  = ((10985 - ll) / 5316).floor() * ((50 * ll) / 17719).floor() +
+    final j =
+        ((10985 - ll) / 5316).floor() * ((50 * ll) / 17719).floor() +
         (ll / 5670).floor() * ((43 * ll) / 15238).floor();
-    final lll = ll -
+    final lll =
+        ll -
         ((30 - j) / 15).floor() * ((17719 * j) / 50).floor() -
         (j / 16).floor() * ((15238 * j) / 43).floor() +
         29;
@@ -99,16 +126,16 @@ class HijriDate {
   /// Returns a list of {name, hijriDate, gregorianDate?}
   static List<Map<String, dynamic>> islamicOccasions(int hijriYear) {
     return [
-      {'name': "Islamic New Year",  'month': 1,  'day': 1},
-      {'name': "Day of Ashura",     'month': 1,  'day': 10},
-      {'name': "Mawlid al-Nabi",    'month': 3,  'day': 12},
-      {'name': "Isra & Mi'raj",     'month': 7,  'day': 27},
-      {'name': "Laylat al-Bara'ah", 'month': 8,  'day': 15},
-      {'name': "Ramadan begins",    'month': 9,  'day': 1},
-      {'name': "Laylat al-Qadr",    'month': 9,  'day': 27},
-      {'name': "Eid al-Fitr",       'month': 10, 'day': 1},
-      {'name': "Day of Arafah",     'month': 12, 'day': 9},
-      {'name': "Eid al-Adha",       'month': 12, 'day': 10},
+      {'name': "Islamic New Year", 'month': 1, 'day': 1},
+      {'name': "Day of Ashura", 'month': 1, 'day': 10},
+      {'name': "Mawlid al-Nabi", 'month': 3, 'day': 12},
+      {'name': "Isra & Mi'raj", 'month': 7, 'day': 27},
+      {'name': "Laylat al-Bara'ah", 'month': 8, 'day': 15},
+      {'name': "Ramadan begins", 'month': 9, 'day': 1},
+      {'name': "Laylat al-Qadr", 'month': 9, 'day': 27},
+      {'name': "Eid al-Fitr", 'month': 10, 'day': 1},
+      {'name': "Day of Arafah", 'month': 12, 'day': 9},
+      {'name': "Eid al-Adha", 'month': 12, 'day': 10},
     ];
   }
 }
@@ -129,8 +156,8 @@ class PrayerInfo {
   });
 
   String get timeFormatted => DateFormat('h:mm a').format(time);
-  String get timeShort     => DateFormat('h:mm').format(time);
-  String get amPm          => DateFormat('a').format(time);
+  String get timeShort => DateFormat('h:mm').format(time);
+  String get amPm => DateFormat('a').format(time);
 
   int minutesUntil() {
     final diff = time.difference(DateTime.now());
@@ -140,8 +167,8 @@ class PrayerInfo {
 
 // 4 Classical Madhabs & Calculation Methods
 const Map<String, Madhab> kMadhabs = {
-  'Hanafi':  Madhab.hanafi,
-  "Maliki":  Madhab.shafi,
+  'Hanafi': Madhab.hanafi,
+  "Maliki": Madhab.shafi,
   "Shafi'i": Madhab.shafi,
   'Hanbali': Madhab.shafi,
 };
@@ -168,48 +195,67 @@ class PrayerService extends ChangeNotifier {
 
   PrayerTimes? _prayerTimes;
   SunnahTimes? _sunnahTimes;
-  Position?    _position;
-  bool         _loading = false;
-  String?      _error;
-  Timer?       _midnightTimer;
-  Timer?       _countdownTimer;
-  Prayer?      _previousNextPrayer;
+  Position? _position;
+  bool _loading = false;
+  String? _error;
+  Timer? _midnightTimer;
+  Timer? _countdownTimer;
+  Prayer? _previousNextPrayer;
 
   CalculationMethod _calcMethod = CalculationMethod.umm_al_qura;
   String _calcMethodName = 'Umm Al-Qura';
-  String _madhabName   = 'Hanafi';
-  bool   _notifEnabled = true;
-  int    _reminderMins = 10;
+  String _madhabName = 'Hanafi';
+  bool _notifEnabled = true;
+  int _reminderMins = 10;
 
   FlutterLocalNotificationsPlugin? _notifPlugin;
+  final AudioPlayer _azanPlayer = AudioPlayer();
+  Timer? _azanTimer;
+  Timer? _stopCheckTimer;
 
   // Getters
-  PrayerTimes? get prayerTimes    => _prayerTimes;
-  SunnahTimes? get sunnahTimes    => _sunnahTimes;
-  Position?    get position       => _position;
-  bool         get isLoading      => _loading;
-  String?      get error          => _error;
-  String       get madhabName     => _madhabName;
-  String       get calculationMethodName => _calcMethodName;
-  bool         get notifEnabled   => _notifEnabled;
-  int          get reminderMinutes => _reminderMins;
+  PrayerTimes? get prayerTimes => _prayerTimes;
+  SunnahTimes? get sunnahTimes => _sunnahTimes;
+  Position? get position => _position;
+  bool get isLoading => _loading;
+  String? get error => _error;
+  String get madhabName => _madhabName;
+  String get calculationMethodName => _calcMethodName;
+  bool get notifEnabled => _notifEnabled;
+  int get reminderMinutes => _reminderMins;
 
   Future<void> initialize(FlutterLocalNotificationsPlugin plugin) async {
     _notifPlugin = plugin;
     // tz already initialized in NotificationService
-    
+
     // Create notification channel for prayer reminders
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'prayer_channel',
-      'Prayer Reminders',
-      description: 'Adhan and prayer time notifications',
-      importance: Importance.high,
-      sound: RawResourceAndroidNotificationSound('allah_hu_allah_hu'),
+    const AndroidNotificationChannel azzanChannel = AndroidNotificationChannel(
+      'prayer_azzan_channel',
+      'Prayer Azan Notifications',
+      description: 'Azan (call to prayer) notifications',
+      importance: Importance.max,
+      sound: RawResourceAndroidNotificationSound('allah_o_akbar01'),
       playSound: true,
+      enableVibration: true,
     );
-    
-    await _notifPlugin?.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(channel);
-    
+
+    const AndroidNotificationChannel reminderChannel =
+        AndroidNotificationChannel(
+          'prayer_reminder_channel',
+          'Prayer Reminders',
+          description: 'Prayer time reminder notifications',
+          importance: Importance.high,
+          sound: RawResourceAndroidNotificationSound('allah_hu_allah_hu'),
+          playSound: true,
+        );
+
+    final androidPlugin = _notifPlugin
+        ?.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    await androidPlugin?.createNotificationChannel(azzanChannel);
+    await androidPlugin?.createNotificationChannel(reminderChannel);
+
     await refresh();
     _scheduleMidnightRefresh();
     _startCountdownTimer();
@@ -217,13 +263,15 @@ class PrayerService extends ChangeNotifier {
 
   Future<void> refresh({DateTime? customTime}) async {
     _loading = true;
-    _error   = null;
+    _error = null;
     notifyListeners();
     try {
       _position = await _getLocation();
       if (_position != null) {
         _calculatePrayerTimes(customTime: customTime);
-        if (_notifEnabled) await _scheduleAllNotifications(customTime: customTime);
+        if (_notifEnabled) {
+          await _scheduleAllNotifications(customTime: customTime);
+        }
       }
     } catch (e) {
       _error = e.toString();
@@ -254,8 +302,11 @@ class PrayerService extends ChangeNotifier {
   void setNotificationsEnabled(bool v) {
     if (_notifEnabled != v) {
       _notifEnabled = v;
-      if (v) { _scheduleAllNotifications(); }
-      else   { _notifPlugin?.cancelAll(); }
+      if (v) {
+        _scheduleAllNotifications();
+      } else {
+        _notifPlugin?.cancelAll();
+      }
       notifyListeners();
     }
   }
@@ -270,7 +321,7 @@ class PrayerService extends ChangeNotifier {
 
   List<PrayerInfo> getTodayPrayers({DateTime? at}) {
     if (_prayerTimes == null) return [];
-    
+
     // We want the 'next' indicator to only apply to the 5 main prayers.
     // If adhan says next is sunrise, we treat the next main prayer (Dhuhr) as next.
     var next = _prayerTimes!.nextPrayer();
@@ -279,11 +330,11 @@ class PrayerService extends ChangeNotifier {
     }
 
     return [
-      _info(Prayer.fajr,    'Fajr',    _prayerTimes!.fajr,    next),
-      _info(Prayer.dhuhr,   'Dhuhr',   _prayerTimes!.dhuhr,   next),
-      _info(Prayer.asr,     'Asr',     _prayerTimes!.asr,     next),
+      _info(Prayer.fajr, 'Fajr', _prayerTimes!.fajr, next),
+      _info(Prayer.dhuhr, 'Dhuhr', _prayerTimes!.dhuhr, next),
+      _info(Prayer.asr, 'Asr', _prayerTimes!.asr, next),
       _info(Prayer.maghrib, 'Maghrib', _prayerTimes!.maghrib, next),
-      _info(Prayer.isha,    'Isha',    _prayerTimes!.isha,    next),
+      _info(Prayer.isha, 'Isha', _prayerTimes!.isha, next),
     ];
   }
 
@@ -308,13 +359,20 @@ class PrayerService extends ChangeNotifier {
     if (_prayerTimes == null) return '—';
     final current = _prayerTimes!.currentPrayer();
     switch (current) {
-      case Prayer.fajr:    return 'Fajr';
-      case Prayer.sunrise: return 'Sunrise';
-      case Prayer.dhuhr:   return 'Dhuhr';
-      case Prayer.asr:     return 'Asr';
-      case Prayer.maghrib: return 'Maghrib';
-      case Prayer.isha:    return 'Isha';
-      default:             return '—';
+      case Prayer.fajr:
+        return 'Fajr';
+      case Prayer.sunrise:
+        return 'Sunrise';
+      case Prayer.dhuhr:
+        return 'Dhuhr';
+      case Prayer.asr:
+        return 'Asr';
+      case Prayer.maghrib:
+        return 'Maghrib';
+      case Prayer.isha:
+        return 'Isha';
+      default:
+        return '—';
     }
   }
 
@@ -335,7 +393,8 @@ class PrayerService extends ChangeNotifier {
       throw Exception('Location permission denied.');
     }
     return Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+      desiredAccuracy: LocationAccuracy.high,
+    );
   }
 
   void _calculatePrayerTimes({DateTime? customTime}) {
@@ -350,18 +409,23 @@ class PrayerService extends ChangeNotifier {
 
   Future<void> _scheduleAllNotifications({DateTime? customTime}) async {
     if (_notifPlugin == null || _prayerTimes == null) return;
-    await _notifPlugin!.cancelAll();
+    // Cancel only prayer notifications (IDs 0-14) — NOT alarms/family reminders
+    for (int i = 0; i <= 14; i++) {
+      await _notifPlugin!.cancel(i);
+    }
     final prayers = [
-      ('Fajr',    _prayerTimes!.fajr,    0),
-      ('Dhuhr',   _prayerTimes!.dhuhr,   1),
-      ('Asr',     _prayerTimes!.asr,     2),
+      ('Fajr', _prayerTimes!.fajr, 0),
+      ('Dhuhr', _prayerTimes!.dhuhr, 1),
+      ('Asr', _prayerTimes!.asr, 2),
       ('Maghrib', _prayerTimes!.maghrib, 3),
-      ('Isha',    _prayerTimes!.isha,    4),
+      ('Isha', _prayerTimes!.isha, 4),
     ];
-    final details = NotificationDetails(
+
+    final reminderDetails = NotificationDetails(
       android: AndroidNotificationDetails(
-        'prayer_channel', 'Prayer Reminders',
-        channelDescription: 'Adhan and prayer time notifications',
+        'prayer_reminder_channel',
+        'Prayer Reminders',
+        channelDescription: 'Prayer time reminder notifications',
         importance: Importance.high,
         priority: Priority.high,
         icon: '@mipmap/ic_launcher',
@@ -369,20 +433,59 @@ class PrayerService extends ChangeNotifier {
         playSound: true,
       ),
       iOS: const DarwinNotificationDetails(
-          presentAlert: true, presentBadge: true, presentSound: true),
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
     );
+
+    // Azan actions
+    const azanStopAction = AndroidNotificationAction(
+      'stop_azan',
+      'Stop Azan',
+      showsUserInterface: false,
+      cancelNotification: true,
+    );
+
+    final azzanDetails = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'prayer_azzan_channel',
+        'Prayer Azan Notifications',
+        channelDescription: 'Azan (call to prayer) notifications',
+        importance: Importance.max,
+        priority: Priority.max,
+        icon: '@mipmap/ic_launcher',
+        sound: const RawResourceAndroidNotificationSound('allah_o_akbar01'),
+        playSound: true,
+        category: AndroidNotificationCategory.alarm,
+        visibility: NotificationVisibility.public,
+        enableVibration: true,
+        color: const Color(0xFF1B4332),
+        colorized: true,
+        actions: [azanStopAction],
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        interruptionLevel: InterruptionLevel.critical,
+      ),
+    );
+
     final now = customTime ?? DateTime.now();
     for (final (name, time, id) in prayers) {
       final rem = time.subtract(Duration(minutes: _reminderMins));
       if (rem.isAfter(now)) {
         try {
           await _notifPlugin!.zonedSchedule(
-            id, '$name Reminder',
+            id,
+            '$name Reminder',
             '$_reminderMins minutes until $name prayer',
-            tz.TZDateTime.from(rem, tz.local), details,
+            tz.TZDateTime.from(rem, tz.local),
+            reminderDetails,
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
+                UILocalNotificationDateInterpretation.absoluteTime,
           );
         } catch (e) {
           debugPrint('Error scheduling reminder for $name: $e');
@@ -391,23 +494,26 @@ class PrayerService extends ChangeNotifier {
       if (time.isAfter(now)) {
         try {
           await _notifPlugin!.zonedSchedule(
-            id + 10, 'Time for $name',
+            id + 10,
+            'Time for $name',
             'Allahu Akbar — it is time for $name prayer.',
-            tz.TZDateTime.from(time, tz.local), details,
+            tz.TZDateTime.from(time, tz.local),
+            azzanDetails,
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
             uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
+                UILocalNotificationDateInterpretation.absoluteTime,
           );
         } catch (e) {
           debugPrint('Error scheduling adhan for $name: $e');
         }
       }
     }
+    _scheduleForegroundAzan();
   }
 
   void _scheduleMidnightRefresh() {
     _midnightTimer?.cancel();
-    final now      = DateTime.now();
+    final now = DateTime.now();
     final midnight = DateTime(now.year, now.month, now.day + 1);
     _midnightTimer = Timer(midnight.difference(now), () {
       refresh();
@@ -426,10 +532,68 @@ class PrayerService extends ChangeNotifier {
     });
   }
 
+  void _scheduleForegroundAzan() {
+    _azanTimer?.cancel();
+    if (_prayerTimes == null) return;
+    final prayers = [
+      _prayerTimes!.fajr,
+      _prayerTimes!.dhuhr,
+      _prayerTimes!.asr,
+      _prayerTimes!.maghrib,
+      _prayerTimes!.isha,
+    ];
+    final now = DateTime.now();
+    for (final time in prayers) {
+      if (time.isAfter(now)) {
+        final duration = time.difference(now);
+        _azanTimer = Timer(duration, _playAzanForeground);
+        return;
+      }
+    }
+  }
+
+  Future<void> _playAzanForeground() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('stop_azan') == true) {
+      await prefs.setBool('stop_azan', false);
+      _scheduleForegroundAzan();
+      return;
+    }
+    try {
+      await _azanPlayer.setAsset('assets/sounds/allah_o_akbar01.mp3');
+      await _azanPlayer.setLoopMode(LoopMode.one);
+      await _azanPlayer.play();
+    } catch (e) {
+      debugPrint('Error playing Azan in foreground: $e');
+      _scheduleForegroundAzan();
+      return;
+    }
+    _stopCheckTimer?.cancel();
+    _stopCheckTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      final p = await SharedPreferences.getInstance();
+      if (p.getBool('stop_azan') == true) {
+        _azanPlayer.stop();
+        _azanPlayer.setLoopMode(LoopMode.off);
+        await p.setBool('stop_azan', false);
+        _stopCheckTimer?.cancel();
+      }
+    });
+    _scheduleForegroundAzan();
+  }
+
+  void stopAzanPlayback() {
+    _azanPlayer.stop();
+    _azanPlayer.setLoopMode(LoopMode.off);
+    _stopCheckTimer?.cancel();
+  }
+
   @override
   void dispose() {
     _midnightTimer?.cancel();
     _countdownTimer?.cancel();
+    _azanTimer?.cancel();
+    _stopCheckTimer?.cancel();
+    _azanPlayer.dispose();
     super.dispose();
   }
 }

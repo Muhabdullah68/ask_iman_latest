@@ -21,9 +21,9 @@ import '../../shared/widgets/main_shell.dart';
 
 // Inline colour constants so the file compiles stand-alone during development.
 abstract final class SplashColors {
-  static const Color gold        = Color(0xFFC9A84C);
-  static const Color background  = Color(0xFF050C08);
-  static const Color primaryGreen= Color(0xFF0F3D2E);
+  static const Color gold = Color(0xFFC9A84C);
+  static const Color background = Color(0xFF050C08);
+  static const Color primaryGreen = Color(0xFF0F3D2E);
   static const Color secondGreen = Color(0xFF2E6B4A);
   static const Color divineLight = Color(0xFFFFF7D0);
 }
@@ -40,13 +40,12 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-
   // ── Controllers ─────────────────────────────────────────────────────────
   late AnimationController _bgCtrl;
   late AnimationController _bookCtrl;
   late AnimationController _lightCtrl;
   late AnimationController _textCtrl;
-  late AnimationController _loopCtrl;   // infinite loop for particles / stars
+  late AnimationController _loopCtrl; // infinite loop for particles / stars
   late AnimationController _exitCtrl;
 
   // ── Derived animations ───────────────────────────────────────────────────
@@ -65,9 +64,9 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _exitFade;
 
   // ── Particle data ────────────────────────────────────────────────────────
-  late final List<_FloatOrb>    _orbs;
+  late final List<_FloatOrb> _orbs;
   late final List<_TwinkleStar> _stars;
-  late final List<_DustMote>    _dusts;
+  late final List<_DustMote> _dusts;
 
   @override
   void initState() {
@@ -81,41 +80,68 @@ class _SplashScreenState extends State<SplashScreen>
   void _initParticles() {
     final rng = math.Random(42);
 
-    _orbs = List.generate(24, (i) => _FloatOrb(
-      x:     rng.nextDouble(),
-      y:     0.3 + rng.nextDouble() * 0.7,
-      radius: rng.nextDouble() * 1.4 + 0.8,
-      speed: rng.nextDouble() * 0.09 + 0.04,
-      phase: rng.nextDouble(),
-      gold:  i % 3 != 0,
-    ));
+    _orbs = List.generate(
+      24,
+      (i) => _FloatOrb(
+        x: rng.nextDouble(),
+        y: 0.3 + rng.nextDouble() * 0.7,
+        radius: rng.nextDouble() * 1.4 + 0.8,
+        speed: rng.nextDouble() * 0.09 + 0.04,
+        phase: rng.nextDouble(),
+        gold: i % 3 != 0,
+      ),
+    );
 
     final sr = math.Random(77);
-    _stars = List.generate(28, (i) => _TwinkleStar(
-      x:     sr.nextDouble() * 0.9 + 0.05,
-      y:     sr.nextDouble() * 0.45 + 0.02,
-      size:  sr.nextDouble() * 2.2 + 1.4,
-      speed: sr.nextDouble() * 0.7 + 0.4,
-      phase: sr.nextDouble() * math.pi * 2,
-    ));
+    _stars = List.generate(
+      28,
+      (i) => _TwinkleStar(
+        x: sr.nextDouble() * 0.9 + 0.05,
+        y: sr.nextDouble() * 0.45 + 0.02,
+        size: sr.nextDouble() * 2.2 + 1.4,
+        speed: sr.nextDouble() * 0.7 + 0.4,
+        phase: sr.nextDouble() * math.pi * 2,
+      ),
+    );
 
     final dr = math.Random(13);
-    _dusts = List.generate(16, (i) => _DustMote(
-      x:     dr.nextDouble() * 0.4 + 0.3,
-      y:     dr.nextDouble() * 0.3 + 0.25,
-      speed: dr.nextDouble() * 0.05 + 0.02,
-      phase: dr.nextDouble(),
-      radius: dr.nextDouble() * 1.3 + 0.5,
-    ));
+    _dusts = List.generate(
+      16,
+      (i) => _DustMote(
+        x: dr.nextDouble() * 0.4 + 0.3,
+        y: dr.nextDouble() * 0.3 + 0.25,
+        speed: dr.nextDouble() * 0.05 + 0.02,
+        phase: dr.nextDouble(),
+        radius: dr.nextDouble() * 1.3 + 0.5,
+      ),
+    );
   }
 
   void _initControllers() {
-    _bgCtrl    = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _bookCtrl  = AnimationController(vsync: this, duration: const Duration(milliseconds: 4600));
-    _lightCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2800));
-    _textCtrl  = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800));
-    _loopCtrl  = AnimationController(vsync: this, duration: const Duration(seconds: 7))..repeat();
-    _exitCtrl  = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+    _bgCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _bookCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4600),
+    );
+    _lightCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    );
+    _textCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _loopCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 7),
+    )..repeat();
+    _exitCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
   }
 
   void _initAnimations() {
@@ -124,54 +150,89 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Book sequence — all driven by a single _bookCtrl
     _rehalAppear = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _bookCtrl,
-            curve: const Interval(0.00, 0.30, curve: Curves.easeOut)));
+      CurvedAnimation(
+        parent: _bookCtrl,
+        curve: const Interval(0.00, 0.30, curve: Curves.easeOut),
+      ),
+    );
 
     _bookDrop = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _bookCtrl,
-            curve: const Interval(0.20, 0.46, curve: Curves.bounceOut)));
+      CurvedAnimation(
+        parent: _bookCtrl,
+        curve: const Interval(0.20, 0.46, curve: Curves.bounceOut),
+      ),
+    );
 
     _bookOpen = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _bookCtrl,
-            curve: const Interval(0.46, 1.00, curve: Curves.easeInOutCubic)));
+      CurvedAnimation(
+        parent: _bookCtrl,
+        curve: const Interval(0.46, 1.00, curve: Curves.easeInOutCubic),
+      ),
+    );
 
     _bookGlow = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _bookCtrl,
-            curve: const Interval(0.66, 1.00, curve: Curves.easeOut)));
+      CurvedAnimation(
+        parent: _bookCtrl,
+        curve: const Interval(0.66, 1.00, curve: Curves.easeOut),
+      ),
+    );
 
     _sparkRing = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _bookCtrl,
-            curve: const Interval(0.72, 1.00, curve: Curves.easeOut)));
+      CurvedAnimation(
+        parent: _bookCtrl,
+        curve: const Interval(0.72, 1.00, curve: Curves.easeOut),
+      ),
+    );
 
     // Light rays
     _lightOpacity = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _lightCtrl,
-            curve: const Interval(0.30, 0.95, curve: Curves.easeOut)));
+      CurvedAnimation(
+        parent: _lightCtrl,
+        curve: const Interval(0.30, 0.95, curve: Curves.easeOut),
+      ),
+    );
 
     // Text — title
     _textSlide = Tween<double>(begin: 20, end: 0).animate(
-        CurvedAnimation(parent: _textCtrl,
-            curve: const Interval(0.00, 0.65, curve: Curves.easeOutCubic)));
+      CurvedAnimation(
+        parent: _textCtrl,
+        curve: const Interval(0.00, 0.65, curve: Curves.easeOutCubic),
+      ),
+    );
     _textFade = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _textCtrl,
-            curve: const Interval(0.00, 0.65, curve: Curves.easeIn)));
+      CurvedAnimation(
+        parent: _textCtrl,
+        curve: const Interval(0.00, 0.65, curve: Curves.easeIn),
+      ),
+    );
 
     // Text — tagline
     _tagSlide = Tween<double>(begin: 12, end: 0).animate(
-        CurvedAnimation(parent: _textCtrl,
-            curve: const Interval(0.35, 1.00, curve: Curves.easeOutCubic)));
+      CurvedAnimation(
+        parent: _textCtrl,
+        curve: const Interval(0.35, 1.00, curve: Curves.easeOutCubic),
+      ),
+    );
     _tagFade = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _textCtrl,
-            curve: const Interval(0.35, 1.00, curve: Curves.easeIn)));
+      CurvedAnimation(
+        parent: _textCtrl,
+        curve: const Interval(0.35, 1.00, curve: Curves.easeIn),
+      ),
+    );
 
     // Text — verse strip
     _verseFade = Tween<double>(begin: 0, end: 1).animate(
-        CurvedAnimation(parent: _textCtrl,
-            curve: const Interval(0.55, 1.00, curve: Curves.easeIn)));
+      CurvedAnimation(
+        parent: _textCtrl,
+        curve: const Interval(0.55, 1.00, curve: Curves.easeIn),
+      ),
+    );
 
     // Exit
-    _exitFade = Tween<double>(begin: 1, end: 0).animate(
-        CurvedAnimation(parent: _exitCtrl, curve: Curves.easeIn));
+    _exitFade = Tween<double>(
+      begin: 1,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _exitCtrl, curve: Curves.easeIn));
   }
 
   Future<void> _runSequence() async {
@@ -184,13 +245,13 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 3100));
     _textCtrl.forward();
     await Future.delayed(const Duration(milliseconds: 2600));
-    
+
     // Fade out splash and navigate WITHOUT waiting for any network calls!
     await _exitCtrl.forward();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const MainShell(),
+        pageBuilder: (_, _, _) => const MainShell(),
         transitionDuration: Duration.zero,
       ),
     );
@@ -215,10 +276,20 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: SplashColors.background,
       body: AnimatedBuilder(
         animation: Listenable.merge([
-          _bgExpand, _rehalAppear, _bookDrop, _bookOpen,
-          _bookGlow, _lightOpacity, _sparkRing,
-          _textFade, _textSlide, _tagFade, _tagSlide,
-          _verseFade, _loopCtrl, _exitFade,
+          _bgExpand,
+          _rehalAppear,
+          _bookDrop,
+          _bookOpen,
+          _bookGlow,
+          _lightOpacity,
+          _sparkRing,
+          _textFade,
+          _textSlide,
+          _tagFade,
+          _tagSlide,
+          _verseFade,
+          _loopCtrl,
+          _exitFade,
         ]),
         builder: (_, _) {
           return Opacity(
@@ -229,15 +300,13 @@ class _SplashScreenState extends State<SplashScreen>
                 // 1 — Radial background
                 CustomPaint(
                   size: size,
-                  painter: _BgPainter(
-                    expand: _bgExpand.value,
-                  ),
+                  painter: _BgPainter(expand: _bgExpand.value),
                 ),
                 // 2 — Divine rays
                 CustomPaint(
                   size: size,
                   painter: _RaysPainter(
-                    loop:    _loopCtrl.value,
+                    loop: _loopCtrl.value,
                     opacity: _lightOpacity.value,
                   ),
                 ),
@@ -246,28 +315,22 @@ class _SplashScreenState extends State<SplashScreen>
                 // 4 — Twinkling stars
                 CustomPaint(
                   size: size,
-                  painter: _StarsPainter(
-                    stars: _stars,
-                    loop:  _loopCtrl.value,
-                  ),
+                  painter: _StarsPainter(stars: _stars, loop: _loopCtrl.value),
                 ),
                 // 5 — Spark ring around open book
                 CustomPaint(
                   size: size,
-                  painter: _OrbsPainter(
-                    orbs:   _orbs,
-                    loop:   _loopCtrl.value,
-                  ),
+                  painter: _OrbsPainter(orbs: _orbs, loop: _loopCtrl.value),
                 ),
                 // 6 — Dust motes (only when light is on)
                 if (_lightOpacity.value > 0)
                   CustomPaint(
                     size: size,
                     painter: _DustPainter(
-                      dusts:   _dusts,
-                      loop:    _loopCtrl.value,
+                      dusts: _dusts,
+                      loop: _loopCtrl.value,
                       opacity: _lightOpacity.value,
-                      size:    size,
+                      size: size,
                     ),
                   ),
                 // 7 — Quran
@@ -296,23 +359,24 @@ class _SplashScreenState extends State<SplashScreen>
       if (opacity <= 0) return const SizedBox.shrink();
       return Positioned(
         left: o.x * size.width + dx,
-        top:  o.y * size.height + dy,
+        top: o.y * size.height + dy,
         child: Opacity(
           opacity: opacity,
           child: Container(
-            width:  o.radius * 2,
+            width: o.radius * 2,
             height: o.radius * 2,
             decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: o.gold ? SplashColors.gold : Colors.white70,
-                boxShadow: [
-                  BoxShadow(
-                    color: (o.gold ? SplashColors.gold : Colors.white)
-                        .withValues(alpha: 0.5),
-                    blurRadius: o.radius * 5,
+              shape: BoxShape.circle,
+              color: o.gold ? SplashColors.gold : Colors.white70,
+              boxShadow: [
+                BoxShadow(
+                  color: (o.gold ? SplashColors.gold : Colors.white).withValues(
+                    alpha: 0.5,
                   ),
-                ],
-              ),
+                  blurRadius: o.radius * 5,
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -327,18 +391,18 @@ class _SplashScreenState extends State<SplashScreen>
     final cy = size.height * 0.44;
     return Positioned(
       left: cx - painterW / 2,
-      top:  cy - painterH / 2,
+      top: cy - painterH / 2,
       child: SizedBox(
-        width:  painterW,
+        width: painterW,
         height: painterH,
         child: CustomPaint(
           painter: _BookPainter(
-            rehalAppear:  _rehalAppear.value,
-            bookDrop:     _bookDrop.value,
+            rehalAppear: _rehalAppear.value,
+            bookDrop: _bookDrop.value,
             openProgress: _bookOpen.value,
             glowProgress: _bookGlow.value,
-            lightAnim:    _lightOpacity.value,
-            loopAnim:     _loopCtrl.value,
+            lightAnim: _lightOpacity.value,
+            loopAnim: _loopCtrl.value,
           ),
         ),
       ),
@@ -363,12 +427,14 @@ class _SplashScreenState extends State<SplashScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 34, height: 1.2,
+                    width: 34,
+                    height: 1.2,
                     color: SplashColors.gold.withValues(alpha: 0.45),
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    width: 6, height: 6,
+                    width: 6,
+                    height: 6,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       color: SplashColors.gold,
@@ -376,7 +442,8 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    width: 34, height: 1.2,
+                    width: 34,
+                    height: 1.2,
                     color: SplashColors.gold.withValues(alpha: 0.45),
                   ),
                 ],
@@ -397,12 +464,7 @@ class _SplashScreenState extends State<SplashScreen>
                   fontWeight: FontWeight.w800,
                   color: SplashColors.gold,
                   letterSpacing: 6,
-                  shadows: [
-                    Shadow(
-                      color: Color(0x88C9A84C),
-                      blurRadius: 18,
-                    ),
-                  ],
+                  shadows: [Shadow(color: Color(0x88C9A84C), blurRadius: 18)],
                 ),
               ),
             ),
@@ -453,17 +515,15 @@ class _SplashScreenState extends State<SplashScreen>
                   fontSize: 22,
                   color: SplashColors.gold,
                   height: 1.5,
-                  shadows: [
-                    Shadow(
-                      color: Colors.white60,
-                      blurRadius: 20,
-                    ),
-                  ],
+                  shadows: [Shadow(color: Colors.white60, blurRadius: 20)],
                 ),
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(20),
@@ -509,7 +569,7 @@ class _BgPainter extends CustomPainter {
 
     final cx = size.width / 2;
     final cy = size.height * 0.44;
-    final r  = size.width * 0.9 * expand;
+    final r = size.width * 0.9 * expand;
 
     final grad = RadialGradient(
       colors: [
@@ -520,10 +580,12 @@ class _BgPainter extends CustomPainter {
       stops: const [0.0, 0.58, 1.0],
     );
     canvas.drawCircle(
-      Offset(cx, cy), r,
+      Offset(cx, cy),
+      r,
       Paint()
         ..shader = grad.createShader(
-            Rect.fromCenter(center: Offset(cx, cy), width: r * 2, height: r * 2)),
+          Rect.fromCenter(center: Offset(cx, cy), width: r * 2, height: r * 2),
+        ),
     );
 
     // Subtle radial spokes
@@ -535,8 +597,10 @@ class _BgPainter extends CustomPainter {
       final a = i * math.pi / 9;
       canvas.drawLine(
         Offset(cx, cy),
-        Offset(cx + math.cos(a) * size.width * 2,
-               cy + math.sin(a) * size.height * 2),
+        Offset(
+          cx + math.cos(a) * size.width * 2,
+          cy + math.sin(a) * size.height * 2,
+        ),
         lp,
       );
     }
@@ -561,12 +625,12 @@ class _RaysPainter extends CustomPainter {
 
     for (int i = 0; i < 11; i++) {
       final base = math.pi / 2 + (i - 5.0) * 0.135;
-      final ang  = base + math.sin(loop * math.pi * 2 + i * 2.0) * 0.011;
-      final bw   = 20.0 + math.sin(loop * math.pi * 4 + i) * 6;
+      final ang = base + math.sin(loop * math.pi * 2 + i * 2.0) * 0.011;
+      final bw = 20.0 + math.sin(loop * math.pi * 4 + i) * 6;
 
       final g = LinearGradient(
         begin: Alignment.topCenter,
-        end:   Alignment.bottomCenter,
+        end: Alignment.bottomCenter,
         colors: [
           Colors.white.withValues(alpha: 0.16 * opacity),
           SplashColors.gold.withValues(alpha: 0.07 * opacity),
@@ -575,24 +639,31 @@ class _RaysPainter extends CustomPainter {
       );
       final path = Path()
         ..moveTo(cx, oy)
-        ..lineTo(cx + math.cos(ang - 0.042) * 650,
-                 cy + math.sin(ang - 0.042) * 650 + 85)
-        ..lineTo(cx + math.cos(ang + 0.042) * 650 + bw,
-                 cy + math.sin(ang + 0.042) * 650 + 85)
+        ..lineTo(
+          cx + math.cos(ang - 0.042) * 650,
+          cy + math.sin(ang - 0.042) * 650 + 85,
+        )
+        ..lineTo(
+          cx + math.cos(ang + 0.042) * 650 + bw,
+          cy + math.sin(ang + 0.042) * 650 + 85,
+        )
         ..close();
       canvas.drawPath(
         path,
         Paint()
-          ..shader = g.createShader(Rect.fromPoints(
+          ..shader = g.createShader(
+            Rect.fromPoints(
               Offset(cx, oy),
-              Offset(cx + math.cos(ang) * 650, cy + math.sin(ang) * 650))),
+              Offset(cx + math.cos(ang) * 650, cy + math.sin(ang) * 650),
+            ),
+          ),
       );
     }
 
     // Central bright cone
     final beam = LinearGradient(
       begin: Alignment.topCenter,
-      end:   Alignment.bottomCenter,
+      end: Alignment.bottomCenter,
       colors: [
         Colors.white.withValues(alpha: 0.20 * opacity),
         const Color(0xFFFFF8B4).withValues(alpha: 0.07 * opacity),
@@ -608,8 +679,7 @@ class _RaysPainter extends CustomPainter {
     canvas.drawPath(
       cone,
       Paint()
-        ..shader = beam.createShader(
-            Rect.fromLTWH(cx - 52, oy, 104, cy - oy)),
+        ..shader = beam.createShader(Rect.fromLTWH(cx - 52, oy, 104, cy - oy)),
     );
   }
 
@@ -654,9 +724,12 @@ class _DustPainter extends CustomPainter {
   final double loop;
   final double opacity;
   final Size size;
-  const _DustPainter(
-      {required this.dusts, required this.loop,
-       required this.opacity, required this.size});
+  const _DustPainter({
+    required this.dusts,
+    required this.loop,
+    required this.opacity,
+    required this.size,
+  });
 
   @override
   void paint(Canvas canvas, Size _) {
@@ -694,17 +767,19 @@ class _OrbsPainter extends CustomPainter {
       final rawOp = math.sin(phase * math.pi).clamp(0.0, 1.0);
       final opacity = rawOp * 0.32;
       if (opacity <= 0) continue;
-      
+
       final rect = Rect.fromLTWH(
         o.x * size.width + dx,
         o.y * size.height + dy,
         o.radius * 2,
         o.radius * 2,
       );
-      
+
       final p = Paint()
-        ..color = (o.gold ? SplashColors.gold : Colors.white70).withValues(alpha: opacity);
-        
+        ..color = (o.gold ? SplashColors.gold : Colors.white70).withValues(
+          alpha: opacity,
+        );
+
       canvas.drawCircle(rect.center, o.radius, p);
     }
   }
@@ -733,16 +808,16 @@ class _BookPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final cx = size.width  / 2;   // 180 when size.width = 360
-    
+    final cx = size.width / 2; // 180 when size.width = 360
+
     // Layout constants (local, relative to this 360×340 painter canvas)
-    const bookH   = 95.0;
+    const bookH = 95.0;
     const bookBot = 197.0; // Fixed position since shelf is removed
     const bookTop = bookBot - bookH;
     final ow = 86.0 * openProgress;
 
     // Removed Rehal stand and shadow as per user request
-    
+
     // ── Quran book ────────────────────────────────────────────────────────
     if (bookDrop <= 0) return;
 
@@ -766,47 +841,91 @@ class _BookPainter extends CustomPainter {
     }
 
     _drawPages(canvas, cx, bookTop, bookBot, bookH, ow);
-    _drawCovers(canvas, cx, bookTop, bookBot, bookH, ow, glowProgress, openProgress);
+    _drawCovers(
+      canvas,
+      cx,
+      bookTop,
+      bookBot,
+      bookH,
+      ow,
+      glowProgress,
+      openProgress,
+    );
     _drawSpine(canvas, cx, bookTop, bookBot, openProgress);
-    if (openProgress > 0.30) _drawPageDecor(canvas, cx, bookTop, bookH, ow, openProgress, glowProgress);
-    if (openProgress > 0.66) _drawBookmark(canvas, cx, bookTop, bookH, ow, openProgress);
+    if (openProgress > 0.30) {
+      _drawPageDecor(
+        canvas,
+        cx,
+        bookTop,
+        bookH,
+        ow,
+        openProgress,
+        glowProgress,
+      );
+    }
+    if (openProgress > 0.66) {
+      _drawBookmark(canvas, cx, bookTop, bookH, ow, openProgress);
+    }
 
     canvas.restore();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  void _drawBookGlow(Canvas c, double cx, double bookTop,
-      double bookH, double glow) {
+  void _drawBookGlow(
+    Canvas c,
+    double cx,
+    double bookTop,
+    double bookH,
+    double glow,
+  ) {
     if (glow <= 0) return;
-    final gg = RadialGradient(colors: [
-      SplashColors.gold.withValues(alpha: 0.48 * glow),
-      SplashColors.gold.withValues(alpha: 0.16 * glow),
-      Colors.transparent,
-    ], stops: const [0.0, 0.45, 1.0]).createShader(Rect.fromCenter(
-        center: Offset(cx, bookTop + bookH * 0.5), width: 260, height: 260));
-    c.drawCircle(
-        Offset(cx, bookTop + bookH * 0.5), 130, Paint()..shader = gg);
+    final gg =
+        RadialGradient(
+          colors: [
+            SplashColors.gold.withValues(alpha: 0.48 * glow),
+            SplashColors.gold.withValues(alpha: 0.16 * glow),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ).createShader(
+          Rect.fromCenter(
+            center: Offset(cx, bookTop + bookH * 0.5),
+            width: 260,
+            height: 260,
+          ),
+        );
+    c.drawCircle(Offset(cx, bookTop + bookH * 0.5), 130, Paint()..shader = gg);
   }
 
-  void _drawLightBeam(Canvas c, double cx, double bookTop,
-      double bookH, double la) {
+  void _drawLightBeam(
+    Canvas c,
+    double cx,
+    double bookTop,
+    double bookH,
+    double la,
+  ) {
     if (la <= 0) return;
-    
+
     // Add a pulsing effect using loopAnim
     final pulse = 0.9 + 0.1 * math.sin(loopAnim * math.pi * 2);
     final opPulse = la * (0.8 + 0.2 * math.sin(loopAnim * math.pi * 4));
 
     // Cone
-    final bg = LinearGradient(colors: [
-      const Color(0xFFFFFCC8).withValues(alpha: 0.15 * opPulse),
-      const Color(0xFFFFF8B4).withValues(alpha: 0.25 * opPulse),
-      const Color(0xFFFFF5A0).withValues(alpha: 0.08 * opPulse),
-    ], stops: const [0, 0.7, 1],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter)
-        .createShader(Rect.fromLTWH(0, bookTop - 180 * pulse, 1, bookH + 190 * pulse));
-    
+    final bg =
+        LinearGradient(
+          colors: [
+            const Color(0xFFFFFCC8).withValues(alpha: 0.15 * opPulse),
+            const Color(0xFFFFF8B4).withValues(alpha: 0.25 * opPulse),
+            const Color(0xFFFFF5A0).withValues(alpha: 0.08 * opPulse),
+          ],
+          stops: const [0, 0.7, 1],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(
+          Rect.fromLTWH(0, bookTop - 180 * pulse, 1, bookH + 190 * pulse),
+        );
+
     final cone = Path()
       ..moveTo(cx - 80 * pulse, bookTop - 180 * pulse)
       ..lineTo(cx + 80 * pulse, bookTop - 180 * pulse)
@@ -816,34 +935,61 @@ class _BookPainter extends CustomPainter {
     c.drawPath(cone, Paint()..shader = bg);
 
     // Hotspot on pages
-    final hs = RadialGradient(colors: [
-      const Color(0xFFFFFCDC).withValues(alpha: 0.65 * la),
-      const Color(0xFFFFF0A0).withValues(alpha: 0.22 * la),
-      Colors.transparent,
-    ]).createShader(Rect.fromCenter(
-        center: Offset(cx, bookTop + bookH * 0.28), width: 120, height: 120));
-    c.drawCircle(Offset(cx, bookTop + bookH * 0.28), 60 * pulse, Paint()..shader = hs);
+    final hs =
+        RadialGradient(
+          colors: [
+            const Color(0xFFFFFCDC).withValues(alpha: 0.65 * la),
+            const Color(0xFFFFF0A0).withValues(alpha: 0.22 * la),
+            Colors.transparent,
+          ],
+        ).createShader(
+          Rect.fromCenter(
+            center: Offset(cx, bookTop + bookH * 0.28),
+            width: 120,
+            height: 120,
+          ),
+        );
+    c.drawCircle(
+      Offset(cx, bookTop + bookH * 0.28),
+      60 * pulse,
+      Paint()..shader = hs,
+    );
   }
 
   void _drawClosedBook(Canvas c, double cx, double bookTop, double bookH) {
     final rr = RRect.fromRectAndRadius(
-        Rect.fromLTWH(cx - 9, bookTop - 2, 18, bookH * 1.04),
-        const Radius.circular(3));
+      Rect.fromLTWH(cx - 9, bookTop - 2, 18, bookH * 1.04),
+      const Radius.circular(3),
+    );
     c.drawRRect(rr, Paint()..color = const Color(0xFF091812));
-    c.drawRRect(rr, Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4
-      ..color = SplashColors.gold);
-    c.drawCircle(Offset(cx, bookTop + bookH * 0.5), 7,
-        Paint()..color = SplashColors.gold.withValues(alpha: 0.72));
+    c.drawRRect(
+      rr,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4
+        ..color = SplashColors.gold,
+    );
+    c.drawCircle(
+      Offset(cx, bookTop + bookH * 0.5),
+      7,
+      Paint()..color = SplashColors.gold.withValues(alpha: 0.72),
+    );
   }
 
-  void _drawPages(Canvas c, double cx, double bookTop,
-      double bookBot, double bookH, double ow) {
+  void _drawPages(
+    Canvas c,
+    double cx,
+    double bookTop,
+    double bookBot,
+    double bookH,
+    double ow,
+  ) {
     final pg = LinearGradient(
       colors: const [
-        Color(0xFFEDE0B0), Color(0xFFF8F0D8),
-        Color(0xFFF8F0D8), Color(0xFFF5EAC0),
+        Color(0xFFEDE0B0),
+        Color(0xFFF8F0D8),
+        Color(0xFFF8F0D8),
+        Color(0xFFF5EAC0),
       ],
       stops: const [0.0, 0.44, 0.56, 1.0],
       begin: Alignment.centerLeft,
@@ -854,22 +1000,46 @@ class _BookPainter extends CustomPainter {
     // Left page
     final lp = Path()
       ..moveTo(cx, bookBot)
-      ..cubicTo(cx - ow * 0.28, bookBot - 5, cx - ow * 0.72, bookTop + 11,
-          cx - ow, bookTop + 4)
+      ..cubicTo(
+        cx - ow * 0.28,
+        bookBot - 5,
+        cx - ow * 0.72,
+        bookTop + 11,
+        cx - ow,
+        bookTop + 4,
+      )
       ..lineTo(cx - ow - 3, bookTop - 4)
-      ..cubicTo(cx - ow * 0.72, bookTop + 1, cx - ow * 0.28, bookTop - 13,
-          cx, bookBot - 7)
+      ..cubicTo(
+        cx - ow * 0.72,
+        bookTop + 1,
+        cx - ow * 0.28,
+        bookTop - 13,
+        cx,
+        bookBot - 7,
+      )
       ..close();
     c.drawPath(lp, pagePaint);
 
     // Right page
     final rp = Path()
       ..moveTo(cx, bookBot)
-      ..cubicTo(cx + ow * 0.28, bookBot - 5, cx + ow * 0.72, bookTop + 11,
-          cx + ow, bookTop + 4)
+      ..cubicTo(
+        cx + ow * 0.28,
+        bookBot - 5,
+        cx + ow * 0.72,
+        bookTop + 11,
+        cx + ow,
+        bookTop + 4,
+      )
       ..lineTo(cx + ow + 3, bookTop - 4)
-      ..cubicTo(cx + ow * 0.72, bookTop + 1, cx + ow * 0.28, bookTop - 13,
-          cx, bookBot - 7)
+      ..cubicTo(
+        cx + ow * 0.72,
+        bookTop + 1,
+        cx + ow * 0.28,
+        bookTop - 13,
+        cx,
+        bookBot - 7,
+      )
       ..close();
     c.drawPath(rp, pagePaint);
 
@@ -883,22 +1053,42 @@ class _BookPainter extends CustomPainter {
       c.drawPath(
         Path()
           ..moveTo(cx, bookBot + o2)
-          ..cubicTo(cx - ow * 0.28, bookBot - 5 + o2, cx - ow * 0.72,
-              bookTop + 11 + o2, cx - ow, bookTop + 4 + o2),
+          ..cubicTo(
+            cx - ow * 0.28,
+            bookBot - 5 + o2,
+            cx - ow * 0.72,
+            bookTop + 11 + o2,
+            cx - ow,
+            bookTop + 4 + o2,
+          ),
         ep,
       );
       c.drawPath(
         Path()
           ..moveTo(cx, bookBot + o2)
-          ..cubicTo(cx + ow * 0.28, bookBot - 5 + o2, cx + ow * 0.72,
-              bookTop + 11 + o2, cx + ow, bookTop + 4 + o2),
+          ..cubicTo(
+            cx + ow * 0.28,
+            bookBot - 5 + o2,
+            cx + ow * 0.72,
+            bookTop + 11 + o2,
+            cx + ow,
+            bookTop + 4 + o2,
+          ),
         ep,
       );
     }
   }
 
-  void _drawCovers(Canvas c, double cx, double bookTop, double bookBot,
-      double bookH, double ow, double glow, double open) {
+  void _drawCovers(
+    Canvas c,
+    double cx,
+    double bookTop,
+    double bookBot,
+    double bookH,
+    double ow,
+    double glow,
+    double open,
+  ) {
     final cw = ow * 1.1;
     for (final s in [-1.0, 1.0]) {
       final coverGrad = LinearGradient(
@@ -909,25 +1099,46 @@ class _BookPainter extends CustomPainter {
 
       final cover = Path()
         ..moveTo(cx, bookBot + 3)
-        ..cubicTo(cx + s * cw * 0.28, bookBot - 4, cx + s * cw * 0.72,
-            bookTop + 10, cx + s * cw, bookTop + 2)
+        ..cubicTo(
+          cx + s * cw * 0.28,
+          bookBot - 4,
+          cx + s * cw * 0.72,
+          bookTop + 10,
+          cx + s * cw,
+          bookTop + 2,
+        )
         ..lineTo(cx + s * cw + s * 3, bookTop - 7)
-        ..cubicTo(cx + s * cw * 0.72, bookTop - 1, cx + s * cw * 0.28,
-            bookTop - 14, cx, bookBot - 7)
+        ..cubicTo(
+          cx + s * cw * 0.72,
+          bookTop - 1,
+          cx + s * cw * 0.28,
+          bookTop - 14,
+          cx,
+          bookBot - 7,
+        )
         ..close();
 
       c.drawPath(cover, Paint()..shader = coverGrad);
-      c.drawPath(cover, Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8
-        ..color = SplashColors.gold.withValues(alpha: glow * 0.88));
+      c.drawPath(
+        cover,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8
+          ..color = SplashColors.gold.withValues(alpha: glow * 0.88),
+      );
 
       // Bevel highlight on top edge
       c.drawPath(
         Path()
           ..moveTo(cx, bookBot - 7)
-          ..cubicTo(cx + s * cw * 0.28, bookTop - 14, cx + s * cw * 0.72,
-              bookTop - 1, cx + s * cw + s * 3, bookTop - 7),
+          ..cubicTo(
+            cx + s * cw * 0.28,
+            bookTop - 14,
+            cx + s * cw * 0.72,
+            bookTop - 1,
+            cx + s * cw + s * 3,
+            bookTop - 7,
+          ),
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.8
@@ -936,7 +1147,13 @@ class _BookPainter extends CustomPainter {
     }
   }
 
-  void _drawSpine(Canvas c, double cx, double bookTop, double bookBot, double open) {
+  void _drawSpine(
+    Canvas c,
+    double cx,
+    double bookTop,
+    double bookBot,
+    double open,
+  ) {
     c.drawLine(
       Offset(cx, bookBot - 7),
       Offset(cx, bookTop - 3),
@@ -946,8 +1163,15 @@ class _BookPainter extends CustomPainter {
     );
   }
 
-  void _drawPageDecor(Canvas c, double cx, double bookTop,
-      double bookH, double ow, double open, double glow) {
+  void _drawPageDecor(
+    Canvas c,
+    double cx,
+    double bookTop,
+    double bookH,
+    double ow,
+    double open,
+    double glow,
+  ) {
     final df = ((open - 0.30) / 0.70).clamp(0.0, 1.0) * glow;
 
     final frame = Paint()
@@ -959,11 +1183,23 @@ class _BookPainter extends CustomPainter {
       c.drawPath(
         Path()
           ..moveTo(cx + s * ow * 0.10, bookTop + bookH - 10)
-          ..cubicTo(cx + s * ow * 0.34, bookTop + bookH - 18,
-              cx + s * ow * 0.78, bookTop + 16, cx + s * ow * 0.88, bookTop + 5)
+          ..cubicTo(
+            cx + s * ow * 0.34,
+            bookTop + bookH - 18,
+            cx + s * ow * 0.78,
+            bookTop + 16,
+            cx + s * ow * 0.88,
+            bookTop + 5,
+          )
           ..lineTo(cx + s * ow * 0.88, bookTop + 1)
-          ..cubicTo(cx + s * ow * 0.78, bookTop + 8, cx + s * ow * 0.34,
-              bookTop - 11, cx + s * ow * 0.10, bookTop - 3)
+          ..cubicTo(
+            cx + s * ow * 0.78,
+            bookTop + 8,
+            cx + s * ow * 0.34,
+            bookTop - 11,
+            cx + s * ow * 0.10,
+            bookTop - 3,
+          )
           ..close(),
         frame,
       );
@@ -997,8 +1233,14 @@ class _BookPainter extends CustomPainter {
     }
   }
 
-  void _drawBookmark(Canvas c, double cx, double bookTop,
-      double bookH, double ow, double open) {
+  void _drawBookmark(
+    Canvas c,
+    double cx,
+    double bookTop,
+    double bookH,
+    double ow,
+    double open,
+  ) {
     final tf = ((open - 0.66) / 0.34).clamp(0.0, 1.0);
     final tasselEnd = bookTop + bookH * 0.62 * tf;
     final tassel = Path()
@@ -1007,8 +1249,10 @@ class _BookPainter extends CustomPainter {
       ..lineTo(cx + ow * 0.19, tasselEnd)
       ..lineTo(cx + ow * 0.26, bookTop + 2)
       ..close();
-    c.drawPath(tassel,
-        Paint()..color = SplashColors.gold.withValues(alpha: tf * 0.85));
+    c.drawPath(
+      tassel,
+      Paint()..color = SplashColors.gold.withValues(alpha: tf * 0.85),
+    );
     c.drawCircle(
       Offset(cx + ow * 0.16, tasselEnd),
       2.4,
@@ -1018,12 +1262,12 @@ class _BookPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_BookPainter o) =>
-      o.rehalAppear  != rehalAppear  ||
-      o.bookDrop     != bookDrop     ||
+      o.rehalAppear != rehalAppear ||
+      o.bookDrop != bookDrop ||
       o.openProgress != openProgress ||
       o.glowProgress != glowProgress ||
-      o.lightAnim    != lightAnim    ||
-      o.loopAnim     != loopAnim;
+      o.lightAnim != lightAnim ||
+      o.loopAnim != loopAnim;
 }
 
 // =============================================================================
@@ -1034,23 +1278,33 @@ class _FloatOrb {
   final double x, y, radius, speed, phase;
   final bool gold;
   const _FloatOrb({
-    required this.x, required this.y, required this.radius,
-    required this.speed, required this.phase, required this.gold,
+    required this.x,
+    required this.y,
+    required this.radius,
+    required this.speed,
+    required this.phase,
+    required this.gold,
   });
 }
 
 class _TwinkleStar {
   final double x, y, size, speed, phase;
   const _TwinkleStar({
-    required this.x, required this.y, required this.size,
-    required this.speed, required this.phase,
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.speed,
+    required this.phase,
   });
 }
 
 class _DustMote {
   final double x, y, speed, phase, radius;
   const _DustMote({
-    required this.x, required this.y, required this.speed,
-    required this.phase, required this.radius,
+    required this.x,
+    required this.y,
+    required this.speed,
+    required this.phase,
+    required this.radius,
   });
 }

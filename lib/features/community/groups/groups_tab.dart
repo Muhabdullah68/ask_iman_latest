@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/community_service.dart';
-import 'group_detail_screen.dart';
 
 class GroupsTab extends StatefulWidget {
   final AppUser currentUser;
@@ -91,7 +90,11 @@ class _GroupsTabState extends State<GroupsTab> {
         padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
         child: Column(
           children: [
-            Icon(Icons.group_outlined, size: 64, color: AppColors.textLightGrey.withValues(alpha: 0.5)),
+            Icon(
+              Icons.group_outlined,
+              size: 64,
+              color: AppColors.textLightGrey.withValues(alpha: 0.5),
+            ),
             const SizedBox(height: 16),
             const Text(
               'No groups joined yet',
@@ -126,63 +129,53 @@ class _GroupsTabState extends State<GroupsTab> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       itemBuilder: (context, index) {
         final group = groups[index];
-        return GestureDetector(
-          onTap: () {
-            Navigator.push(context, MaterialPageRoute(
-              builder: (context) => GroupDetailScreen(
-                group: group,
-                currentUser: widget.currentUser,
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.bgWhite,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.borderLight),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDark,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.groups, color: AppColors.gold),
               ),
-            ));
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.bgWhite,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.borderLight),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryDark,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.groups, color: AppColors.gold),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        group.name,
-                        style: const TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textDark,
-                        ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      group.name,
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${group.members.length} members',
-                        style: const TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 12,
-                          color: AppColors.textGrey,
-                        ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${group.members.length} members',
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 12,
+                        color: AppColors.textGrey,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.textLightGrey),
-              ],
-            ),
+              ),
+              const Icon(Icons.chevron_right, color: AppColors.textLightGrey),
+            ],
           ),
         );
       },
@@ -201,8 +194,13 @@ class _GroupsTabState extends State<GroupsTab> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx2, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Create New Group', style: TextStyle(fontFamily: 'Cairo')),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Create New Group',
+            style: TextStyle(fontFamily: 'Cairo'),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -215,25 +213,42 @@ class _GroupsTabState extends State<GroupsTab> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text('Custom Notifications',
-                    style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700)),
+                const Text(
+                  'Custom Notifications',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 CheckboxListTile(
-                  title: const Text('Namaz Reminders', style: TextStyle(fontFamily: 'Cairo', fontSize: 14)),
+                  title: const Text(
+                    'Namaz Reminders',
+                    style: TextStyle(fontFamily: 'Cairo', fontSize: 14),
+                  ),
                   value: notifConfig['namaz'],
                   activeColor: AppColors.primaryDark,
-                  onChanged: (v) => setDialogState(() => notifConfig['namaz'] = v!),
+                  onChanged: (v) =>
+                      setDialogState(() => notifConfig['namaz'] = v!),
                 ),
                 CheckboxListTile(
-                  title: const Text('Tasbeeh Reminders', style: TextStyle(fontFamily: 'Cairo', fontSize: 14)),
+                  title: const Text(
+                    'Tasbeeh Reminders',
+                    style: TextStyle(fontFamily: 'Cairo', fontSize: 14),
+                  ),
                   value: notifConfig['tasbeeh'],
                   activeColor: AppColors.primaryDark,
-                  onChanged: (v) => setDialogState(() => notifConfig['tasbeeh'] = v!),
+                  onChanged: (v) =>
+                      setDialogState(() => notifConfig['tasbeeh'] = v!),
                 ),
                 CheckboxListTile(
-                  title: const Text('Quran Study Alerts', style: TextStyle(fontFamily: 'Cairo', fontSize: 14)),
+                  title: const Text(
+                    'Quran Study Alerts',
+                    style: TextStyle(fontFamily: 'Cairo', fontSize: 14),
+                  ),
                   value: notifConfig['quran'],
                   activeColor: AppColors.primaryDark,
-                  onChanged: (v) => setDialogState(() => notifConfig['quran'] = v!),
+                  onChanged: (v) =>
+                      setDialogState(() => notifConfig['quran'] = v!),
                 ),
               ],
             ),
@@ -241,7 +256,13 @@ class _GroupsTabState extends State<GroupsTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx2),
-              child: const Text('Cancel', style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  color: AppColors.textGrey,
+                ),
+              ),
             ),
             TextButton(
               onPressed: () async {
@@ -258,7 +279,14 @@ class _GroupsTabState extends State<GroupsTab> {
                   }
                 }
               },
-              child: const Text('Create', style: TextStyle(fontFamily: 'Cairo', color: AppColors.gold, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Create',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  color: AppColors.gold,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),

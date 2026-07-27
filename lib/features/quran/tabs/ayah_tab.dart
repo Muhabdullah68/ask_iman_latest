@@ -13,8 +13,14 @@ class AyahTab extends StatefulWidget {
   final String searchQuery;
   final bool useUrduFont;
   final String? arabicFont;
-  const AyahTab({super.key, this.searchQuery = '', this.useUrduFont = false, this.arabicFont});
-  @override State<AyahTab> createState() => _AyahTabState();
+  const AyahTab({
+    super.key,
+    this.searchQuery = '',
+    this.useUrduFont = false,
+    this.arabicFont,
+  });
+  @override
+  State<AyahTab> createState() => _AyahTabState();
 }
 
 class _AyahTabState extends State<AyahTab> with SingleTickerProviderStateMixin {
@@ -24,7 +30,10 @@ class _AyahTabState extends State<AyahTab> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _topicController = TabController(length: CuratedData.topics.length, vsync: this);
+    _topicController = TabController(
+      length: CuratedData.topics.length,
+      vsync: this,
+    );
     _isUrdu = widget.useUrduFont;
   }
 
@@ -36,23 +45,30 @@ class _AyahTabState extends State<AyahTab> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildLanguageToggle(),
-        _buildTopicBar(),
-        Expanded(
-          child: TabBarView(
-            controller: _topicController,
-            children: CuratedData.topics.map((topic) => _TopicContent(
-              topic: topic,
-              useUrduFont: _isUrdu,
-              arabicFont: widget.arabicFont,
-              showTafseer: false,
-              searchQuery: widget.searchQuery,
-            )).toList(),
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          _buildLanguageToggle(),
+          _buildTopicBar(),
+          Expanded(
+            child: TabBarView(
+              controller: _topicController,
+              children: CuratedData.topics
+                  .map(
+                    (topic) => _TopicContent(
+                      topic: topic,
+                      useUrduFont: _isUrdu,
+                      arabicFont: widget.arabicFont,
+                      showTafseer: false,
+                      searchQuery: widget.searchQuery,
+                    ),
+                  )
+                  .toList(),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -63,7 +79,11 @@ class _AyahTabState extends State<AyahTab> with SingleTickerProviderStateMixin {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          _toggleBtn('ENGLISH', !_isUrdu, () => setState(() => _isUrdu = false)),
+          _toggleBtn(
+            'ENGLISH',
+            !_isUrdu,
+            () => setState(() => _isUrdu = false),
+          ),
           const SizedBox(width: 8),
           _toggleBtn('اردو', _isUrdu, () => setState(() => _isUrdu = true)),
         ],
@@ -80,7 +100,9 @@ class _AyahTabState extends State<AyahTab> with SingleTickerProviderStateMixin {
         decoration: BoxDecoration(
           color: active ? AppColors.gold : AppColors.bgCream,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: active ? AppColors.gold : AppColors.borderLight),
+          border: Border.all(
+            color: active ? AppColors.gold : AppColors.borderLight,
+          ),
         ),
         child: Text(
           label,
@@ -112,12 +134,24 @@ class _AyahTabState extends State<AyahTab> with SingleTickerProviderStateMixin {
         dividerColor: Colors.transparent,
         labelColor: Colors.white,
         unselectedLabelColor: AppColors.textGrey,
-        labelStyle: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700, fontSize: 13),
-        unselectedLabelStyle: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w400, fontSize: 13),
-        tabs: CuratedData.topics.map((t) => Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Tab(text: t),
-        )).toList(),
+        labelStyle: const TextStyle(
+          fontFamily: 'Cairo',
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontFamily: 'Cairo',
+          fontWeight: FontWeight.w400,
+          fontSize: 13,
+        ),
+        tabs: CuratedData.topics
+            .map(
+              (t) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Tab(text: t),
+              ),
+            )
+            .toList(),
       ),
     );
   }
@@ -147,7 +181,10 @@ class _TopicContent extends StatelessWidget {
       final englishTrans = a['english_trans']?.toString().toLowerCase() ?? '';
       final urduTrans = a['urdu_trans']?.toString().toLowerCase() ?? '';
       final arabicText = a['arabic']?.toString() ?? '';
-      return ref.contains(q) || englishTrans.contains(q) || urduTrans.contains(q) || arabicText.contains(q);
+      return ref.contains(q) ||
+          englishTrans.contains(q) ||
+          urduTrans.contains(q) ||
+          arabicText.contains(q);
     }).toList();
   }
 
@@ -155,11 +192,15 @@ class _TopicContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final ayats = CuratedData.topicAyats[topic] ?? [];
     if (ayats.isEmpty) {
-      return const Center(child: Text('Coming Soon...', style: TextStyle(fontFamily: 'Cairo')));
+      return const Center(
+        child: Text('Coming Soon...', style: TextStyle(fontFamily: 'Cairo')),
+      );
     }
 
     final daily = CuratedData.getDailyAyat(topic);
-    final filteredAyats = _filterAyats(ayats.where((a) => a['ref'] != daily['ref']).toList());
+    final filteredAyats = _filterAyats(
+      ayats.where((a) => a['ref'] != daily['ref']).toList(),
+    );
     final filteredDaily = _filterAyats([daily]).isNotEmpty ? daily : null;
 
     return ListView(
@@ -182,24 +223,42 @@ class _TopicContent extends StatelessWidget {
                 Expanded(child: Divider()),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text('EXPLORE MORE', style: TextStyle(fontFamily: 'Cairo', fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.textLightGrey)),
+                  child: Text(
+                    'EXPLORE MORE',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textLightGrey,
+                    ),
+                  ),
                 ),
                 Expanded(child: Divider()),
               ],
             ),
           ),
         ],
-        ...filteredAyats.map((item) => _AyahTafseerCard(
-          item: item,
-          useUrduFont: useUrduFont,
-          arabicFont: arabicFont,
-          showTafseer: showTafseer,
-        )),
-        if (searchQuery.isNotEmpty && filteredAyats.isEmpty && filteredDaily == null)
+        ...filteredAyats.map(
+          (item) => _AyahTafseerCard(
+            item: item,
+            useUrduFont: useUrduFont,
+            arabicFont: arabicFont,
+            showTafseer: showTafseer,
+          ),
+        ),
+        if (searchQuery.isNotEmpty &&
+            filteredAyats.isEmpty &&
+            filteredDaily == null)
           const Center(
             child: Padding(
               padding: EdgeInsets.only(top: 40),
-              child: Text('No ayats found for your search.', style: TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)),
+              child: Text(
+                'No ayats found for your search.',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  color: AppColors.textGrey,
+                ),
+              ),
             ),
           ),
       ],
@@ -246,14 +305,22 @@ class _AyahTafseerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actualArabicFont = arabicFont ?? (useUrduFont ? 'NotoNastaliq' : 'AlQalam');
+    final actualArabicFont =
+        arabicFont ?? (useUrduFont ? 'NotoNastaliq' : 'AlQalam');
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDaily ? AppColors.primaryDark.withValues(alpha: 0.02) : AppColors.bgWhite,
+        color: isDaily
+            ? AppColors.primaryDark.withValues(alpha: 0.02)
+            : AppColors.bgWhite,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDaily ? AppColors.gold.withValues(alpha: 0.5) : AppColors.gold.withValues(alpha: 0.2), width: isDaily ? 1.5 : 1),
+        border: Border.all(
+          color: isDaily
+              ? AppColors.gold.withValues(alpha: 0.5)
+              : AppColors.gold.withValues(alpha: 0.2),
+          width: isDaily ? 1.5 : 1,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -280,9 +347,23 @@ class _AyahTafseerCard extends StatelessWidget {
               ),
               if (isDaily)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: AppColors.gold, borderRadius: BorderRadius.circular(4)),
-                  child: const Text('TODAY', style: TextStyle(fontFamily: 'Cairo', fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.primaryDarkest)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'TODAY',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primaryDarkest,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -299,9 +380,17 @@ class _AyahTafseerCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           if (!useUrduFont)
-            _buildLanguageSection('English', item['english_trans']?.toString() ?? '', item['english_tafseer']?.toString()),
+            _buildLanguageSection(
+              'English',
+              item['english_trans']?.toString() ?? '',
+              item['english_tafseer']?.toString(),
+            ),
           if (useUrduFont)
-            _buildLanguageSection('Urdu', item['urdu_trans']?.toString() ?? '', item['urdu_tafseer']?.toString()),
+            _buildLanguageSection(
+              'Urdu',
+              item['urdu_trans']?.toString() ?? '',
+              item['urdu_tafseer']?.toString(),
+            ),
         ],
       ),
     );
@@ -310,7 +399,9 @@ class _AyahTafseerCard extends StatelessWidget {
   Widget _buildLanguageSection(String lang, String trans, String? tafseer) {
     final isUrdu = lang == 'Urdu';
     return Column(
-      crossAxisAlignment: isUrdu ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: isUrdu
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Text(
           lang,
@@ -339,7 +430,9 @@ class _AyahTafseerCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
-              crossAxisAlignment: isUrdu ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isUrdu
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 Text(
                   'Tafseer',
@@ -368,39 +461,52 @@ class _AyahTafseerCard extends StatelessWidget {
   }
 }
 
-Widget _renderMixedText(String text, bool isUrdu, {double? fontSize, Color? color, double? height, String? arabicFont}) {
-  final arabicRegex = RegExp(r'([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+)');
-  
+Widget _renderMixedText(
+  String text,
+  bool isUrdu, {
+  double? fontSize,
+  Color? color,
+  double? height,
+  String? arabicFont,
+}) {
+  final arabicRegex = RegExp(
+    r'([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+)',
+  );
+
   final parts = text.split(arabicRegex);
   final matches = arabicRegex.allMatches(text).map((m) => m.group(0)).toList();
-  
+
   List<TextSpan> spans = [];
-  
+
   for (int i = 0; i < parts.length; i++) {
     if (parts[i].isNotEmpty) {
-      spans.add(TextSpan(
-        text: parts[i],
-        style: TextStyle(
-          fontFamily: isUrdu ? 'NotoNastaliq' : 'Cairo',
-          fontSize: fontSize ?? (isUrdu ? 17 : 16),
-          color: color ?? AppColors.primaryDarkest,
-          height: height ?? 2.2,
+      spans.add(
+        TextSpan(
+          text: parts[i],
+          style: TextStyle(
+            fontFamily: isUrdu ? 'NotoNastaliq' : 'Cairo',
+            fontSize: fontSize ?? (isUrdu ? 17 : 16),
+            color: color ?? AppColors.primaryDarkest,
+            height: height ?? 2.2,
+          ),
         ),
-      ));
+      );
     }
     if (i < matches.length) {
-      spans.add(TextSpan(
-        text: matches[i],
-        style: TextStyle(
-          fontFamily: arabicFont ?? 'AlQalam',
-          fontSize: (fontSize ?? (isUrdu ? 17 : 16)) * 1.3,
-          color: color ?? AppColors.primaryDarkest,
-          height: height ?? 2.2,
+      spans.add(
+        TextSpan(
+          text: matches[i],
+          style: TextStyle(
+            fontFamily: arabicFont ?? 'AlQalam',
+            fontSize: (fontSize ?? (isUrdu ? 17 : 16)) * 1.3,
+            color: color ?? AppColors.primaryDarkest,
+            height: height ?? 2.2,
+          ),
         ),
-      ));
+      );
     }
   }
-  
+
   return RichText(
     textDirection: isUrdu ? TextDirection.rtl : TextDirection.ltr,
     textAlign: isUrdu ? TextAlign.right : TextAlign.left,

@@ -120,7 +120,9 @@ class _DownloadTile extends StatelessWidget {
         color: AppColors.bgWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDownloaded ? AppColors.gold : Colors.grey.withValues(alpha: 0.2),
+          color: isDownloaded
+              ? AppColors.gold
+              : Colors.grey.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -129,7 +131,9 @@ class _DownloadTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isDownloaded ? AppColors.gold.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+              color: isDownloaded
+                  ? AppColors.gold.withValues(alpha: 0.1)
+                  : Colors.grey.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -169,18 +173,31 @@ class _DownloadTile extends StatelessWidget {
               children: [
                 if (icon == Icons.picture_as_pdf_rounded)
                   IconButton(
-                    icon: const Icon(Icons.visibility_outlined, color: AppColors.primaryDark),
+                    icon: const Icon(
+                      Icons.visibility_outlined,
+                      color: AppColors.primaryDark,
+                    ),
                     onPressed: () async {
-                      final path = await QuranDownloadService().getFilePath(id, DownloadType.pdf);
+                      final path = await QuranDownloadService().getFilePath(
+                        id,
+                        DownloadType.pdf,
+                      );
                       if (context.mounted) {
-                        Navigator.push(context, MaterialPageRoute(
-                          builder: (_) => PdfViewerScreen(title: title, localPath: path),
-                        ));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                PdfViewerScreen(title: title, localPath: path),
+                          ),
+                        );
                       }
                     },
                   ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                  ),
                   onPressed: onDelete,
                 ),
               ],
@@ -195,11 +212,18 @@ class _DownloadTile extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
               child: const Text(
                 'Download',
-                style: TextStyle(fontFamily: 'Cairo', fontSize: 12, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
         ],

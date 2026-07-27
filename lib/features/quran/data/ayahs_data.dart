@@ -17,7 +17,8 @@ class AyahsData {
       {
         'number': 1,
         'arabic': 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-        'translation': 'In the name of Allah, the Entirely Merciful, the Especially Merciful.',
+        'translation':
+            'In the name of Allah, the Entirely Merciful, the Especially Merciful.',
         'audioUrl': '',
       },
       {
@@ -52,34 +53,130 @@ class AyahsData {
       },
       {
         'number': 7,
-        'arabic': 'صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ',
-        'translation': 'The path of those upon whom You have bestowed favor, not of those who have earned [Your] anger or of those who are astray.',
+        'arabic':
+            'صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ',
+        'translation':
+            'The path of those upon whom You have bestowed favor, not of those who have earned [Your] anger or of those who are astray.',
         'audioUrl': '',
       },
     ],
 
     // ── Surah 2–114: Stubs (add full ayahs incrementally) ───────────────────
     // Each will be populated in future iterations.
-    2:  [{'number': 1, 'arabic': 'الٓمٓ', 'translation': 'Alif, Lam, Meem.', 'audioUrl': ''}],
-    3:  [{'number': 1, 'arabic': 'الٓمٓ', 'translation': 'Alif, Lam, Meem.', 'audioUrl': ''}],
-    4:  [{'number': 1, 'arabic': 'يَا أَيُّهَا النَّاسُ', 'translation': 'O mankind...', 'audioUrl': ''}],
-    5:  [{'number': 1, 'arabic': 'يَا أَيُّهَا الَّذِينَ آمَنُوا', 'translation': 'O you who have believed...', 'audioUrl': ''}],
-    36: [{'number': 1, 'arabic': 'يس', 'translation': 'Ya, Seen.', 'audioUrl': ''}],
-    55: [{'number': 1, 'arabic': 'الرَّحْمَٰنُ', 'translation': 'The Most Merciful', 'audioUrl': ''}],
-    67: [{'number': 1, 'arabic': 'تَبَارَكَ الَّذِي بِيَدِهِ الْمُلْكُ', 'translation': 'Blessed is He in whose hand is dominion...', 'audioUrl': ''}],
+    2: [
+      {
+        'number': 1,
+        'arabic': 'الٓمٓ',
+        'translation': 'Alif, Lam, Meem.',
+        'audioUrl': '',
+      },
+    ],
+    3: [
+      {
+        'number': 1,
+        'arabic': 'الٓمٓ',
+        'translation': 'Alif, Lam, Meem.',
+        'audioUrl': '',
+      },
+    ],
+    4: [
+      {
+        'number': 1,
+        'arabic': 'يَا أَيُّهَا النَّاسُ',
+        'translation': 'O mankind...',
+        'audioUrl': '',
+      },
+    ],
+    5: [
+      {
+        'number': 1,
+        'arabic': 'يَا أَيُّهَا الَّذِينَ آمَنُوا',
+        'translation': 'O you who have believed...',
+        'audioUrl': '',
+      },
+    ],
+    36: [
+      {'number': 1, 'arabic': 'يس', 'translation': 'Ya, Seen.', 'audioUrl': ''},
+    ],
+    55: [
+      {
+        'number': 1,
+        'arabic': 'الرَّحْمَٰنُ',
+        'translation': 'The Most Merciful',
+        'audioUrl': '',
+      },
+    ],
+    67: [
+      {
+        'number': 1,
+        'arabic': 'تَبَارَكَ الَّذِي بِيَدِهِ الْمُلْكُ',
+        'translation': 'Blessed is He in whose hand is dominion...',
+        'audioUrl': '',
+      },
+    ],
     112: [
-      {'number': 1, 'arabic': 'قُلْ هُوَ اللَّهُ أَحَدٌ', 'translation': 'Say, "He is Allah, [who is] One,"', 'audioUrl': ''},
-      {'number': 2, 'arabic': 'اللَّهُ الصَّمَدُ', 'translation': 'Allah, the Eternal Refuge.', 'audioUrl': ''},
-      {'number': 3, 'arabic': 'لَمْ يَلِدْ وَلَمْ يُولَدْ', 'translation': 'He neither begets nor is born,', 'audioUrl': ''},
-      {'number': 4, 'arabic': 'وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ', 'translation': 'Nor is there to Him any equivalent.', 'audioUrl': ''},
+      {
+        'number': 1,
+        'arabic': 'قُلْ هُوَ اللَّهُ أَحَدٌ',
+        'translation': 'Say, "He is Allah, [who is] One,"',
+        'audioUrl': '',
+      },
+      {
+        'number': 2,
+        'arabic': 'اللَّهُ الصَّمَدُ',
+        'translation': 'Allah, the Eternal Refuge.',
+        'audioUrl': '',
+      },
+      {
+        'number': 3,
+        'arabic': 'لَمْ يَلِدْ وَلَمْ يُولَدْ',
+        'translation': 'He neither begets nor is born,',
+        'audioUrl': '',
+      },
+      {
+        'number': 4,
+        'arabic': 'وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ',
+        'translation': 'Nor is there to Him any equivalent.',
+        'audioUrl': '',
+      },
     ],
     114: [
-      {'number': 1, 'arabic': 'قُلْ أَعُوذُ بِرَبِّ النَّاسِ', 'translation': 'Say, "I seek refuge in the Lord of mankind,"', 'audioUrl': ''},
-      {'number': 2, 'arabic': 'مَلِكِ النَّاسِ', 'translation': 'The Sovereign of mankind.', 'audioUrl': ''},
-      {'number': 3, 'arabic': 'إِلَٰهِ النَّاسِ', 'translation': 'The God of mankind,', 'audioUrl': ''},
-      {'number': 4, 'arabic': 'مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ', 'translation': 'From the evil of the retreating whisperer –', 'audioUrl': ''},
-      {'number': 5, 'arabic': 'الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ', 'translation': 'Who whispers [evil] into the breasts of mankind –', 'audioUrl': ''},
-      {'number': 6, 'arabic': 'مِنَ الْجِنَّةِ وَالنَّاسِ', 'translation': 'From among the jinn and mankind.', 'audioUrl': ''},
+      {
+        'number': 1,
+        'arabic': 'قُلْ أَعُوذُ بِرَبِّ النَّاسِ',
+        'translation': 'Say, "I seek refuge in the Lord of mankind,"',
+        'audioUrl': '',
+      },
+      {
+        'number': 2,
+        'arabic': 'مَلِكِ النَّاسِ',
+        'translation': 'The Sovereign of mankind.',
+        'audioUrl': '',
+      },
+      {
+        'number': 3,
+        'arabic': 'إِلَٰهِ النَّاسِ',
+        'translation': 'The God of mankind,',
+        'audioUrl': '',
+      },
+      {
+        'number': 4,
+        'arabic': 'مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ',
+        'translation': 'From the evil of the retreating whisperer –',
+        'audioUrl': '',
+      },
+      {
+        'number': 5,
+        'arabic': 'الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ',
+        'translation': 'Who whispers [evil] into the breasts of mankind –',
+        'audioUrl': '',
+      },
+      {
+        'number': 6,
+        'arabic': 'مِنَ الْجِنَّةِ وَالنَّاسِ',
+        'translation': 'From among the jinn and mankind.',
+        'audioUrl': '',
+      },
     ],
   };
 }

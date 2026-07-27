@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -116,7 +115,12 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
             children: [
               Text(
                 loc.translate('batteryGuideIntro'),
-                style: const TextStyle(fontFamily: 'Cairo', fontSize: 15, color: AppColors.textDark, height: 1.4),
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 15,
+                  color: AppColors.textDark,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 16),
               _guideStep('1', loc.translate('disableBatteryOptimization')),
@@ -134,7 +138,11 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+                    Icon(
+                      Icons.info_outline,
+                      color: AppColors.warning,
+                      size: 20,
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -172,7 +180,10 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
               ),
               onPressed: () async {
                 Navigator.pop(ctx);
@@ -254,7 +265,8 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
       appBar: const AskImanAppBar(showBackButton: true),
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics()),
+          parent: BouncingScrollPhysics(),
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -323,9 +335,7 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
       decoration: BoxDecoration(
         color: AppColors.warning.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.warning.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.2)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -473,9 +483,7 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: alarm.isEnabled
-            ? AppColors.bgWhite
-            : AppColors.bgCream,
+        color: alarm.isEnabled ? AppColors.bgWhite : AppColors.bgCream,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: alarm.isEnabled
@@ -566,7 +574,10 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
                 children: [
                   if (alarm.repeatDays.any((d) => d))
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: alarm.isEnabled
                             ? AppColors.primaryDark.withValues(alpha: 0.06)
@@ -587,7 +598,10 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
                     ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: alarm.isEnabled
                           ? AppColors.primaryDark.withValues(alpha: 0.06)
@@ -595,7 +609,9 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      loc.translate('soundNumber').replaceAll('\$number', '$soundNumber'),
+                      loc
+                          .translate('soundNumber')
+                          .replaceAll('\$number', '$soundNumber'),
                       style: TextStyle(
                         fontFamily: 'Cairo',
                         fontSize: 12,
@@ -645,7 +661,11 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
                         ),
                         content: Text(
                           dloc.translate('cannotBeUndone'),
-                          style: const TextStyle(fontFamily: 'Cairo', fontSize: 15, color: AppColors.textGrey),
+                          style: const TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 15,
+                            color: AppColors.textGrey,
+                          ),
                         ),
                         actions: [
                           TextButton(
@@ -767,8 +787,7 @@ class _AlarmDialogState extends State<AlarmDialog> {
     );
     _selectedTime = existing?.time ?? TimeOfDay.now();
     _selectedSound = existing?.sound ?? AlarmService.availableSounds[0];
-    _repeatDays =
-        existing?.repeatDays ?? List.generate(7, (_) => false);
+    _repeatDays = existing?.repeatDays ?? List.generate(7, (_) => false);
     _isEnabled = existing?.isEnabled ?? true;
   }
 
@@ -784,192 +803,35 @@ class _AlarmDialogState extends State<AlarmDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.bgWhite,
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryDark.withValues(alpha: 0.15),
-              blurRadius: 30,
-              offset: const Offset(0, 10),
-            ),
-          ],
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.95,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primaryDark, AppColors.primaryMid],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.bgWhite,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryDark.withValues(alpha: 0.15),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 20,
                   ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryDark.withValues(alpha: 0.2),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: AppColors.gold,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.goldDark.withValues(alpha: 0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.alarm_rounded,
-                        color: AppColors.primaryDarkest,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.existingAlarm != null
-                                ? loc.translate('editReminder')
-                                : loc.translate('newReminder'),
-                            style: const TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.existingAlarm != null
-                                ? 'Update your reminder'
-                                : 'Create a new reminder',
-                            style: TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textCream.withValues(alpha: 0.85),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Title
-              Text(
-                loc.translate('title'),
-                style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textDark,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.bgCream,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _titleController,
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 16,
-                    color: AppColors.textDark,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Enter reminder title',
-                    hintStyle: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 15,
-                      color: AppColors.textGrey.withValues(alpha: 0.6),
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.edit_note_rounded,
-                      color: AppColors.primaryDark,
-                      size: 24,
-                    ),
-                    prefixIconConstraints: const BoxConstraints(minWidth: 52),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 18,
-                      horizontal: 12,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Time Picker
-              Text(
-                loc.translate('time'),
-                style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textDark,
-                ),
-              ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () async {
-                  final time = await showTimePicker(
-                    context: context,
-                    initialTime: _selectedTime,
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.light(
-                            primary: AppColors.primaryDark,
-                            onPrimary: Colors.white,
-                            surface: AppColors.bgWhite,
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (time != null && mounted) {
-                    setState(() {
-                      _selectedTime = time;
-                    });
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [AppColors.primaryDark, AppColors.primaryMid],
@@ -979,73 +841,62 @@ class _AlarmDialogState extends State<AlarmDialog> {
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primaryDark.withValues(alpha: 0.3),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        color: AppColors.primaryDark.withValues(alpha: 0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: Column(
+                  child: Row(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.gold,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.goldDark.withValues(alpha: 0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.schedule_rounded,
-                              size: 32,
-                              color: AppColors.primaryDarkest,
-                            ),
-                          ),
-                          const SizedBox(width: 18),
-                          Text(
-                            _formatTime(_selectedTime),
-                            style: const TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 36,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        width: 52,
+                        height: 52,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.gold, width: 1),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.touch_app_rounded,
-                              size: 16,
-                              color: AppColors.gold,
+                          color: AppColors.gold,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.goldDark.withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
-                            const SizedBox(width: 6),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.alarm_rounded,
+                          color: AppColors.primaryDarkest,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              loc.translate('tapToChange'),
+                              widget.existingAlarm != null
+                                  ? loc.translate('editReminder')
+                                  : loc.translate('newReminder'),
                               style: const TextStyle(
                                 fontFamily: 'Cairo',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.gold,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              widget.existingAlarm != null
+                                  ? 'Update your reminder'
+                                  : 'Create a new reminder',
+                              style: TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textCream.withValues(
+                                  alpha: 0.85,
+                                ),
                               ),
                             ),
                           ],
@@ -1054,267 +905,463 @@ class _AlarmDialogState extends State<AlarmDialog> {
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
-              // Repeat Days
-              Text(
-                loc.translate('repeat'),
-                style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textDark,
+                // Title
+                Text(
+                  loc.translate('title'),
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.bgCream,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.bgCream,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _titleController,
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 16,
+                      color: AppColors.textDark,
                     ),
-                  ],
+                    decoration: InputDecoration(
+                      hintText: 'Enter reminder title',
+                      hintStyle: TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 15,
+                        color: AppColors.textGrey.withValues(alpha: 0.6),
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.edit_note_rounded,
+                        color: AppColors.primaryDark,
+                        size: 24,
+                      ),
+                      prefixIconConstraints: const BoxConstraints(minWidth: 52),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 18,
+                        horizontal: 12,
+                      ),
+                    ),
+                  ),
                 ),
-                child: Row(
-                  children: List.generate(7, (index) {
-                    const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-                    final isSelected = _repeatDays[index];
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          left: index == 0 ? 0 : 3,
-                          right: index == 6 ? 0 : 3,
-                        ),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _repeatDays[index] = !_repeatDays[index];
-                            });
-                          },
-                          child: Container(
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.primaryDark
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.gold
-                                    : AppColors.borderLight,
-                                width: isSelected ? 2 : 1.5,
-                              ),
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color:
-                                            AppColors.primaryDark.withValues(alpha: 0.3),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Center(
-                              child: Text(
-                                dayNames[index],
-                                style: TextStyle(
-                                  fontFamily: 'Cairo',
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppColors.textDark,
-                                ),
-                              ),
+                const SizedBox(height: 24),
+
+                // Time Picker
+                Text(
+                  loc.translate('time'),
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () async {
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: _selectedTime,
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(
+                              primary: AppColors.primaryDark,
+                              onPrimary: Colors.white,
+                              surface: AppColors.bgWhite,
                             ),
                           ),
-                        ),
-                      ),
+                          child: child!,
+                        );
+                      },
                     );
-                  }),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Sound Picker
-              Text(
-                loc.translate('sound'),
-                style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textDark,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.bgCream,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                    if (time != null && mounted) {
+                      setState(() {
+                        _selectedTime = time;
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 24,
+                      horizontal: 20,
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: AlarmService.availableSounds
-                      .asMap()
-                      .entries
-                      .map((entry) {
-                    final index = entry.key + 1;
-                    final sound = entry.value;
-                    final isSelected = sound == _selectedSound;
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          left: entry.key == 0 ? 0 : 4,
-                          right: entry.key == AlarmService.availableSounds.length - 1 ? 0 : 4,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.primaryDark, AppColors.primaryMid],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryDark.withValues(alpha: 0.3),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
                         ),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedSound = sound;
-                            });
-                            _alarmService.previewSound(sound);
-                          },
-                          child: Container(
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.gold
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.goldDark
-                                    : AppColors.borderLight,
-                                width: 2,
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.gold,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.goldDark.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color: AppColors.gold.withValues(alpha: 0.3),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ]
-                                  : null,
+                              child: const Icon(
+                                Icons.schedule_rounded,
+                                size: 32,
+                                color: AppColors.primaryDarkest,
+                              ),
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  isSelected
-                                      ? Icons.play_circle_filled_rounded
-                                      : Icons.music_note_rounded,
-                                  size: 22,
-                                  color: isSelected
-                                      ? AppColors.primaryDarkest
-                                      : AppColors.primaryDark,
+                            const SizedBox(width: 18),
+                            Text(
+                              _formatTime(_selectedTime),
+                              style: const TextStyle(
+                                fontFamily: 'Cairo',
+                                fontSize: 36,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.gold, width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.touch_app_rounded,
+                                size: 16,
+                                color: AppColors.gold,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                loc.translate('tapToChange'),
+                                style: const TextStyle(
+                                  fontFamily: 'Cairo',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.gold,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '$index',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Repeat Days
+                Text(
+                  loc.translate('repeat'),
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgCream,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: List.generate(7, (index) {
+                        const dayNames = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+                        final isSelected = _repeatDays[index];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            left: index == 0 ? 0 : 4,
+                            right: index == 6 ? 0 : 4,
+                          ),
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _repeatDays[index] = !_repeatDays[index];
+                              });
+                            },
+                            child: Container(
+                              width: 44,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.primaryDark
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.gold
+                                      : AppColors.borderLight,
+                                  width: isSelected ? 2 : 1.5,
+                                ),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: AppColors.primaryDark
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  dayNames[index],
                                   style: TextStyle(
                                     fontFamily: 'Cairo',
                                     fontWeight: FontWeight.w900,
                                     fontSize: 14,
                                     color: isSelected
-                                        ? AppColors.primaryDarkest
+                                        ? Colors.white
                                         : AppColors.textDark,
                                   ),
                                 ),
-                              ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Sound Picker
+                Text(
+                  loc.translate('sound'),
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgCream,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: AlarmService.availableSounds.asMap().entries.map((
+                      entry,
+                    ) {
+                      final index = entry.key + 1;
+                      final sound = entry.value;
+                      final isSelected = sound == _selectedSound;
+                      return Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: entry.key == 0 ? 0 : 4,
+                            right:
+                                entry.key ==
+                                    AlarmService.availableSounds.length - 1
+                                ? 0
+                                : 4,
+                          ),
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedSound = sound;
+                              });
+                              _alarmService.previewSound(sound);
+                            },
+                            child: Container(
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? AppColors.gold
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.goldDark
+                                      : AppColors.borderLight,
+                                  width: 2,
+                                ),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: AppColors.gold.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    isSelected
+                                        ? Icons.play_circle_filled_rounded
+                                        : Icons.music_note_rounded,
+                                    size: 22,
+                                    color: isSelected
+                                        ? AppColors.primaryDarkest
+                                        : AppColors.primaryDark,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$index',
+                                    style: TextStyle(
+                                      fontFamily: 'Cairo',
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 14,
+                                      color: isSelected
+                                          ? AppColors.primaryDarkest
+                                          : AppColors.textDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Action buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 56,
+                        child: TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            backgroundColor: AppColors.bgCream,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: Text(
+                            loc.translate('cancel'),
+                            style: const TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textGrey,
                             ),
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      flex: 2,
+                      child: SizedBox(
+                        height: 56,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryDark,
+                            foregroundColor: AppColors.textCream,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 4,
+                            shadowColor: AppColors.primaryDark.withValues(
+                              alpha: 0.4,
+                            ),
+                          ),
+                          onPressed: () {
+                            final alarm = Alarm(
+                              id: widget.existingAlarm?.id ?? '',
+                              title: _titleController.text.trim(),
+                              time: _selectedTime,
+                              sound: _selectedSound,
+                              isEnabled: _isEnabled,
+                              repeatDays: _repeatDays,
+                            );
+                            Navigator.of(context).pop(alarm);
+                          },
+                          child: Text(
+                            widget.existingAlarm != null
+                                ? loc.translate('saveChanges')
+                                : loc.translate('save'),
+                            style: const TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 32),
-
-              // Action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 56,
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: TextButton.styleFrom(
-                          backgroundColor: AppColors.bgCream,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: Text(
-                          loc.translate('cancel'),
-                          style: const TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textGrey,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    flex: 2,
-                    child: SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryDark,
-                          foregroundColor: AppColors.textCream,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 4,
-                          shadowColor: AppColors.primaryDark.withValues(alpha: 0.4),
-                        ),
-                        onPressed: () {
-                          final alarm = Alarm(
-                            id: widget.existingAlarm?.id ?? '',
-                            title: _titleController.text.trim(),
-                            time: _selectedTime,
-                            sound: _selectedSound,
-                            isEnabled: _isEnabled,
-                            repeatDays: _repeatDays,
-                          );
-                          Navigator.of(context).pop(alarm);
-                        },
-                        child: Text(
-                          widget.existingAlarm != null
-                              ? loc.translate('saveChanges')
-                              : loc.translate('save'),
-                          style: const TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1327,4 +1374,3 @@ class _AlarmDialogState extends State<AlarmDialog> {
     return DateFormat('h:mm a').format(dt);
   }
 }
-

@@ -42,6 +42,12 @@
 @import firebase_core;
 #endif
 
+#if __has_include(<firebase_messaging/FLTFirebaseMessagingPlugin.h>)
+#import <firebase_messaging/FLTFirebaseMessagingPlugin.h>
+#else
+@import firebase_messaging;
+#endif
+
 #if __has_include(<firebase_storage/FLTFirebaseStoragePlugin.h>)
 #import <firebase_storage/FLTFirebaseStoragePlugin.h>
 #else
@@ -108,6 +114,12 @@
 @import url_launcher_ios;
 #endif
 
+#if __has_include(<vibration/VibrationPlugin.h>)
+#import <vibration/VibrationPlugin.h>
+#else
+@import vibration;
+#endif
+
 @implementation GeneratedPluginRegistrant
 
 + (void)registerWithRegistry:(NSObject<FlutterPluginRegistry>*)registry {
@@ -117,6 +129,7 @@
   [FPPDeviceInfoPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPDeviceInfoPlusPlugin"]];
   [FLTFirebaseAuthPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTFirebaseAuthPlugin"]];
   [FLTFirebaseCorePlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTFirebaseCorePlugin"]];
+  [FLTFirebaseMessagingPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTFirebaseMessagingPlugin"]];
   [FLTFirebaseStoragePlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTFirebaseStoragePlugin"]];
   [FlutterCompassPlugin registerWithRegistrar:[registry registrarForPlugin:@"FlutterCompassPlugin"]];
   [FlutterLocalNotificationsPlugin registerWithRegistrar:[registry registrarForPlugin:@"FlutterLocalNotificationsPlugin"]];
@@ -128,6 +141,7 @@
   [SqflitePlugin registerWithRegistrar:[registry registrarForPlugin:@"SqflitePlugin"]];
   [SyncfusionFlutterPdfViewerPlugin registerWithRegistrar:[registry registrarForPlugin:@"SyncfusionFlutterPdfViewerPlugin"]];
   [URLLauncherPlugin registerWithRegistrar:[registry registrarForPlugin:@"URLLauncherPlugin"]];
+  [VibrationPlugin registerWithRegistrar:[registry registrarForPlugin:@"VibrationPlugin"]];
 }
 
 @end

@@ -1,22 +1,15 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-    <!-- Required to show notifications on Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <!-- Required to schedule precise alarms for prayer times -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-    <!-- Required for full screen alarm notifications on Android 14+ -->
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
-    <!-- Required to request battery optimization exemption -->
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
-    <!-- Required for foreground service (keeps alarms alive when app is closed) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
-    <!-- Required to wake the device for alarms -->
-    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
+    <!-- Suppress alarm permissions auto-merged by flutter_local_notifications -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" tools:node="remove"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" tools:node="remove"/>
     <application
         android:label="ASK Iman"
         android:name="${applicationName}"
@@ -49,22 +42,7 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        
-        <!-- Local notifications receivers -->
-        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
-        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
-            </intent-filter>
-        </receiver>
-        
-        <!-- Foreground service to keep alarms alive when app is closed -->
-        <service android:name="com.dexterous.flutterlocalnotifications.ForegroundService" 
-            android:foregroundServiceType="specialUse"
-            android:exported="false"/>
+
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

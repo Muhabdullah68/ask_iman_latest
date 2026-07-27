@@ -1,22 +1,5 @@
 import java.util.Properties
 
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath("com.google.gms:google-services:4.4.2")  // Firebase classpath
-    }
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
 val newBuildDir: Directory =
     rootProject.layout.buildDirectory
         .dir("../../build")
@@ -75,13 +58,10 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
-            val storeFilePath = keystoreProperties.getProperty("storeFile")
-            if (storeFilePath != null) {
-                storeFile = file(storeFilePath)
-            }
-            storePassword = keystoreProperties.getProperty("storePassword")
+            keyAlias = keystoreProperties.getProperty("keyAlias") ?: "askiman"
+            keyPassword = keystoreProperties.getProperty("keyPassword") ?: ""
+            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) } ?: file("../../askiman_upload.keystore")
+            storePassword = keystoreProperties.getProperty("storePassword") ?: ""
             enableV1Signing = true
             enableV2Signing = true
         }
@@ -90,6 +70,12 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

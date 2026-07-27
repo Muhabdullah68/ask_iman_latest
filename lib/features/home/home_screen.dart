@@ -3,8 +3,11 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
+import '../../shared/widgets/tooltip_overlay.dart';
+import '../../core/services/tutorial_service.dart';
 import '../ibadah/qiblah_screen.dart';
 import '../ibadah/tasbeeh_screen.dart';
+import '../charity/charity_list_screen.dart';
 import '../../core/data/daily_data.dart';
 import '../../core/services/community_service.dart';
 
@@ -20,8 +23,70 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _ayahPageIndex = 0;
-  final PageController _ayahController =
-  PageController(viewportFraction: 0.88);
+  final PageController _ayahController = PageController(viewportFraction: 0.88);
+  final ScrollController _scrollController = ScrollController();
+
+  // Global Keys for tutorial scroll targets
+  final _sacredKey = GlobalKey();
+  final _askAiKey = GlobalKey();
+  final _eventsKey = GlobalKey();
+  final _dailyInspirationKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _dailyAyahs = DailyData.getDailyAyahs(5);
+    _dailyHadiths = DailyData.getDailyHadiths(5);
+    _loadSoulProgress();
+
+    // Listen to tutorial changes to scroll to relevant widgets
+    TutorialService.instance.addListener(_onTutorialUpdate);
+  }
+
+  @override
+  void dispose() {
+    _ayahController.dispose();
+    _scrollController.dispose();
+    TutorialService.instance.removeListener(_onTutorialUpdate);
+    super.dispose();
+  }
+
+  void _onTutorialUpdate() {
+    if (!mounted) return;
+    final currentStepId = TutorialService.instance.currentStepId;
+    // Schedule scroll for next frame
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final keyToScrollTo = switch (currentStepId) {
+        'tut_home_inspiration' => _dailyInspirationKey,
+        'tut_home_streaks' => _streaksKey,
+        _ => null,
+      };
+      if (keyToScrollTo != null && keyToScrollTo.currentContext != null) {
+        // Scroll to the key and wait for animation to complete
+        await Scrollable.ensureVisible(
+          keyToScrollTo.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.3, // Align slightly above center
+        );
+        // Wait an extra frame for rendering to catch up
+        if (mounted) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            // Manually trigger tutorial service to re-sync overlays
+            // (we'll need to add a method to TutorialService for this, or just update our listener)
+            // Wait — TutorialService already notifies listeners; let's just make sure TooltipOverlay syncs after scroll
+            // We can also add a small delay to be safe
+            Future.delayed(const Duration(milliseconds: 50), () {
+              if (mounted) {
+                // Force re-render of tooltip overlays
+                TutorialService.instance.forceRefresh();
+              }
+            });
+          });
+        }
+      }
+    });
+  }
 
   Map<String, double> _soulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
 
@@ -32,22 +97,37 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _sacredItems(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return [
-      {'image': 'assets/images/Holy Quran.png', 'label': loc.translate('quran'), 'tab': 1},
-      {'image': 'assets/images/Kaaba.png', 'label': loc.translate('qiblah'), 'tab': 2},
-      {'image': 'assets/images/mosque interior.png', 'label': loc.translate('prayers'), 'tab': 2},
-      {'image': 'assets/images/AI orb.png', 'label': loc.translate('askAI'), 'tab': 4},
-      {'image': 'assets/images/tasbih beads.png', 'label': loc.translate('tasbeeh'), 'tab': 2},
-      {'image': 'assets/images/islamic lanterns.png','label': loc.translate('events'), 'tab': 3},
+      {
+        'image': 'assets/images/Holy Quran.png',
+        'label': loc.translate('quran'),
+        'tab': 1,
+      },
+      {
+        'image': 'assets/images/Kaaba.png',
+        'label': loc.translate('qiblah'),
+        'tab': 2,
+      },
+      {
+        'image': 'assets/images/mosque interior.png',
+        'label': loc.translate('prayers'),
+        'tab': 2,
+      },
+      {
+        'image': 'assets/images/AI orb.png',
+        'label': loc.translate('askAI'),
+        'tab': 4,
+      },
+      {
+        'image': 'assets/images/tasbih beads.png',
+        'label': loc.translate('tasbeeh'),
+        'tab': 2,
+      },
+      {
+        'image': 'assets/images/islamic lanterns.png',
+        'label': loc.translate('events'),
+        'tab': 3,
+      },
     ];
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _dailyAyahs = DailyData.getDailyAyahs(5);
-    _dailyHadiths = DailyData.getDailyHadiths(5);
-    // Try to use cached data first!
-    _loadSoulProgress();
   }
 
   Future<void> _loadSoulProgress() async {
@@ -68,14 +148,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _ayahController.dispose();
-    super.dispose();
-  }
-
   // ── Helpers ────────────────────────────────────────────────────────────────
   void _navigateTo(int tab) => widget.onNavigateToTab?.call(tab);
+  final _streaksKey = GlobalKey();
 
   void _handleSacredTap(String label, int tab, BuildContext context) {
     final loc = AppLocalizations.of(context);
@@ -85,10 +160,21 @@ class _HomeScreenState extends State<HomeScreen> {
     final eventsLabel = loc.translate('events');
 
     if (label == qiblahLabel) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const QiblahScreen()));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const QiblahScreen()),
+      );
     } else if (label == tasbeehLabel) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const TasbeehScreen()));
-    } else if (label == askAILabel || label == eventsLabel) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TasbeehScreen()),
+      );
+    } else if (label == eventsLabel) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CharityListScreen()),
+      );
+    } else if (label == askAILabel) {
       _showComingSoon(label, context);
     } else {
       _navigateTo(tab);
@@ -105,7 +191,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 12),
             Text(
               '$feature ${loc.translate('isComingSoon')}',
-              style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -117,8 +206,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _sectionHeader(String title,
-      {String? actionLabel, VoidCallback? onAction}) {
+  Widget _sectionHeader(
+    String title, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -143,6 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.bgCream,
       appBar: const AskImanAppBar(),
       body: SingleChildScrollView(
+        controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,40 +262,48 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   Widget _buildAyahOfDay(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(loc.translate('ayahOfTheDay')),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 310,
-          child: PageView(
-            controller: _ayahController,
-            onPageChanged: (i) => setState(() => _ayahPageIndex = i),
-            children: _dailyAyahs.map((ayah) => _AyahCard(ayah: ayah)).toList(),
+    return TooltipOverlay(
+      id: 'tut_home_ayah',
+      title: loc.translate('tutHomeTitle'),
+      description: loc.translate('tutHomeDesc'),
+      arrowDirection: TooltipArrowDirection.up,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader(loc.translate('ayahOfTheDay')),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 310,
+            child: PageView(
+              controller: _ayahController,
+              onPageChanged: (i) => setState(() => _ayahPageIndex = i),
+              children: _dailyAyahs
+                  .map((ayah) => _AyahCard(ayah: ayah))
+                  .toList(),
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        // Dot indicators — centred
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            5,
-                (i) => AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: i == _ayahPageIndex ? 20 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: i == _ayahPageIndex
-                    ? AppColors.gold
-                    : AppColors.textLightGrey,
-                borderRadius: BorderRadius.circular(3),
+          const SizedBox(height: 12),
+          // Dot indicators — centred
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              5,
+              (i) => AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _ayahPageIndex ? 20 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: i == _ayahPageIndex
+                      ? AppColors.gold
+                      : AppColors.textLightGrey,
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -212,35 +313,94 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSacredJourney(BuildContext context) {
     final items = _sacredItems(context);
     final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(loc.translate('sacredJourney')),
-        const SizedBox(height: 14),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.0,
-            ),
-            itemCount: items.length,
-            itemBuilder: (_, i) => _SacredJourneyTile(
-              image: items[i]['image'] as String,
-              label: items[i]['label'] as String,
-              onTap: () => _handleSacredTap(
-                items[i]['label'] as String,
-                items[i]['tab'] as int,
-                context,
+    return KeyedSubtree(
+      key: _sacredKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader(loc.translate('sacredJourney')),
+          const SizedBox(height: 14),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.0,
               ),
+              itemCount: items.length,
+              itemBuilder: (_, i) {
+                _SacredJourneyTile tile;
+                if (i == 3) {
+                  tile = _SacredJourneyTile(
+                    key: _askAiKey,
+                    image: items[i]['image'] as String,
+                    label: items[i]['label'] as String,
+                    onTap: () => _handleSacredTap(
+                      items[i]['label'] as String,
+                      items[i]['tab'] as int,
+                      context,
+                    ),
+                  );
+                } else if (i == 5) {
+                  tile = _SacredJourneyTile(
+                    key: _eventsKey,
+                    image: items[i]['image'] as String,
+                    label: items[i]['label'] as String,
+                    onTap: () => _handleSacredTap(
+                      items[i]['label'] as String,
+                      items[i]['tab'] as int,
+                      context,
+                    ),
+                  );
+                } else {
+                  tile = _SacredJourneyTile(
+                    image: items[i]['image'] as String,
+                    label: items[i]['label'] as String,
+                    onTap: () => _handleSacredTap(
+                      items[i]['label'] as String,
+                      items[i]['tab'] as int,
+                      context,
+                    ),
+                  );
+                }
+
+                if (i == 0) {
+                  return TooltipOverlay(
+                    id: 'tut_home_sacred_journey',
+                    title: loc.translate('tutQuranTitle'),
+                    description: loc.translate('tutQuranDesc'),
+                    arrowDirection: TooltipArrowDirection.down,
+                    child: tile,
+                  );
+                }
+                if (i == 3) {
+                  return TooltipOverlay(
+                    id: 'tut_home_ask_ai',
+                    title: loc.translate('tutHomeAskAiTitle'),
+                    description: loc.translate('tutHomeAskAiDesc'),
+                    arrowDirection: TooltipArrowDirection.down,
+                    child: tile,
+                  );
+                }
+                if (i == 5) {
+                  return TooltipOverlay(
+                    id: 'tut_home_events',
+                    title: loc.translate('tutHomeEventsTitle'),
+                    description: loc.translate('tutHomeEventsDesc'),
+                    arrowDirection: TooltipArrowDirection.down,
+                    child: tile,
+                  );
+                }
+                return tile;
+              },
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -290,89 +450,106 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   Widget _buildStreakSection(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    return StreamBuilder<AppUser?>(
-      stream: CommunityService.instance.watchCurrentUser(),
-      builder: (context, snapshot) {
-        final streak = snapshot.data?.streakCount ?? 0;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primaryDark, AppColors.primaryMid],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryDark.withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
+    return KeyedSubtree(
+      key: _streaksKey,
+      child: TooltipOverlay(
+        id: 'tut_home_streaks',
+        title: loc.translate('tutHomeStreaksTitle'),
+        description: loc.translate('tutHomeStreaksDesc'),
+        arrowDirection: TooltipArrowDirection.up,
+        child: StreamBuilder<AppUser?>(
+          stream: CommunityService.instance.watchCurrentUser(),
+          builder: (context, snapshot) {
+            final streak = snapshot.data?.streakCount ?? 0;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primaryDark, AppColors.primaryMid],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  child: const Icon(Icons.local_fire_department_rounded,
-                    color: AppColors.gold, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        loc.translate('currentStreak'),
-                        style: const TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textGreenMuted,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      Text(
-                        '$streak ${loc.translate('days')}',
-                        style: const TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textWhite,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                  ),
-                  child: Text(
-                    loc.translate('keepItUp'),
-                    style: const TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.gold,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryDark.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        );
-      },
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.local_fire_department_rounded,
+                        color: AppColors.gold,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            loc.translate('currentStreak'),
+                            style: const TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textGreenMuted,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          Text(
+                            '$streak ${loc.translate('days')}',
+                            style: const TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textWhite,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Text(
+                        loc.translate('keepItUp'),
+                        style: const TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.gold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -381,19 +558,31 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   Widget _buildDailyInspiration(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(loc.translate('dailyInspiration')),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 310, // Match Ayah card height
-          child: PageView(
-            physics: const BouncingScrollPhysics(),
-            children: _dailyHadiths.map((hadith) => _AyahCard(ayah: hadith)).toList(),
-          ),
+    return KeyedSubtree(
+      key: _dailyInspirationKey,
+      child: TooltipOverlay(
+        id: 'tut_home_inspiration',
+        title: loc.translate('tutHomeDailyInspiration'),
+        description: loc.translate('tutHomeDailyInspirationDesc'),
+        arrowDirection: TooltipArrowDirection.up,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionHeader(loc.translate('dailyInspiration')),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 310, // Match Ayah card height
+              child: PageView(
+                physics: const BouncingScrollPhysics(),
+                children: _dailyHadiths
+                    .map((hadith) => _AyahCard(ayah: hadith))
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -481,10 +670,10 @@ class _MosqueDomeClipper extends CustomClipper<Path> {
     final h = size.height;
 
     // Dome parameters - classic mosque dome proportions
-    final domeHeight = h * 0.28;        // Dome rises 28% of card height
-    final domeBaseY = domeHeight;       // Where dome meets straight walls
-    final peakX = w / 2;                // Center peak
-    final peakY = h * 0.02;             // Peak near top with small margin
+    final domeHeight = h * 0.28; // Dome rises 28% of card height
+    final domeBaseY = domeHeight; // Where dome meets straight walls
+    final peakX = w / 2; // Center peak
+    final peakY = h * 0.02; // Peak near top with small margin
 
     // Minaret (small spire) at the very top
     final spireHeight = h * 0.04;
@@ -501,30 +690,42 @@ class _MosqueDomeClipper extends CustomClipper<Path> {
     // Left dome curve - elegant Islamic arch shape
     // Control points create the characteristic pointed dome
     path.cubicTo(
-      0, domeBaseY * 0.7,                    // control point 1
-      w * 0.20, domeBaseY * 0.3,             // control point 2
-      w * 0.35, peakY + spireHeight,         // end point - left of center
+      0,
+      domeBaseY * 0.7, // control point 1
+      w * 0.20,
+      domeBaseY * 0.3, // control point 2
+      w * 0.35,
+      peakY + spireHeight, // end point - left of center
     );
 
     // Curve to the peak (with minaret spire)
     path.cubicTo(
-      w * 0.42, peakY + spireHeight * 0.5,   // control point 1
-      w * 0.48, peakY + spireHeight * 0.2,   // control point 2
-      peakX, spireTipY,                       // end point - top spire
+      w * 0.42,
+      peakY + spireHeight * 0.5, // control point 1
+      w * 0.48,
+      peakY + spireHeight * 0.2, // control point 2
+      peakX,
+      spireTipY, // end point - top spire
     );
 
     // Right side of spire down
     path.cubicTo(
-      w * 0.52, peakY + spireHeight * 0.2,   // control point 1
-      w * 0.58, peakY + spireHeight * 0.5,   // control point 2
-      w * 0.65, peakY + spireHeight,         // end point - right of center
+      w * 0.52,
+      peakY + spireHeight * 0.2, // control point 1
+      w * 0.58,
+      peakY + spireHeight * 0.5, // control point 2
+      w * 0.65,
+      peakY + spireHeight, // end point - right of center
     );
 
     // Right dome curve down to base
     path.cubicTo(
-      w * 0.80, domeBaseY * 0.3,             // control point 1
-      w, domeBaseY * 0.7,                    // control point 2
-      w, domeBaseY,                          // end point - right base
+      w * 0.80,
+      domeBaseY * 0.3, // control point 1
+      w,
+      domeBaseY * 0.7, // control point 2
+      w,
+      domeBaseY, // end point - right base
     );
 
     // Right straight wall down
@@ -553,6 +754,7 @@ class _SacredJourneyTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _SacredJourneyTile({
+    super.key,
     required this.image,
     required this.label,
     required this.onTap,
@@ -683,8 +885,9 @@ class _SoulProgressCard extends StatelessWidget {
                   value: value,
                   strokeWidth: 4,
                   backgroundColor: AppColors.primaryMid,
-                  valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.gold),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.gold,
+                  ),
                   strokeCap: StrokeCap.round,
                 ),
                 Center(

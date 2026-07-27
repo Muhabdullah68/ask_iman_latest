@@ -6,7 +6,9 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/prayer_service.dart';
+import '../../core/services/tutorial_service.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
+import '../../shared/widgets/tooltip_overlay.dart';
 
 class QiblahScreen extends StatefulWidget {
   const QiblahScreen({super.key});
@@ -53,11 +55,11 @@ class _QiblahScreenState extends State<QiblahScreen>
   double _qiblahBearing = 0;
 
   // ─── THEME ───────────────────────────────────────────────────────────────────
-  static const Color _bg     = Color(0xFF0A1F16);
+  static const Color _bg = Color(0xFF0A1F16);
   static const Color _border = Color(0xFF1D4533);
-  static const Color _gold   = Color(0xFFC9A84C);
-  static const Color _green  = Color(0xFF2D6A4F);
-  static const Color _white  = Color(0xFFFFFFFF);
+  static const Color _gold = Color(0xFFC9A84C);
+  static const Color _green = Color(0xFF2D6A4F);
+  static const Color _white = Color(0xFFFFFFFF);
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  LIFECYCLE
@@ -93,10 +95,11 @@ class _QiblahScreenState extends State<QiblahScreen>
     final next = service.nextPrayerInfo;
     if (next != null) {
       final mins = next.minutesUntil();
-      final hrs  = mins ~/ 60;
-      final rem  = mins % 60;
-      final countdownText =
-      hrs > 0 ? '${hrs}h ${rem}m remaining' : '${mins}m remaining';
+      final hrs = mins ~/ 60;
+      final rem = mins % 60;
+      final countdownText = hrs > 0
+          ? '${hrs}h ${rem}m remaining'
+          : '${mins}m remaining';
       setState(() {
         _prayerTimes = {
           'nextPrayerName': next.name,
@@ -180,7 +183,7 @@ class _QiblahScreenState extends State<QiblahScreen>
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
-      
+
       // PASSIVE CHECK: Only request if it's the FIRST time or we already have it.
       if (permission == LocationPermission.denied) {
         if (mounted && _currentPosition == null) {
@@ -194,7 +197,10 @@ class _QiblahScreenState extends State<QiblahScreen>
 
       if (permission == LocationPermission.deniedForever) {
         if (mounted && _currentPosition == null) {
-          setState(() => _errorMessage = 'Location permissions are permanently denied.');
+          setState(
+            () =>
+                _errorMessage = 'Location permissions are permanently denied.',
+          );
         }
         return;
       }
@@ -214,13 +220,14 @@ class _QiblahScreenState extends State<QiblahScreen>
       _errorMessage = '';
       _isLoading = true;
     });
-    
+
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    
-    if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+
+    if (permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse) {
       _initialize();
     } else {
       setState(() {
@@ -232,41 +239,44 @@ class _QiblahScreenState extends State<QiblahScreen>
 
   void _requestFreshLocation() {
     Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.medium,
-      timeLimit: const Duration(seconds: 5),
-    ).then((pos) {
-      if (mounted) {
-        setState(() {
-          _currentPosition = pos;
-          _qiblahBearing = _calculateQiblahBearing();
-          _targetQiblahAngle = _qiblahBearing - _compassHeading;
-          _isLoading = false;
+          desiredAccuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 5),
+        )
+        .then((pos) {
+          if (mounted) {
+            setState(() {
+              _currentPosition = pos;
+              _qiblahBearing = _calculateQiblahBearing();
+              _targetQiblahAngle = _qiblahBearing - _compassHeading;
+              _isLoading = false;
+            });
+          }
+        })
+        .catchError((e) {
+          if (mounted && _currentPosition == null) {
+            setState(() => _isLoading = false);
+          }
         });
-      }
-    }).catchError((e) {
-      if (mounted && _currentPosition == null) {
-        setState(() => _isLoading = false);
-      }
-    });
   }
 
   void _startLocationUpdates() {
-    _locationSubscription = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10, // metres — only recalculate after moving 10 m
-      ),
-    ).listen((Position position) {
-      if (!mounted) return;
-      setState(() {
-        _currentPosition   = position;
-        _qiblahBearing     = _calculateQiblahBearing();
-        // FIX: recompute with the CURRENT live compass heading every time
-        // the location updates, so the Qiblah icon stays accurate.
-        _targetQiblahAngle = _qiblahBearing - _compassHeading;
-        _isLoading         = false;
-      });
-    });
+    _locationSubscription =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 10, // metres — only recalculate after moving 10 m
+          ),
+        ).listen((Position position) {
+          if (!mounted) return;
+          setState(() {
+            _currentPosition = position;
+            _qiblahBearing = _calculateQiblahBearing();
+            // FIX: recompute with the CURRENT live compass heading every time
+            // the location updates, so the Qiblah icon stays accurate.
+            _targetQiblahAngle = _qiblahBearing - _compassHeading;
+            _isLoading = false;
+          });
+        });
   }
 
   void _startCompass() {
@@ -275,14 +285,14 @@ class _QiblahScreenState extends State<QiblahScreen>
       if (mounted) {
         setState(() {
           _errorMessage = 'Your device does not support compass sensors.';
-          _isLoading    = false;
+          _isLoading = false;
         });
       }
       return;
     }
 
     _compassSubscription = compassStream.listen(
-          (CompassEvent event) {
+      (CompassEvent event) {
         if (!mounted) return;
 
         final double? rawHeading = event.heading;
@@ -314,7 +324,7 @@ class _QiblahScreenState extends State<QiblahScreen>
 
         setState(() {
           _compassHeading = heading;
-          _isLoading      = false;
+          _isLoading = false;
         });
       },
       onError: (Object e) {
@@ -332,11 +342,11 @@ class _QiblahScreenState extends State<QiblahScreen>
   double _calculateDistance() {
     if (_currentPosition == null) return 5432;
     return Geolocator.distanceBetween(
-      _currentPosition!.latitude,
-      _currentPosition!.longitude,
-      _kaabaLat,
-      _kaabaLon,
-    ) /
+          _currentPosition!.latitude,
+          _currentPosition!.longitude,
+          _kaabaLat,
+          _kaabaLon,
+        ) /
         1000;
   }
 
@@ -344,14 +354,15 @@ class _QiblahScreenState extends State<QiblahScreen>
   double _calculateQiblahBearing() {
     if (_currentPosition == null) return 0;
 
-    final lat1 = _currentPosition!.latitude  * math.pi / 180;
+    final lat1 = _currentPosition!.latitude * math.pi / 180;
     final lon1 = _currentPosition!.longitude * math.pi / 180;
     final lat2 = _kaabaLat * math.pi / 180;
     final lon2 = _kaabaLon * math.pi / 180;
     final dLon = lon2 - lon1;
 
     final y = math.sin(dLon) * math.cos(lat2);
-    final x = math.cos(lat1) * math.sin(lat2) -
+    final x =
+        math.cos(lat1) * math.sin(lat2) -
         math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
 
     return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
@@ -372,9 +383,7 @@ class _QiblahScreenState extends State<QiblahScreen>
     if (_isLoading) {
       return Scaffold(
         backgroundColor: _bg,
-        body: const Center(
-          child: CircularProgressIndicator(color: _white),
-        ),
+        body: const Center(child: CircularProgressIndicator(color: _white)),
       );
     }
 
@@ -388,8 +397,11 @@ class _QiblahScreenState extends State<QiblahScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.location_off_rounded,
-                    color: AppColors.gold, size: 64),
+                const Icon(
+                  Icons.location_off_rounded,
+                  color: AppColors.gold,
+                  size: 64,
+                ),
                 const SizedBox(height: 24),
                 Text(
                   _errorMessage,
@@ -420,7 +432,8 @@ class _QiblahScreenState extends State<QiblahScreen>
                       foregroundColor: _bg,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: _requestPermissionAndRetry,
@@ -444,151 +457,163 @@ class _QiblahScreenState extends State<QiblahScreen>
 
     // ── Main screen ───────────────────────────────────────────────────────────
     final qiblahBearing = _qiblahBearing;
-    final heading       = _compassHeading;
+    final heading = _compassHeading;
     final relativeAngle =
         (_shortestAngularDiff(qiblahBearing, heading) + 360) % 360;
-    final distance      = _calculateDistance();
+    final distance = _calculateDistance();
     final isFacingQiblah = relativeAngle < 5 || relativeAngle > 355;
 
     return Scaffold(
       backgroundColor: _bg,
       appBar: const AskImanAppBar(showBackButton: true),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
+      body: TooltipOverlay(
+        id: 'tut_qiblah',
+        title: 'Qibla Finder',
+        description: 'Find the Qibla direction from anywhere in the world',
+        arrowDirection: TooltipArrowDirection.up,
+        onNext: () {
+          Navigator.maybePop(context);
+          TutorialService.instance.next();
+        },
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
 
-            // ── Info card ──────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(20),
-                  border:
-                  Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildInfoItem(
-                      'Distance',
-                      '${distance.toStringAsFixed(0)} km',
-                      Icons.location_on_outlined,
+              // ── Info card ──────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1),
                     ),
-                    Container(
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildInfoItem(
+                        'Distance',
+                        '${distance.toStringAsFixed(0)} km',
+                        Icons.location_on_outlined,
+                      ),
+                      Container(
                         width: 1,
                         height: 40,
-                        color: Colors.white.withValues(alpha: 0.1)),
-                    _buildInfoItem(
-                      'Qibla',
-                      '${qiblahBearing.toStringAsFixed(1)}°',
-                      Icons.explore_outlined,
-                    ),
-                  ],
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                      _buildInfoItem(
+                        'Qibla',
+                        '${qiblahBearing.toStringAsFixed(1)}°',
+                        Icons.explore_outlined,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            const Spacer(flex: 2),
-            _buildCompassView(),
-            const Spacer(flex: 1),
+              const Spacer(flex: 2),
+              _buildCompassView(),
+              const Spacer(flex: 1),
 
-            // ── Heading label ──────────────────────────────────────────────
-            Text(
-              '${heading.toStringAsFixed(0)}° ${_getDirectionLabel(heading)}',
-              style: const TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 42,
-                fontWeight: FontWeight.w800,
-                color: _white,
+              // ── Heading label ──────────────────────────────────────────────
+              Text(
+                '${heading.toStringAsFixed(0)}° ${_getDirectionLabel(heading)}',
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 42,
+                  fontWeight: FontWeight.w800,
+                  color: _white,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
+              const SizedBox(height: 4),
 
-            // ── Facing label ───────────────────────────────────────────────
-            Opacity(
-              opacity: isFacingQiblah ? 1.0 : 0.7,
-              child: Text(
-                isFacingQiblah
-                    ? 'Facing Kaaba'
-                    : 'Turn ${relativeAngle < 180 ? 'Right' : 'Left'}',
+              // ── Facing label ───────────────────────────────────────────────
+              Opacity(
+                opacity: isFacingQiblah ? 1.0 : 0.7,
+                child: Text(
+                  isFacingQiblah
+                      ? 'Facing Kaaba'
+                      : 'Turn ${relativeAngle < 180 ? 'Right' : 'Left'}',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 18,
+                    fontWeight: isFacingQiblah
+                        ? FontWeight.w800
+                        : FontWeight.w600,
+                    color: isFacingQiblah
+                        ? const Color(0xFF52B788)
+                        : _white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── Coordinates ────────────────────────────────────────────────
+              Text(
+                _currentPosition == null
+                    ? 'Acquiring Location...'
+                    : '${_currentPosition!.latitude.toStringAsFixed(2)}°, '
+                          '${_currentPosition!.longitude.toStringAsFixed(2)}°',
                 style: TextStyle(
                   fontFamily: 'Cairo',
-                  fontSize: 18,
-                  fontWeight: isFacingQiblah
-                      ? FontWeight.w800
-                      : FontWeight.w600,
-                  color: isFacingQiblah
-                      ? const Color(0xFF52B788)
-                      : _white.withValues(alpha: 0.7),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // ── Coordinates ────────────────────────────────────────────────
-            Text(
-              _currentPosition == null
-                  ? 'Acquiring Location...'
-                  : '${_currentPosition!.latitude.toStringAsFixed(2)}°, '
-                  '${_currentPosition!.longitude.toStringAsFixed(2)}°',
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: _white.withValues(alpha: 0.5),
-              ),
-            ),
-
-            // ── Next-prayer card ───────────────────────────────────────────
-            if (_prayerTimes != null)
-              Flexible(
-                child: _buildPrayerCard(
-                  _prayerTimes!['nextPrayerName'] as String,
-                  _prayerTimes!['nextPrayerTime'] as String,
-                  _prayerTimes!['remainingTime'] as String,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: _white.withValues(alpha: 0.5),
                 ),
               ),
 
-            const Spacer(flex: 3),
-
-            // ── Accuracy progress bar ──────────────────────────────────────
-            Padding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-              child: Container(
-                height: 14,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0D281C),
-                  borderRadius: BorderRadius.circular(7),
+              // ── Next-prayer card ───────────────────────────────────────────
+              if (_prayerTimes != null)
+                Flexible(
+                  child: _buildPrayerCard(
+                    _prayerTimes!['nextPrayerName'] as String,
+                    _prayerTimes!['nextPrayerTime'] as String,
+                    _prayerTimes!['remainingTime'] as String,
+                  ),
                 ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: isFacingQiblah
-                      ? 1.0
-                      : (1 -
-                      (relativeAngle > 180
-                          ? 360 - relativeAngle
-                          : relativeAngle) /
-                          180)
-                      .clamp(0.1, 1.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isFacingQiblah
-                          ? const Color(0xFF52B788)
-                          : _gold,
-                      borderRadius: BorderRadius.circular(7),
+
+              const Spacer(flex: 3),
+
+              // ── Accuracy progress bar ──────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 20,
+                ),
+                child: Container(
+                  height: 14,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D281C),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: isFacingQiblah
+                        ? 1.0
+                        : (1 -
+                                  (relativeAngle > 180
+                                          ? 360 - relativeAngle
+                                          : relativeAngle) /
+                                      180)
+                              .clamp(0.1, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isFacingQiblah ? const Color(0xFF52B788) : _gold,
+                        borderRadius: BorderRadius.circular(7),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-          ],
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
     );
@@ -632,7 +657,7 @@ class _QiblahScreenState extends State<QiblahScreen>
   Widget _buildPrayerCard(String name, String time, String remaining) {
     final loc = _currentPosition != null
         ? '${_currentPosition!.latitude.toStringAsFixed(2)}°, '
-        '${_currentPosition!.longitude.toStringAsFixed(2)}°'
+              '${_currentPosition!.longitude.toStringAsFixed(2)}°'
         : 'Current Location';
 
     return Container(
@@ -682,19 +707,16 @@ class _QiblahScreenState extends State<QiblahScreen>
           ),
           const SizedBox(height: 14),
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(20),
-              border:
-              Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.access_time_rounded,
-                    color: _gold, size: 14),
+                const Icon(Icons.access_time_rounded, color: _gold, size: 14),
                 const SizedBox(width: 6),
                 Text(
                   remaining,
@@ -726,7 +748,7 @@ class _QiblahScreenState extends State<QiblahScreen>
   //   5. Center pivot cap                 — static decoration
   //
   Widget _buildCompassView() {
-    final size       = MediaQuery.of(context).size.width * 0.78;
+    final size = MediaQuery.of(context).size.width * 0.78;
     const markerSize = 60.0;
 
     return SizedBox(
@@ -812,10 +834,7 @@ class _QiblahScreenState extends State<QiblahScreen>
               border: Border.all(color: _gold, width: 1.5),
             ),
             child: const Center(
-              child: CircleAvatar(
-                radius: 3,
-                backgroundColor: _gold,
-              ),
+              child: CircleAvatar(radius: 3, backgroundColor: _gold),
             ),
           ),
         ],
@@ -833,25 +852,32 @@ class _TickMarkPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
     final cy = size.height / 2;
-    final r  = size.width / 2 - 2;
+    final r = size.width / 2 - 2;
 
     for (int i = 0; i < 360; i += 5) {
-      final angle   = (i - 90) * math.pi / 180;
-      final major   = i % 45 == 0;
-      final mid     = i % 15 == 0;
-      final len     = major ? 14.0 : mid ? 9.0 : 5.0;
+      final angle = (i - 90) * math.pi / 180;
+      final major = i % 45 == 0;
+      final mid = i % 15 == 0;
+      final len = major
+          ? 14.0
+          : mid
+          ? 9.0
+          : 5.0;
       final strokeW = major ? 1.5 : 0.8;
-      final color   = major
+      final color = major
           ? const Color(0xFFC9A84C).withValues(alpha: 0.5)
           : const Color(0xFF7AAB85).withValues(alpha: 0.2);
 
       canvas.drawLine(
-        Offset(cx + (r - 1)   * math.cos(angle), cy + (r - 1)   * math.sin(angle)),
-        Offset(cx + (r - len) * math.cos(angle), cy + (r - len) * math.sin(angle)),
+        Offset(cx + (r - 1) * math.cos(angle), cy + (r - 1) * math.sin(angle)),
+        Offset(
+          cx + (r - len) * math.cos(angle),
+          cy + (r - len) * math.sin(angle),
+        ),
         Paint()
-          ..color       = color
+          ..color = color
           ..strokeWidth = strokeW
-          ..strokeCap   = StrokeCap.round,
+          ..strokeCap = StrokeCap.round,
       );
     }
   }
@@ -865,14 +891,23 @@ class _StarRosePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
     final cy = size.height / 2;
-    final r  = size.width / 2;
+    final r = size.width / 2;
 
     void drawPoint(double angleDeg, double length, double width, Color color) {
-      final angle     = (angleDeg - 90) * math.pi / 180;
+      final angle = (angleDeg - 90) * math.pi / 180;
       final perpAngle = angle + math.pi / 2;
-      final tip   = Offset(cx + length * math.cos(angle), cy + length * math.sin(angle));
-      final base1 = Offset(cx + width  * math.cos(perpAngle), cy + width  * math.sin(perpAngle));
-      final base2 = Offset(cx - width  * math.cos(perpAngle), cy - width  * math.sin(perpAngle));
+      final tip = Offset(
+        cx + length * math.cos(angle),
+        cy + length * math.sin(angle),
+      );
+      final base1 = Offset(
+        cx + width * math.cos(perpAngle),
+        cy + width * math.sin(perpAngle),
+      );
+      final base2 = Offset(
+        cx - width * math.cos(perpAngle),
+        cy - width * math.sin(perpAngle),
+      );
 
       canvas.drawPath(
         Path()
@@ -888,15 +923,19 @@ class _StarRosePainter extends CustomPainter {
     }
 
     // Cardinal points (large)
-    drawPoint(  0, r * 0.85, r * 0.08, const Color(0xFFC9A84C)); // N — gold
+    drawPoint(0, r * 0.85, r * 0.08, const Color(0xFFC9A84C)); // N — gold
     drawPoint(180, r * 0.85, r * 0.08, const Color(0xFF2E5038)); // S
-    drawPoint( 90, r * 0.85, r * 0.08, const Color(0xFF2E5038)); // E
+    drawPoint(90, r * 0.85, r * 0.08, const Color(0xFF2E5038)); // E
     drawPoint(270, r * 0.85, r * 0.08, const Color(0xFF2E5038)); // W
 
     // Diagonal points (smaller)
     for (final a in [45.0, 135.0, 225.0, 315.0]) {
-      drawPoint(a, r * 0.6, r * 0.045,
-          const Color(0xFF3A5A42).withValues(alpha: 0.7));
+      drawPoint(
+        a,
+        r * 0.6,
+        r * 0.045,
+        const Color(0xFF3A5A42).withValues(alpha: 0.7),
+      );
     }
 
     // N/S/E/W text labels
@@ -907,24 +946,27 @@ class _StarRosePainter extends CustomPainter {
     );
 
     void drawLabel(String text, double angleDeg, Color color) {
-      final angle  = (angleDeg - 90) * math.pi / 180;
+      final angle = (angleDeg - 90) * math.pi / 180;
       final labelR = r * 0.68;
-      final tp     = TextPainter(
-        text: TextSpan(text: text, style: textStyle.copyWith(color: color)),
+      final tp = TextPainter(
+        text: TextSpan(
+          text: text,
+          style: textStyle.copyWith(color: color),
+        ),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(
         canvas,
         Offset(
-          cx + labelR * math.cos(angle) - tp.width  / 2,
+          cx + labelR * math.cos(angle) - tp.width / 2,
           cy + labelR * math.sin(angle) - tp.height / 2,
         ),
       );
     }
 
-    drawLabel('N',   0, const Color(0xFFC9A84C));
+    drawLabel('N', 0, const Color(0xFFC9A84C));
     drawLabel('S', 180, const Color(0xFF7AAB85));
-    drawLabel('E',  90, const Color(0xFF7AAB85));
+    drawLabel('E', 90, const Color(0xFF7AAB85));
     drawLabel('W', 270, const Color(0xFF7AAB85));
   }
 
@@ -937,8 +979,8 @@ class _NeedlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
     final cy = size.height / 2;
-    final h  = size.height / 2;
-    final w  = size.width  / 12;
+    final h = size.height / 2;
+    final w = size.width / 12;
 
     // North half — bright emerald green (points UP on the rotated dial,
     // which always corresponds to geographic north on screen)
@@ -958,7 +1000,7 @@ class _NeedlePainter extends CustomPainter {
       Offset(cx, cy - h * 0.98),
       Offset(cx, cy),
       Paint()
-        ..color       = Colors.white.withValues(alpha: 0.3)
+        ..color = Colors.white.withValues(alpha: 0.3)
         ..strokeWidth = 1.0,
     );
 
@@ -996,8 +1038,8 @@ class _NeedlePainter extends CustomPainter {
       Offset(cx, cy),
       w * 0.6,
       Paint()
-        ..color       = const Color(0xFFC9A84C)
-        ..style       = PaintingStyle.stroke
+        ..color = const Color(0xFFC9A84C)
+        ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
   }

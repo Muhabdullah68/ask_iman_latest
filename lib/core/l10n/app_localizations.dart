@@ -15,8 +15,9 @@ class AppLocalizations {
   Map<String, String> _localizedStrings = {};
 
   Future<void> load() async {
-    String jsonString =
-        await rootBundle.loadString('lib/core/l10n/app_${locale.languageCode}.arb');
+    String jsonString = await rootBundle.loadString(
+      'lib/core/l10n/app_${locale.languageCode}.arb',
+    );
     Map<String, dynamic> jsonMap = json.decode(jsonString);
     _localizedStrings = jsonMap.map((key, value) {
       return MapEntry(key, value.toString());

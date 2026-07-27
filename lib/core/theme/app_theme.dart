@@ -9,8 +9,8 @@ class AppTheme {
     // For Urdu, use a different font (e.g., NotoNastaliqUrdu or Jameel Noori if available)
     String fontFamily = 'Cairo';
     if (locale.languageCode == 'ur') {
-      // If Jameel Noori is added, use that, else fall back to NotoNastaliq
-      fontFamily = 'NotoNastaliq';
+      // Use Jameel font for Urdu
+      fontFamily = 'Jameel';
     }
 
     return ThemeData(
@@ -41,9 +41,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: AppColors.bgWhite,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: EdgeInsets.zero,
       ),
 
@@ -81,10 +79,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.gold,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: AppColors.gold, width: 1.5),
         ),
         hintStyle: const TextStyle(
           fontFamily: 'Cairo',
@@ -101,12 +96,12 @@ class AppTheme {
 
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
+          (states) => states.contains(WidgetState.selected)
               ? AppColors.gold
               : AppColors.textLightGrey,
         ),
         trackColor: WidgetStateProperty.resolveWith(
-              (states) => states.contains(WidgetState.selected)
+          (states) => states.contains(WidgetState.selected)
               ? AppColors.gold.withValues(alpha: 0.3)
               : AppColors.borderLight,
         ),

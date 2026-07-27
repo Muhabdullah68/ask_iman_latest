@@ -23,8 +23,8 @@ class AppResponsive {
   final BuildContext _ctx;
   late final double _sw;
   late final double _sh;
-  late final double _sf;   // width scale factor
-  late final double _tf;   // text scale factor
+  late final double _sf; // width scale factor
+  late final double _tf; // text scale factor
 
   static const double _baseW = 390.0;
   static const double _baseH = 844.0;
@@ -37,7 +37,7 @@ class AppResponsive {
     _tf = (_sw / _baseW).clamp(0.82, 1.10);
   }
 
-  double get screenWidth  => _sw;
+  double get screenWidth => _sw;
   double get screenHeight => _sh;
 
   /// Scaled font size
@@ -47,7 +47,8 @@ class AppResponsive {
   double w(double dp) => (dp * _sf).roundToDouble();
 
   /// Scaled vertical spacing / padding / height
-  double h(double dp) => (dp * (_sh / _baseH).clamp(0.80, 1.15)).roundToDouble();
+  double h(double dp) =>
+      (dp * (_sh / _baseH).clamp(0.80, 1.15)).roundToDouble();
 
   /// Scaled border radius
   double radius(double dp) => (dp * _sf).roundToDouble();
@@ -67,7 +68,7 @@ class AppResponsive {
   /// Safe top padding
   double get topPadding => MediaQuery.of(_ctx).padding.top;
 
-  bool get isSmall  => _sw < 360;
+  bool get isSmall => _sw < 360;
   bool get isMedium => _sw >= 360 && _sw < 400;
-  bool get isLarge  => _sw >= 400;
+  bool get isLarge => _sw >= 400;
 }

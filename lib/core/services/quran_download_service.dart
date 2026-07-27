@@ -20,7 +20,8 @@ class DownloadProgress {
 }
 
 class QuranDownloadService extends ChangeNotifier {
-  static final QuranDownloadService _instance = QuranDownloadService._internal();
+  static final QuranDownloadService _instance =
+      QuranDownloadService._internal();
   factory QuranDownloadService() => _instance;
   QuranDownloadService._internal();
 
@@ -48,13 +49,13 @@ class QuranDownloadService extends ChangeNotifier {
     final extension = type == DownloadType.audio ? 'mp3' : 'pdf';
     final folder = type == DownloadType.audio ? 'audio' : 'pdf';
     final path = p.join(directory.path, 'quran', folder, '$id.$extension');
-    
+
     // Create directory if it doesn't exist
     final file = File(path);
     if (!await file.parent.exists()) {
       await file.parent.create(recursive: true);
     }
-    
+
     return path;
   }
 
@@ -64,7 +65,7 @@ class QuranDownloadService extends ChangeNotifier {
     required DownloadType type,
   }) async {
     if (!_initialized) await init();
-    
+
     final key = '${id}_${type.name}';
     if (_progressMap[key]?.isDownloading == true) return;
 

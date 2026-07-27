@@ -60,21 +60,24 @@ class AhadeesData {
   static final List<Map<String, String>> ahadees = [
     // Character
     {
-      'text': '"Whoever believes in Allah and the Last Day should speak a good word or remain silent."',
+      'text':
+          '"Whoever believes in Allah and the Last Day should speak a good word or remain silent."',
       'narrator': 'Narrated by Abu Huraira',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
       'topic': 'Character',
     },
     {
-      'text': '"The best among you are those who have the best manners and character."',
+      'text':
+          '"The best among you are those who have the best manners and character."',
       'narrator': 'Narrated by Ibn Umar',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
       'topic': 'Character',
     },
     {
-      'text': '"He who believes in Allah and the Last Day must not harm his neighbor. He who believes in Allah and the Last Day must entertain his guest generously."',
+      'text':
+          '"He who believes in Allah and the Last Day must not harm his neighbor. He who believes in Allah and the Last Day must entertain his guest generously."',
       'narrator': 'Narrated by Abu Huraira',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
@@ -89,7 +92,8 @@ class AhadeesData {
       'topic': 'Faith',
     },
     {
-      'text': '"Faith is to believe in Allah, His angels, His Books, His Messengers, the Day of Judgment, and the divine decree about good and evil."',
+      'text':
+          '"Faith is to believe in Allah, His angels, His Books, His Messengers, the Day of Judgment, and the divine decree about good and evil."',
       'narrator': 'Narrated by Abu Huraira',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
@@ -104,7 +108,8 @@ class AhadeesData {
       'topic': 'Prayer',
     },
     {
-      'text': '"The five daily prayers are prescribed: Fajr, Dhuhr, Asr, Maghrib, and Isha."',
+      'text':
+          '"The five daily prayers are prescribed: Fajr, Dhuhr, Asr, Maghrib, and Isha."',
       'narrator': 'Narrated by Abu Huraira',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
@@ -112,7 +117,8 @@ class AhadeesData {
     },
     // Charity
     {
-      'text': '"The best charity is that given to a relative who does not like you."',
+      'text':
+          '"The best charity is that given to a relative who does not like you."',
       'narrator': 'Narrated by Abu Ayyub al-Ansari',
       'book': 'JAMI AT-TIRMIDHI',
       'grade': 'SAHIH',
@@ -134,7 +140,8 @@ class AhadeesData {
       'topic': 'Fasting',
     },
     {
-      'text': '"When the month of Ramadan begins, the gates of Paradise are opened and the gates of Hell are closed."',
+      'text':
+          '"When the month of Ramadan begins, the gates of Paradise are opened and the gates of Hell are closed."',
       'narrator': 'Narrated by Abu Huraira',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
@@ -142,7 +149,8 @@ class AhadeesData {
     },
     // Patience
     {
-      'text': '"The strong man is not the one who can wrestle, but the one who can control himself in a fit of anger."',
+      'text':
+          '"The strong man is not the one who can wrestle, but the one who can control himself in a fit of anger."',
       'narrator': 'Narrated by Abu Huraira',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
@@ -157,7 +165,8 @@ class AhadeesData {
     },
     // Marriage
     {
-      'text': '"A woman is married for four things: her wealth, her family status, her beauty and her religion. So you should take the religious one."',
+      'text':
+          '"A woman is married for four things: her wealth, her family status, her beauty and her religion. So you should take the religious one."',
       'narrator': 'Narrated by Abu Huraira',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
@@ -165,7 +174,8 @@ class AhadeesData {
     },
     // Knowledge
     {
-      'text': '"The best among you are those who learn the Quran and teach it."',
+      'text':
+          '"The best among you are those who learn the Quran and teach it."',
       'narrator': 'Narrated by Abu Huraira',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
@@ -173,7 +183,8 @@ class AhadeesData {
     },
     // Parents
     {
-      'text': '"A father\'s pleasure is Allah\'s pleasure, and a father\'s displeasure is Allah\'s displeasure."',
+      'text':
+          '"A father\'s pleasure is Allah\'s pleasure, and a father\'s displeasure is Allah\'s displeasure."',
       'narrator': 'Narrated by Abdullah ibn Amr',
       'book': 'JAMI AT-TIRMIDHI',
       'grade': 'SAHIH',
@@ -196,7 +207,8 @@ class AhadeesData {
     },
     // Truthfulness
     {
-      'text': '"Truthfulness leads to righteousness, and righteousness leads to Paradise."',
+      'text':
+          '"Truthfulness leads to righteousness, and righteousness leads to Paradise."',
       'narrator': 'Narrated by Abdullah ibn Masud',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
@@ -212,7 +224,8 @@ class AhadeesData {
     },
     // Jealousy
     {
-      'text': '"Beware of jealousy, for jealousy devours good deeds just as fire devours wood."',
+      'text':
+          '"Beware of jealousy, for jealousy devours good deeds just as fire devours wood."',
       'narrator': 'Narrated by Abu Huraira',
       'book': 'SUNAN ABU DAWUD',
       'grade': 'SAHIH',
@@ -220,7 +233,8 @@ class AhadeesData {
     },
     // Jihad
     {
-      'text': '"The best Jihad is to speak a word of truth to a tyrannical ruler."',
+      'text':
+          '"The best Jihad is to speak a word of truth to a tyrannical ruler."',
       'narrator': 'Narrated by Abu Sa\'id al-Khudri',
       'book': 'SUNAN ABU DAWUD',
       'grade': 'SAHIH',
@@ -228,7 +242,8 @@ class AhadeesData {
     },
     // Kindness
     {
-      'text': '"He who is not kind to our young ones and does not respect our elders is not from us."',
+      'text':
+          '"He who is not kind to our young ones and does not respect our elders is not from us."',
       'narrator': 'Narrated by Anas ibn Malik',
       'book': 'JAMI AT-TIRMIDHI',
       'grade': 'SAHIH',
@@ -244,7 +259,8 @@ class AhadeesData {
     },
     // Repentance
     {
-      'text': '"All the sons of Adam are sinners, but the best of sinners are those who repent."',
+      'text':
+          '"All the sons of Adam are sinners, but the best of sinners are those who repent."',
       'narrator': 'Narrated by Anas ibn Malik',
       'book': 'SUNAN IBN MAJAH',
       'grade': 'SAHIH',
@@ -252,7 +268,8 @@ class AhadeesData {
     },
     // Paradise
     {
-      'text': '"I have prepared for My righteous servants what no eye has seen, no ear has heard, and no human heart has conceived."',
+      'text':
+          '"I have prepared for My righteous servants what no eye has seen, no ear has heard, and no human heart has conceived."',
       'narrator': 'Narrated by Abu Huraira',
       'book': 'SAHIH AL-BUKHARI',
       'grade': 'SAHIH',
@@ -261,12 +278,35 @@ class AhadeesData {
   ];
 
   static const List<String> topics = [
-    'All', 'Character', 'Faith', 'Prayer', 'Charity', 'Fasting',
-    'Patience', 'Marriage', 'Knowledge', 'Parents',
-    'Modesty', 'Truthfulness', 'Anger', 'Jealousy', 'Jihad',
-    'Kindness', 'Hospitality', 'Brotherhood', 'Repentance', 'Paradise',
+    'All',
+    'Character',
+    'Faith',
+    'Prayer',
+    'Charity',
+    'Fasting',
+    'Patience',
+    'Marriage',
+    'Knowledge',
+    'Parents',
+    'Modesty',
+    'Truthfulness',
+    'Anger',
+    'Jealousy',
+    'Jihad',
+    'Kindness',
+    'Hospitality',
+    'Brotherhood',
+    'Repentance',
+    'Paradise',
   ];
-  static const List<String> books   = ['Bukhari', 'Muslim', 'Tirmidhi', 'Abu Dawud', 'Nasai', 'Ibn Majah'];
+  static const List<String> books = [
+    'Bukhari',
+    'Muslim',
+    'Tirmidhi',
+    'Abu Dawud',
+    'Nasai',
+    'Ibn Majah',
+  ];
 
   /// Filter by topic ('All' returns everything)
   static List<Map<String, String>> byTopic(String topic) {
@@ -276,17 +316,17 @@ class AhadeesData {
 
   /// Filter by book keyword
   static List<Map<String, String>> byBook(String book) {
-    return ahadees.where((h) =>
-        h['book']!.toUpperCase().contains(book.toUpperCase())).toList();
+    return ahadees
+        .where((h) => h['book']!.toUpperCase().contains(book.toUpperCase()))
+        .toList();
   }
 
   /// Get hadiths for a specific book slug
   static List<Map<String, String>> getBookHadiths(String slug) {
     final raw = bookHadiths[slug] ?? bookHadiths['bukhari']!;
-    return raw.map((h) => {
-      ...h,
-      'arabic': cleanArabicText(h['arabic'] ?? ''),
-    }).toList();
+    return raw
+        .map((h) => {...h, 'arabic': cleanArabicText(h['arabic'] ?? '')})
+        .toList();
   }
 
   // Helper functions to generate authentic Arabic hadith content
@@ -333,10 +373,7 @@ class AhadeesData {
   }
 
   static String _getTirmidhiArabic(int index) {
-    const hadiths = [
-      'أقول أحبك إلى الله أحبك إلي',
-      'رجل أحي سير في سيرتي',
-    ];
+    const hadiths = ['أقول أحبك إلى الله أحبك إلي', 'رجل أحي سير في سيرتي'];
     return hadiths[index % hadiths.length];
   }
 
@@ -349,9 +386,7 @@ class AhadeesData {
   }
 
   static String _getAbuDawudArabic(int index) {
-    const hadiths = [
-      'إذا سمعتم مني حديثا فقلنا الله أعلم إلا من سمع منه',
-    ];
+    const hadiths = ['إذا سمعتم مني حديثا فقلنا الله أعلم إلا من سمع منه'];
     return hadiths[index % hadiths.length];
   }
 
@@ -363,9 +398,7 @@ class AhadeesData {
   }
 
   static String _getNasaiArabic(int index) {
-    const hadiths = [
-      'أفضل الصلوات عند الله العصر',
-    ];
+    const hadiths = ['أفضل الصلوات عند الله العصر'];
     return hadiths[index % hadiths.length];
   }
 
@@ -377,16 +410,12 @@ class AhadeesData {
   }
 
   static String _getIbnMajahArabic(int index) {
-    const hadiths = [
-      'طلب العلم فريضة على كل مسلم',
-    ];
+    const hadiths = ['طلب العلم فريضة على كل مسلم'];
     return hadiths[index % hadiths.length];
   }
 
   static String _getIbnMajahEnglish(int index) {
-    const hadiths = [
-      'Seeking knowledge is a duty upon every Muslim.',
-    ];
+    const hadiths = ['Seeking knowledge is a duty upon every Muslim.'];
     return hadiths[index % hadiths.length];
   }
 }

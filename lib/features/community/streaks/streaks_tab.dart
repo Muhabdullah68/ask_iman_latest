@@ -12,7 +12,8 @@ import '../../../core/services/community_service.dart';
 class StreaksTab extends StatefulWidget {
   final AppUser? currentUser;
   const StreaksTab({super.key, required this.currentUser});
-  @override State<StreaksTab> createState() => _StreaksTabState();
+  @override
+  State<StreaksTab> createState() => _StreaksTabState();
 }
 
 class _StreaksTabState extends State<StreaksTab> {
@@ -22,8 +23,8 @@ class _StreaksTabState extends State<StreaksTab> {
 
   // Today's checklist state
   bool _prayers = false;
-  bool _quran   = false;
-  bool _class_  = false;
+  bool _quran = false;
+  bool _class_ = false;
 
   List<String> _customTasks = [];
   final Map<String, bool> _customTasksValues = {};
@@ -44,7 +45,8 @@ class _StreaksTabState extends State<StreaksTab> {
     setState(() => _loading = true);
 
     try {
-      final isGuest = widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
+      final isGuest =
+          widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
       final List<String> activeCustomTasks = [];
       int currentStreak = 0;
       Map<String, dynamic>? todayData;
@@ -55,19 +57,24 @@ class _StreaksTabState extends State<StreaksTab> {
         if (guestDataJson != null) {
           final guestData = jsonDecode(guestDataJson);
           if (guestData['customStreakTasks'] is List) {
-            activeCustomTasks.addAll(List<String>.from(guestData['customStreakTasks']));
+            activeCustomTasks.addAll(
+              List<String>.from(guestData['customStreakTasks']),
+            );
           }
         }
-        
-        currentStreak = await _svc.getStreakForUser(widget.currentUser?.uid ?? 'guest_user');
-        
+
+        currentStreak = await _svc.getStreakForUser(
+          widget.currentUser?.uid ?? 'guest_user',
+        );
+
         // Ensure guest profile is in sync with actual streak logs
         await _svc.updateStreakCount(currentStreak);
-        
+
         final streaksJson = prefs.getString('guest_streaks') ?? '{}';
         final Map<String, dynamic> streaks = jsonDecode(streaksJson);
         final today = DateTime.now();
-        final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
+        final dateKey =
+            '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
         todayData = streaks[dateKey];
       } else {
         // Use the live streak count from the user document first (real-time sync)
@@ -75,25 +82,28 @@ class _StreaksTabState extends State<StreaksTab> {
             .collection('users')
             .doc(widget.currentUser!.uid)
             .get();
-        
+
         final userData = userDoc.data();
         final currentStreakFromDoc = userData?['streakCount'] ?? 0;
 
         // Recalculate to be sure, and update if different
         currentStreak = await _svc.getStreakForUser(widget.currentUser!.uid);
-        
+
         if (currentStreakFromDoc != currentStreak) {
           await _svc.updateStreakCount(currentStreak);
         }
 
         if (userData != null && userData['customStreakTasks'] is List) {
-          activeCustomTasks.addAll(List<String>.from(userData['customStreakTasks']));
+          activeCustomTasks.addAll(
+            List<String>.from(userData['customStreakTasks']),
+          );
         }
 
         // Fetch today's log
         final today = DateTime.now();
-        final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
-        
+        final dateKey =
+            '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
         final doc = await FirebaseFirestore.instance
             .collection('streaks')
             .doc(widget.currentUser!.uid)
@@ -104,16 +114,16 @@ class _StreaksTabState extends State<StreaksTab> {
       }
 
       if (!mounted) return;
-      
+
       setState(() {
         _streak = currentStreak;
         _customTasks = activeCustomTasks;
-        
+
         if (todayData != null) {
           _prayers = todayData['prayers'] == true;
-          _quran   = todayData['quran'] == true;
-          _class_  = todayData['classAttended'] == true;
-          
+          _quran = todayData['quran'] == true;
+          _class_ = todayData['classAttended'] == true;
+
           final loggedCustom = todayData['customTasks'];
           _customTasksValues.clear();
           if (loggedCustom is Map) {
@@ -145,25 +155,29 @@ class _StreaksTabState extends State<StreaksTab> {
   Future<void> _save() async {
     try {
       final today = DateTime.now();
-      final dateKey = '${today.year}-${today.month.toString().padLeft(2,'0')}-${today.day.toString().padLeft(2,'0')}';
-      final isGuest = widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
-      
+      final dateKey =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final isGuest =
+          widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
+
       if (isGuest) {
         final prefs = await SharedPreferences.getInstance();
         final streaksJson = prefs.getString('guest_streaks') ?? '{}';
         final Map<String, dynamic> streaks = jsonDecode(streaksJson);
-        
+
         streaks[dateKey] = {
-          'prayers':       _prayers,
-          'quran':         _quran,
+          'prayers': _prayers,
+          'quran': _quran,
           'classAttended': _class_,
-          'customTasks':   _customTasksValues,
-          'date':          today.toIso8601String(),
+          'customTasks': _customTasksValues,
+          'date': today.toIso8601String(),
         };
-        
+
         await prefs.setString('guest_streaks', jsonEncode(streaks));
-        
-        final s = await _svc.getStreakForUser(widget.currentUser?.uid ?? 'guest_user');
+
+        final s = await _svc.getStreakForUser(
+          widget.currentUser?.uid ?? 'guest_user',
+        );
         await _svc.updateStreakCount(s);
         if (mounted) setState(() => _streak = s);
       } else {
@@ -173,17 +187,17 @@ class _StreaksTabState extends State<StreaksTab> {
             .collection('logs')
             .doc(dateKey)
             .set({
-          'prayers':       _prayers,
-          'quran':         _quran,
-          'classAttended': _class_,
-          'customTasks':   _customTasksValues,
-          'date':          Timestamp.fromDate(today),
-        }, SetOptions(merge: true));
+              'prayers': _prayers,
+              'quran': _quran,
+              'classAttended': _class_,
+              'customTasks': _customTasksValues,
+              'date': Timestamp.fromDate(today),
+            }, SetOptions(merge: true));
 
         // Update streak counter on user doc
         final s = await _svc.getStreakForUser(widget.currentUser!.uid);
         await _svc.updateStreakCount(s);
-        
+
         if (mounted) setState(() => _streak = s);
       }
     } catch (e) {
@@ -200,16 +214,21 @@ class _StreaksTabState extends State<StreaksTab> {
   Future<void> _addCustomTask(String task) async {
     final cleanedTask = task.trim();
     if (cleanedTask.isEmpty) return;
-    
+
     try {
-      final isGuest = widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
-      
+      final isGuest =
+          widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
+
       if (isGuest) {
         final prefs = await SharedPreferences.getInstance();
-        final guestDataJson = prefs.getString('guest_user_data') ?? jsonEncode(AppUser.guest.toMap());
+        final guestDataJson =
+            prefs.getString('guest_user_data') ??
+            jsonEncode(AppUser.guest.toMap());
         final Map<String, dynamic> guestData = jsonDecode(guestDataJson);
-        
-        final List<String> tasks = List<String>.from(guestData['customStreakTasks'] ?? []);
+
+        final List<String> tasks = List<String>.from(
+          guestData['customStreakTasks'] ?? [],
+        );
         if (!tasks.contains(cleanedTask)) {
           tasks.add(cleanedTask);
         }
@@ -217,11 +236,14 @@ class _StreaksTabState extends State<StreaksTab> {
         await prefs.setString('guest_user_data', jsonEncode(guestData));
       } else {
         // 1. Update Firestore
-        await FirebaseFirestore.instance.collection('users').doc(widget.currentUser!.uid).update({
-          'customStreakTasks': FieldValue.arrayUnion([cleanedTask])
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.currentUser!.uid)
+            .update({
+              'customStreakTasks': FieldValue.arrayUnion([cleanedTask]),
+            });
       }
-      
+
       // 2. Update local state immediately for better UX
       if (mounted) {
         setState(() {
@@ -231,7 +253,7 @@ class _StreaksTabState extends State<StreaksTab> {
           }
         });
       }
-      
+
       // 3. Trigger a background reload to be sure
       _load();
     } catch (e) {
@@ -247,30 +269,38 @@ class _StreaksTabState extends State<StreaksTab> {
 
   Future<void> _deleteCustomTask(String task) async {
     try {
-      final isGuest = widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
-      
+      final isGuest =
+          widget.currentUser == null || widget.currentUser!.uid == 'guest_user';
+
       if (isGuest) {
         final prefs = await SharedPreferences.getInstance();
-        final guestDataJson = prefs.getString('guest_user_data') ?? jsonEncode(AppUser.guest.toMap());
+        final guestDataJson =
+            prefs.getString('guest_user_data') ??
+            jsonEncode(AppUser.guest.toMap());
         final Map<String, dynamic> guestData = jsonDecode(guestDataJson);
-        
-        final List<String> tasks = List<String>.from(guestData['customStreakTasks'] ?? []);
+
+        final List<String> tasks = List<String>.from(
+          guestData['customStreakTasks'] ?? [],
+        );
         tasks.remove(task);
         guestData['customStreakTasks'] = tasks;
         await prefs.setString('guest_user_data', jsonEncode(guestData));
       } else {
-        await FirebaseFirestore.instance.collection('users').doc(widget.currentUser!.uid).update({
-          'customStreakTasks': FieldValue.arrayRemove([task])
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.currentUser!.uid)
+            .update({
+              'customStreakTasks': FieldValue.arrayRemove([task]),
+            });
       }
-      
+
       if (mounted) {
         setState(() {
           _customTasks.remove(task);
           _customTasksValues.remove(task);
         });
       }
-      
+
       _load();
     } catch (e) {
       debugPrint('Error deleting custom task: $e');
@@ -284,7 +314,9 @@ class _StreaksTabState extends State<StreaksTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 80), // Add more space to move streak down and center
+          const SizedBox(
+            height: 80,
+          ), // Add more space to move streak down and center
           _buildStreakHero(context),
           const SizedBox(height: 16),
           _buildWeekRow(),
@@ -313,36 +345,58 @@ class _StreaksTabState extends State<StreaksTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(loc.translate('currentStreak'), style: const TextStyle(
-                  fontFamily: 'Cairo', fontSize: 13,
-                  color: AppColors.textGreenMuted,
-                )),
+                Text(
+                  loc.translate('currentStreak'),
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 13,
+                    color: AppColors.textGreenMuted,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 _loading
-                    ? const SizedBox(width: 20, height: 20,
-                    child: CircularProgressIndicator(
-                        color: AppColors.gold, strokeWidth: 2))
-                    : Text('$_streak ${loc.translate('days')}', style: const TextStyle(
-                    fontFamily: 'Cairo', fontSize: 36,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textWhite)),
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: AppColors.gold,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        '$_streak ${loc.translate('days')}',
+                        style: const TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 36,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textWhite,
+                        ),
+                      ),
                 const SizedBox(height: 8),
                 Text(
                   loc.translate('completeTodayTasks'),
-                  style: const TextStyle(fontFamily: 'Cairo', fontSize: 12,
-                      color: AppColors.textGreenMuted, height: 1.4),
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 12,
+                    color: AppColors.textGreenMuted,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
           ),
           Container(
-            width: 64, height: 64,
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
               color: AppColors.gold.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.local_fire_department_rounded,
-                color: AppColors.gold, size: 34),
+            child: const Icon(
+              Icons.local_fire_department_rounded,
+              color: AppColors.gold,
+              size: 34,
+            ),
           ),
         ],
       ),
@@ -361,13 +415,18 @@ class _StreaksTabState extends State<StreaksTab> {
           final isToday = i == today;
           return Column(
             children: [
-              Text(days[i], style: TextStyle(
-                fontFamily: 'Cairo', fontSize: 11,
-                color: isToday ? AppColors.gold : AppColors.textGrey,
-              )),
+              Text(
+                days[i],
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 11,
+                  color: isToday ? AppColors.gold : AppColors.textGrey,
+                ),
+              ),
               const SizedBox(height: 6),
               Container(
-                width: 36, height: 36,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: done
                       ? AppColors.primaryDark
@@ -377,19 +436,25 @@ class _StreaksTabState extends State<StreaksTab> {
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: done
-                         ? AppColors.primaryDark
-                         : isToday
-                         ? AppColors.gold
-                         : AppColors.borderLight,
+                        ? AppColors.primaryDark
+                        : isToday
+                        ? AppColors.gold
+                        : AppColors.borderLight,
                   ),
                 ),
                 child: Center(
                   child: done
-                      ? const Icon(Icons.check_rounded,
-                      color: AppColors.gold, size: 16)
+                      ? const Icon(
+                          Icons.check_rounded,
+                          color: AppColors.gold,
+                          size: 16,
+                        )
                       : isToday
-                      ? const Icon(Icons.local_fire_department_rounded,
-                      color: AppColors.primaryDarkest, size: 16)
+                      ? const Icon(
+                          Icons.local_fire_department_rounded,
+                          color: AppColors.primaryDarkest,
+                          size: 16,
+                        )
                       : null,
                 ),
               ),
@@ -410,14 +475,22 @@ class _StreaksTabState extends State<StreaksTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(loc.translate('todaysTasks'), style: const TextStyle(
-                fontFamily: 'Cairo', fontSize: 16,
-                fontWeight: FontWeight.w700, color: AppColors.textDark,
-              )),
+              Text(
+                loc.translate('todaysTasks'),
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
               GestureDetector(
                 onTap: () => _showCreateTaskDialog(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryDark,
                     borderRadius: BorderRadius.circular(16),
@@ -426,11 +499,15 @@ class _StreaksTabState extends State<StreaksTab> {
                     children: [
                       const Icon(Icons.add, color: AppColors.gold, size: 14),
                       const SizedBox(width: 4),
-                      Text(loc.translate('addGoal'), style: const TextStyle(
-                        fontFamily: 'Cairo', fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.gold,
-                      )),
+                      Text(
+                        loc.translate('addGoal'),
+                        style: const TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.gold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -438,20 +515,43 @@ class _StreaksTabState extends State<StreaksTab> {
             ],
           ),
           const SizedBox(height: 10),
-          _task(loc.translate('completed5DailyPrayers'), _prayers,
-                  (v) => setState(() { _prayers = v!; _save(); })),
-          _task(loc.translate('readQuranToday'), _quran,
-                  (v) => setState(() { _quran = v!; _save(); })),
-          _task(loc.translate('attendedClassOrActivity'), _class_,
-                  (v) => setState(() { _class_ = v!; _save(); })),
+          _task(
+            loc.translate('completed5DailyPrayers'),
+            _prayers,
+            (v) => setState(() {
+              _prayers = v!;
+              _save();
+            }),
+          ),
+          _task(
+            loc.translate('readQuranToday'),
+            _quran,
+            (v) => setState(() {
+              _quran = v!;
+              _save();
+            }),
+          ),
+          _task(
+            loc.translate('attendedClassOrActivity'),
+            _class_,
+            (v) => setState(() {
+              _class_ = v!;
+              _save();
+            }),
+          ),
           if (_customTasks.isNotEmpty) ...[
             const SizedBox(height: 12),
             const Divider(color: AppColors.borderLight),
             const SizedBox(height: 8),
-            Text(loc.translate('customGoals'), style: const TextStyle(
-              fontFamily: 'Cairo', fontSize: 14,
-              fontWeight: FontWeight.w700, color: AppColors.textDark,
-            )),
+            Text(
+              loc.translate('customGoals'),
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
+            ),
             const SizedBox(height: 6),
             ..._customTasks.map((t) {
               final val = _customTasksValues[t] ?? false;
@@ -471,7 +571,12 @@ class _StreaksTabState extends State<StreaksTab> {
     );
   }
 
-  Widget _task(String label, bool value, Function(bool?) onChanged, {VoidCallback? onDelete}) {
+  Widget _task(
+    String label,
+    bool value,
+    Function(bool?) onChanged, {
+    VoidCallback? onDelete,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -481,7 +586,9 @@ class _StreaksTabState extends State<StreaksTab> {
             : AppColors.bgWhite,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: value ? AppColors.primaryDark.withValues(alpha: 0.3) : AppColors.borderLight,
+          color: value
+              ? AppColors.primaryDark.withValues(alpha: 0.3)
+              : AppColors.borderLight,
         ),
       ),
       child: Row(
@@ -494,20 +601,31 @@ class _StreaksTabState extends State<StreaksTab> {
           ),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(label, style: TextStyle(
-              fontFamily: 'Cairo', fontSize: 14,
-              color: value ? AppColors.primaryDark : AppColors.textDark,
-              decoration: value ? TextDecoration.lineThrough : null,
-            )),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 14,
+                color: value ? AppColors.primaryDark : AppColors.textDark,
+                decoration: value ? TextDecoration.lineThrough : null,
+              ),
+            ),
           ),
-          if (value) const Icon(Icons.check_circle_rounded,
-              color: AppColors.success, size: 18),
+          if (value)
+            const Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.success,
+              size: 18,
+            ),
           if (onDelete != null) ...[
             const SizedBox(width: 8),
             GestureDetector(
               onTap: onDelete,
-              child: const Icon(Icons.delete_outline_rounded,
-                  color: AppColors.textLightGrey, size: 18),
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.textLightGrey,
+                size: 18,
+              ),
             ),
           ],
         ],
@@ -523,14 +641,27 @@ class _StreaksTabState extends State<StreaksTab> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgCream,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(loc.translate('createCustomStreakGoal'),
-            style: const TextStyle(fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+        title: Text(
+          loc.translate('createCustomStreakGoal'),
+          style: const TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textDark,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(loc.translate('enterGoalName'),
-                style: const TextStyle(fontFamily: 'Cairo', fontSize: 13, color: AppColors.textGrey)),
+            Text(
+              loc.translate('enterGoalName'),
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 13,
+                color: AppColors.textGrey,
+              ),
+            ),
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
@@ -545,7 +676,10 @@ class _StreaksTabState extends State<StreaksTab> {
                 decoration: InputDecoration(
                   hintText: loc.translate('e.g.Tasbeeh100x'),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ),
@@ -554,12 +688,20 @@ class _StreaksTabState extends State<StreaksTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(loc.translate('cancel'), style: const TextStyle(fontFamily: 'Cairo', color: AppColors.textGrey)),
+            child: Text(
+              loc.translate('cancel'),
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                color: AppColors.textGrey,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryDark,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
             onPressed: () async {
               if (taskCtrl.text.trim().isNotEmpty) {
@@ -567,7 +709,14 @@ class _StreaksTabState extends State<StreaksTab> {
                 if (ctx.mounted) Navigator.pop(ctx);
               }
             },
-            child: Text(loc.translate('create'), style: const TextStyle(fontFamily: 'Cairo', color: AppColors.gold, fontWeight: FontWeight.bold)),
+            child: Text(
+              loc.translate('create'),
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                color: AppColors.gold,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

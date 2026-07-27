@@ -12,7 +12,7 @@ class QuranAudioService extends ChangeNotifier {
 
   String? _currentId;
   bool _isPlaying = false;
-  
+
   AudioPlayer get player => _player;
   bool get isPlaying => _isPlaying;
   String? get currentId => _currentId;
@@ -64,7 +64,11 @@ class QuranAudioService extends ChangeNotifier {
     }
   }
 
-  Future<void> playJuzz(int juzNum, String name, List<int> surahsInRange) async {
+  Future<void> playJuzz(
+    int juzNum,
+    String name,
+    List<int> surahsInRange,
+  ) async {
     final id = 'juz_$juzNum';
     _currentId = id;
 
@@ -72,30 +76,40 @@ class QuranAudioService extends ChangeNotifier {
 
     for (var surahNum in surahsInRange) {
       final surahId = 'surah_$surahNum';
-      final isDownloaded = _downloadService.isDownloaded(surahId, DownloadType.audio);
-      
+      final isDownloaded = _downloadService.isDownloaded(
+        surahId,
+        DownloadType.audio,
+      );
+
       if (isDownloaded) {
-        final path = await _downloadService.getFilePath(surahId, DownloadType.audio);
-        playlist.add(AudioSource.uri(
-          Uri.file(path),
-          tag: MediaItem(
-            id: '$id-$surahNum',
-            album: 'Juz $juzNum',
-            title: 'Surah $surahNum',
-            artist: 'Abdul Basit',
+        final path = await _downloadService.getFilePath(
+          surahId,
+          DownloadType.audio,
+        );
+        playlist.add(
+          AudioSource.uri(
+            Uri.file(path),
+            tag: MediaItem(
+              id: '$id-$surahNum',
+              album: 'Juz $juzNum',
+              title: 'Surah $surahNum',
+              artist: 'Abdul Basit',
+            ),
           ),
-        ));
+        );
       } else {
         final surahStr = surahNum.toString().padLeft(3, '0');
-        playlist.add(AudioSource.uri(
-          Uri.parse('https://server7.mp3quran.net/basit/$surahStr.mp3'),
-          tag: MediaItem(
-            id: '$id-$surahNum',
-            album: 'Juz $juzNum',
-            title: 'Surah $surahNum',
-            artist: 'Abdul Basit',
+        playlist.add(
+          AudioSource.uri(
+            Uri.parse('https://server7.mp3quran.net/basit/$surahStr.mp3'),
+            tag: MediaItem(
+              id: '$id-$surahNum',
+              album: 'Juz $juzNum',
+              title: 'Surah $surahNum',
+              artist: 'Abdul Basit',
+            ),
           ),
-        ));
+        );
       }
     }
 
@@ -110,8 +124,9 @@ class QuranAudioService extends ChangeNotifier {
   Future<void> playAyah(int surahNum, int ayahNum) async {
     final surahStr = surahNum.toString().padLeft(3, '0');
     final ayahStr = ayahNum.toString().padLeft(3, '0');
-    final url = 'https://www.everyayah.com/data/Abdul_Basit_Murattal_192kbps/$surahStr$ayahStr.mp3';
-    
+    final url =
+        'https://www.everyayah.com/data/Abdul_Basit_Murattal_192kbps/$surahStr$ayahStr.mp3';
+
     try {
       await _player.setUrl(url);
       await _player.play();
@@ -132,5 +147,11 @@ class QuranAudioService extends ChangeNotifier {
     } else {
       await _player.play();
     }
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
   }
 }

@@ -14,21 +14,17 @@ class DmScreen extends StatefulWidget {
   final String otherUid;
   final String otherName;
 
-  const DmScreen({
-    super.key,
-    required this.otherUid,
-    required this.otherName,
-  });
+  const DmScreen({super.key, required this.otherUid, required this.otherName});
 
   @override
   State<DmScreen> createState() => _DmScreenState();
 }
 
 class _DmScreenState extends State<DmScreen> {
-  final _svc        = CommunityService.instance;
-  final _msgCtrl    = TextEditingController();
+  final _svc = CommunityService.instance;
+  final _msgCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
-  bool _sending     = false;
+  bool _sending = false;
 
   @override
   void dispose() {
@@ -46,9 +42,9 @@ class _DmScreenState extends State<DmScreen> {
       await _svc.sendDm(widget.otherUid, text);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send message: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -87,8 +83,11 @@ class _DmScreenState extends State<DmScreen> {
       backgroundColor: AppColors.primaryDark,
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_ios_new_rounded,
-            color: AppColors.gold, size: 20),
+        icon: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: AppColors.gold,
+          size: 20,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
       title: Row(
@@ -146,8 +145,11 @@ class _DmScreenState extends State<DmScreen> {
                     color: AppColors.primaryDark.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.chat_bubble_outline_rounded,
-                      color: AppColors.primaryDark, size: 30),
+                  child: const Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    color: AppColors.primaryDark,
+                    size: 30,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -185,7 +187,7 @@ class _DmScreenState extends State<DmScreen> {
             final data = docs[i].data() as Map<String, dynamic>;
             final isMe = data['senderId'] == myUid;
             final text = data['text'] as String? ?? '';
-            final ts   = data['createdAt'] as Timestamp?;
+            final ts = data['createdAt'] as Timestamp?;
             final time = ts != null
                 ? TimeOfDay.fromDateTime(ts.toDate()).format(context)
                 : '';
@@ -205,7 +207,11 @@ class _DmScreenState extends State<DmScreen> {
   Widget _buildInputBar() {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          12, 10, 12, MediaQuery.of(context).viewInsets.bottom + 12),
+        12,
+        10,
+        12,
+        MediaQuery.of(context).viewInsets.bottom + 12,
+      ),
       decoration: BoxDecoration(
         color: AppColors.bgWhite,
         border: Border(top: BorderSide(color: AppColors.borderLight)),
@@ -234,8 +240,10 @@ class _DmScreenState extends State<DmScreen> {
                     color: AppColors.textLightGrey,
                   ),
                   border: InputBorder.none,
-                  contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                 ),
               ),
             ),
@@ -252,14 +260,17 @@ class _DmScreenState extends State<DmScreen> {
               ),
               child: _sending
                   ? const Padding(
-                padding: EdgeInsets.all(12),
-                child: CircularProgressIndicator(
-                  color: AppColors.gold,
-                  strokeWidth: 2,
-                ),
-              )
-                  : const Icon(Icons.send_rounded,
-                  color: AppColors.gold, size: 20),
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(
+                        color: AppColors.gold,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.send_rounded,
+                      color: AppColors.gold,
+                      size: 20,
+                    ),
             ),
           ),
         ],
@@ -313,26 +324,25 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
-        mainAxisAlignment:
-        isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (!isMe) ...[
-            _mini(senderName),
-            const SizedBox(width: 6),
-          ],
+          if (!isMe) ...[_mini(senderName), const SizedBox(width: 6)],
           Flexible(
             child: Column(
-              crossAxisAlignment:
-              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: isMe
-                        ? AppColors.primaryDark
-                        : AppColors.bgWhite,
+                    color: isMe ? AppColors.primaryDark : AppColors.bgWhite,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(16),
                       topRight: const Radius.circular(16),
@@ -348,9 +358,7 @@ class _MessageBubble extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: 'Cairo',
                       fontSize: 14,
-                      color: isMe
-                          ? AppColors.textWhite
-                          : AppColors.textDark,
+                      color: isMe ? AppColors.textWhite : AppColors.textDark,
                       height: 1.4,
                     ),
                   ),

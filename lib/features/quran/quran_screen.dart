@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
+import '../../shared/widgets/tooltip_overlay.dart';
+import '../../core/services/tutorial_service.dart';
 import 'tabs/talawat_tab.dart';
 import 'tabs/translation_tab.dart';
 import 'tabs/tafseer_tab.dart';
@@ -11,10 +13,13 @@ import 'tabs/ayah_tab.dart';
 import 'tabs/ahadees_tab.dart';
 
 class QuranScreen extends StatefulWidget {
-  const QuranScreen({super.key});
-  
-  static final GlobalKey<QuranScreenState> screenKey = GlobalKey<QuranScreenState>();
-  
+  const QuranScreen({super.key, this.onNavigateToTab});
+
+  static final GlobalKey<QuranScreenState> screenKey =
+      GlobalKey<QuranScreenState>();
+
+  final void Function(int index)? onNavigateToTab;
+
   @override
   State<QuranScreen> createState() => QuranScreenState();
 }
@@ -35,6 +40,12 @@ class QuranScreenState extends State<QuranScreen>
     }
   }
 
+  void animateToTab(int index) {
+    if (index >= 0 && index < _tabs.length && _tc.index != index) {
+      _tc.animateTo(index);
+    }
+  }
+
   static const List<Map<String, String>> _fontOptions = [
     {'name': 'Al Mushaf', 'fontFamily': 'AlMushaf'},
     {'name': 'Al Majeed', 'fontFamily': 'AlMajeed'},
@@ -43,32 +54,32 @@ class QuranScreenState extends State<QuranScreen>
     {'name': 'Hafs Uthmanic Script', 'fontFamily': 'KfgqpcHafs'},
   ];
 
-  static const _tabs = [
-    'talawat',
-    'tarjuma',
-    'tafseer',
-    'ayat',
-    'Ahadees',
-  ];
+  static const _tabs = ['talawat', 'tarjuma', 'tafseer', 'ayat', 'Ahadees'];
 
   @override
   void initState() {
     super.initState();
     _tc = TabController(length: _tabs.length, vsync: this);
-    _tc.addListener(() => setState(() {}));
+    _tc.addListener(() {
+      setState(() {});
+      // If tutorial service needs to refresh after moving to a new tab!
+      Future.delayed(const Duration(milliseconds: 50), () {
+        TutorialService.instance.forceRefresh();
+      });
+    });
     _checkFirstTime();
   }
 
   Future<void> _checkFirstTime() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Load saved preferences
     setState(() {
       final savedFont = prefs.getString('quran_font');
       // Use saved font only if it's still in the options, otherwise use default
       final validFonts = _fontOptions.map((f) => f['fontFamily']).toList();
-      _selectedFont = (savedFont != null && validFonts.contains(savedFont)) 
-          ? savedFont 
+      _selectedFont = (savedFont != null && validFonts.contains(savedFont))
+          ? savedFont
           : 'AlMushaf'; // Default to Al Mushaf
       _useUrduTranslation = prefs.getBool('quran_urdu') ?? false;
     });
@@ -108,22 +119,24 @@ class QuranScreenState extends State<QuranScreen>
                 ),
               ),
               const SizedBox(height: 24),
-              Text(loc.translate('quranSettings'), 
-                  style: const TextStyle(
-                    fontFamily: 'Cairo', 
-                    fontSize: 22, 
-                    fontWeight: FontWeight.w800, 
-                    color: AppColors.primaryDark
-                  )
+              Text(
+                loc.translate('quranSettings'),
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primaryDark,
+                ),
               ),
               const SizedBox(height: 24),
-              Text(loc.translate('arabicFontStyle'), 
-                  style: const TextStyle(
-                    fontFamily: 'Cairo', 
-                    fontSize: 16, 
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textGrey
-                  )
+              Text(
+                loc.translate('arabicFontStyle'),
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textGrey,
+                ),
               ),
               const SizedBox(height: 16),
               // Font Preview Line
@@ -133,7 +146,9 @@ class QuranScreenState extends State<QuranScreen>
                 decoration: BoxDecoration(
                   color: AppColors.bgCream,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.gold.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Center(
                   child: Text(
@@ -149,44 +164,50 @@ class QuranScreenState extends State<QuranScreen>
               ),
               const SizedBox(height: 16),
               Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _fontOptions.map((f) {
-              final isSel = _selectedFont == f['fontFamily'];
-              return GestureDetector(
-                onTap: () {
-                  setDialogState(() => _selectedFont = f['fontFamily']!);
-                  setState(() {});
-                  _savePreferences();
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSel ? AppColors.gold : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: isSel ? AppColors.gold : Colors.grey[300]!),
-                  ),
-                  child: Text(
-                    f['name']!,
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontWeight: FontWeight.w600,
-                      color: isSel ? Colors.white : AppColors.textDark,
+                spacing: 8,
+                runSpacing: 8,
+                children: _fontOptions.map((f) {
+                  final isSel = _selectedFont == f['fontFamily'];
+                  return GestureDetector(
+                    onTap: () {
+                      setDialogState(() => _selectedFont = f['fontFamily']!);
+                      setState(() {});
+                      _savePreferences();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSel ? AppColors.gold : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSel ? AppColors.gold : Colors.grey[300]!,
+                        ),
+                      ),
+                      child: Text(
+                        f['name']!,
+                        style: TextStyle(
+                          fontFamily: 'Cairo',
+                          fontWeight: FontWeight.w600,
+                          color: isSel ? Colors.white : AppColors.textDark,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
+                  );
+                }).toList(),
+              ),
               const SizedBox(height: 24),
               if (_tc.index == 1 || _tc.index == 2 || _tc.index == 4) ...[
-                Text(loc.translate('translationLanguage'), 
-                    style: const TextStyle(
-                      fontFamily: 'Cairo', 
-                      fontSize: 16, 
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textGrey
-                    )
+                Text(
+                  loc.translate('translationLanguage'),
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textGrey,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -221,16 +242,19 @@ class QuranScreenState extends State<QuranScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryDark,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: Text(loc.translate('startReading').toUpperCase(), 
-                      style: const TextStyle(
-                        fontFamily: 'Cairo', 
-                        fontSize: 16, 
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1,
-                      )
+                  child: Text(
+                    loc.translate('startReading').toUpperCase(),
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1,
+                    ),
                   ),
                 ),
               ),
@@ -241,7 +265,11 @@ class QuranScreenState extends State<QuranScreen>
     );
   }
 
-  Widget _buildLanguageBtn({required String label, required bool isSel, required VoidCallback onTap}) {
+  Widget _buildLanguageBtn({
+    required String label,
+    required bool isSel,
+    required VoidCallback onTap,
+  }) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -250,7 +278,9 @@ class QuranScreenState extends State<QuranScreen>
           decoration: BoxDecoration(
             color: isSel ? AppColors.gold : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isSel ? AppColors.gold : Colors.grey[300]!),
+            border: Border.all(
+              color: isSel ? AppColors.gold : Colors.grey[300]!,
+            ),
           ),
           child: Center(
             child: Text(
@@ -277,12 +307,18 @@ class QuranScreenState extends State<QuranScreen>
   String _searchHint(BuildContext context) {
     final loc = AppLocalizations.of(context);
     switch (_tc.index) {
-      case 0: return loc.translate('searchSurahOrJuz');
-      case 1: return loc.translate('searchSurahOrJuz');
-      case 2: return loc.translate('searchSurahOrJuz');
-      case 3: return loc.translate('searchAyahByTopic');
-      case 4: return loc.translate('searchHadithOrTopic');
-      default: return loc.translate('search');
+      case 0:
+        return loc.translate('searchSurahOrJuz');
+      case 1:
+        return loc.translate('searchSurahOrJuz');
+      case 2:
+        return loc.translate('searchSurahOrJuz');
+      case 3:
+        return loc.translate('searchAyahByTopic');
+      case 4:
+        return loc.translate('searchHadithOrTopic');
+      default:
+        return loc.translate('search');
     }
   }
 
@@ -291,29 +327,109 @@ class QuranScreenState extends State<QuranScreen>
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          if (_tc.index < 3) _buildSearchBar(context),
-          _buildTabBar(context),
-          Expanded(
-            child: Container(
-              color: Colors.white,
-              child: TabBarView(
-                controller: _tc,
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  TalawatTab(searchQuery: _searchQuery, useUrduFont: _useUrduTranslation, arabicFont: _selectedFont),
-                  TranslationTab(searchQuery: _searchQuery, useUrduFont: _useUrduTranslation, arabicFont: _selectedFont),
-                  TafseerTab(searchQuery: _searchQuery, useUrduFont: _useUrduTranslation, arabicFont: _selectedFont),
-                  AyahTab(searchQuery: _searchQuery, useUrduFont: _useUrduTranslation, arabicFont: _selectedFont),
-                  AhadeesTab(searchQuery: _searchQuery, arabicFont: _selectedFont, useUrduFont: _useUrduTranslation),
-                ],
+      body: TooltipOverlay(
+        id: _getCurrentTutorialId(),
+        title: _getCurrentTutorialTitle(context),
+        description: _getCurrentTutorialDesc(context),
+        arrowDirection: TooltipArrowDirection.up,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_tc.index < 3) _buildSearchBar(context),
+            _buildTabBar(context),
+            Expanded(
+              child: Container(
+                color: Colors.white,
+                child: TabBarView(
+                  controller: _tc,
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    TalawatTab(
+                      searchQuery: _searchQuery,
+                      useUrduFont: _useUrduTranslation,
+                      arabicFont: _selectedFont,
+                    ),
+                    TranslationTab(
+                      searchQuery: _searchQuery,
+                      useUrduFont: _useUrduTranslation,
+                      arabicFont: _selectedFont,
+                    ),
+                    TafseerTab(
+                      searchQuery: _searchQuery,
+                      useUrduFont: _useUrduTranslation,
+                      arabicFont: _selectedFont,
+                    ),
+                    AyahTab(
+                      searchQuery: _searchQuery,
+                      useUrduFont: _useUrduTranslation,
+                      arabicFont: _selectedFont,
+                    ),
+                    AhadeesTab(
+                      searchQuery: _searchQuery,
+                      arabicFont: _selectedFont,
+                      useUrduFont: _useUrduTranslation,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+  
+  String _getCurrentTutorialId() {
+    switch (_tc.index) {
+      case 0:
+        return 'tut_quran_talawat';
+      case 1:
+        return 'tut_quran_translation';
+      case 2:
+        return 'tut_quran_tafseer';
+      case 3:
+        return 'tut_quran_ayat';
+      case 4:
+        return 'tut_quran_ahadees';
+      default:
+        return 'tut_quran_talawat';
+    }
+  }
+  
+  String _getCurrentTutorialTitle(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    switch (_tc.index) {
+      case 0:
+        return loc.translate('tutQuranTalawatTitle');
+      case 1:
+        return loc.translate('tutQuranTranslationTitle');
+      case 2:
+        return loc.translate('tutQuranTafseerTitle');
+      case 3:
+        return loc.translate('tutQuranAyatTitle');
+      case 4:
+        return loc.translate('tutQuranAhadeesTitle');
+      default:
+        return loc.translate('tutQuranTalawatTitle');
+    }
+  }
+  
+  String _getCurrentTutorialDesc(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    switch (_tc.index) {
+      case 0:
+        return loc.translate('tutQuranTalawatDesc');
+      case 1:
+        return loc.translate('tutQuranTranslationDesc');
+      case 2:
+        return loc.translate('tutQuranTafseerDesc');
+      case 3:
+        return loc.translate('tutQuranAyatDesc');
+      case 4:
+        return loc.translate('tutQuranAhadeesDesc');
+      default:
+        return loc.translate('tutQuranTalawatDesc');
+    }
   }
 
   PreferredSizeWidget _buildAppBar() {
@@ -344,9 +460,15 @@ class QuranScreenState extends State<QuranScreen>
           style: const TextStyle(color: Colors.white, fontFamily: 'Cairo'),
           decoration: InputDecoration(
             hintText: _searchHint(context),
-            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6),
-                fontFamily: 'Cairo', fontSize: 14),
-            prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha: 0.8)),
+            hintStyle: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontFamily: 'Cairo',
+              fontSize: 14,
+            ),
+            prefixIcon: Icon(
+              Icons.search,
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(vertical: 15),
           ),
@@ -357,23 +479,36 @@ class QuranScreenState extends State<QuranScreen>
 
   Widget _buildTabBar(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TabBar(
-        controller: _tc,
-        isScrollable: true,
-        indicatorColor: AppColors.primaryDark,
-        indicatorWeight: 3,
-        labelColor: AppColors.primaryDark,
-        unselectedLabelColor: Colors.grey[600],
-        labelStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 14, fontWeight: FontWeight.w700),
-        unselectedLabelStyle: const TextStyle(fontFamily: 'Cairo', fontSize: 14, fontWeight: FontWeight.w500),
-        tabs: _tabs.map((t) {
-          // For 'Ahadees' we keep it as is, otherwise translate
-          final text = t == 'Ahadees' ? t : loc.translate(t);
-          return Tab(text: text);
-        }).toList(),
+    return TooltipOverlay(
+      id: 'tut_quran',
+      title: loc.translate('tutQuranTitle'),
+      description: loc.translate('tutQuranDesc'),
+      arrowDirection: TooltipArrowDirection.down,
+      child: Container(
+        color: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: TabBar(
+          controller: _tc,
+          isScrollable: true,
+          indicatorColor: AppColors.primaryDark,
+          indicatorWeight: 3,
+          labelColor: AppColors.primaryDark,
+          unselectedLabelColor: Colors.grey[600],
+          labelStyle: const TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          tabs: _tabs.map((t) {
+            final text = t == 'Ahadees' ? t : loc.translate(t);
+            return Tab(text: text);
+          }).toList(),
+        ),
       ),
     );
   }

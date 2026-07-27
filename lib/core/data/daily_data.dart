@@ -7,7 +7,8 @@ class DailyData {
   static final List<Map<String, String>> ayahs = [
     {
       'arabic': 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ',
-      'translation': '"So remember Me; I will remember you. And be grateful to Me and do not deny Me."',
+      'translation':
+          '"So remember Me; I will remember you. And be grateful to Me and do not deny Me."',
       'reference': 'Al-Baqarah 2:152',
     },
     {
@@ -17,12 +18,14 @@ class DailyData {
     },
     {
       'arabic': 'وَمَن يَتَوَكَّلْ عَلَى اللَّهِ فَهُوَ حَسْبُهُ',
-      'translation': '"And whoever relies upon Allah — then He is sufficient for him."',
+      'translation':
+          '"And whoever relies upon Allah — then He is sufficient for him."',
       'reference': 'At-Talaq 65:3',
     },
     {
       'arabic': 'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا',
-      'translation': '"Our Lord, let not our hearts deviate after You have guided us."',
+      'translation':
+          '"Our Lord, let not our hearts deviate after You have guided us."',
       'reference': 'Ali \'Imran 3:8',
     },
     {
@@ -37,7 +40,8 @@ class DailyData {
     },
     {
       'arabic': 'وَإِذَا سَأَلَكَ عِبَادِي عَنِّي فَإِنِّي قَرِيبٌ',
-      'translation': '"And when My servants ask you concerning Me, indeed I am near."',
+      'translation':
+          '"And when My servants ask you concerning Me, indeed I am near."',
       'reference': 'Al-Baqarah 2:186',
     },
     {
@@ -56,23 +60,30 @@ class DailyData {
       'reference': 'Al-Ikhlas 112:1',
     },
     {
-      'arabic': 'وَلَا تَهِنُوا وَلَا تَحْزَنُوا وَأَنتُمُ الْأَعْلَوْنَ إِن كُنتُم مُّؤْمِنِينَ',
-      'translation': '"So do not weaken and do not grieve, and you will be superior if you are believers."',
+      'arabic':
+          'وَلَا تَهِنُوا وَلَا تَحْزَنُوا وَأَنتُمُ الْأَعْلَوْنَ إِن كُنتُم مُّؤْمِنِينَ',
+      'translation':
+          '"So do not weaken and do not grieve, and you will be superior if you are believers."',
       'reference': 'Ali \'Imran 3:139',
     },
     {
       'arabic': 'وَلَا تَقُولُوا لِشَيْءٍ أَنِّي فَاعِلٌ ذَلِكَ غَدًا',
-      'translation': '"And never say of anything, \'I shall do that tomorrow.\'"',
+      'translation':
+          '"And never say of anything, \'I shall do that tomorrow.\'"',
       'reference': 'Al-Kahf 18:23',
     },
     {
-      'arabic': 'يَٰٓأَيُّهَا ٱلنَّاسُ إِنَّا خَلَقْنَاكُم مِّن ذَكَرٍ وَأُنثَىٰ وَجَعَلْنَاكُمْ شُعُوبًا وَقَبَائِلَ لِتَعَارَفُوٓا۟',
-      'translation': '"O mankind, indeed We have created you from male and female and made you peoples and tribes that you may know one another."',
+      'arabic':
+          'يَٰٓأَيُّهَا ٱلنَّاسُ إِنَّا خَلَقْنَاكُم مِّن ذَكَرٍ وَأُنثَىٰ وَجَعَلْنَاكُمْ شُعُوبًا وَقَبَائِلَ لِتَعَارَفُوٓا۟',
+      'translation':
+          '"O mankind, indeed We have created you from male and female and made you peoples and tribes that you may know one another."',
       'reference': 'Al-Hujurat 49:13',
     },
     {
-      'arabic': 'وَلَا تَقْتُلُوا أَنفُسَكُمْ ۚ إِنَّ اللَّهَ كَانَ بِكُمْ رَحِيمًا',
-      'translation': '"And do not kill yourselves; surely Allah is Merciful to you."',
+      'arabic':
+          'وَلَا تَقْتُلُوا أَنفُسَكُمْ ۚ إِنَّ اللَّهَ كَانَ بِكُمْ رَحِيمًا',
+      'translation':
+          '"And do not kill yourselves; surely Allah is Merciful to you."',
       'reference': 'An-Nisa 4:29',
     },
     {
@@ -87,12 +98,14 @@ class DailyData {
     },
     {
       'arabic': 'فَاذْكُرُوا ذِكْرَىٰ شَهِيدًا وَغَائِبًا',
-      'translation': '"So remember Allah, whether standing, sitting, or lying down."',
+      'translation':
+          '"So remember Allah, whether standing, sitting, or lying down."',
       'reference': 'An-Nisa 4:103',
     },
     {
       'arabic': 'وَسَبِّحْ بِحَمْدِ رَبِّكَ وَٱسْتَغْفِرْهُ',
-      'translation': '"And glorify the praises of your Lord and seek forgiveness of Him."',
+      'translation':
+          '"And glorify the praises of your Lord and seek forgiveness of Him."',
       'reference': 'An-Nasr 110:3',
     },
     {
@@ -106,13 +119,16 @@ class DailyData {
       'reference': 'Yusuf 12:64',
     },
     {
-      'arabic': 'إِنَّ اللَّهَ يُحِبُّ ٱلتَّوَّابِينَ وَيُحِبُّ ٱلْمُتَطَهِّرِينَ',
-      'translation': '"Indeed, Allah loves those who repent and those who purify themselves."',
+      'arabic':
+          'إِنَّ اللَّهَ يُحِبُّ ٱلتَّوَّابِينَ وَيُحِبُّ ٱلْمُتَطَهِّرِينَ',
+      'translation':
+          '"Indeed, Allah loves those who repent and those who purify themselves."',
       'reference': 'Al-Baqarah 2:222',
     },
     {
       'arabic': 'رَبِّ اغْفِرْ وَارْحَمْ وَأَنتَ خَيْرُ ٱلرَّاحِمِينَ',
-      'translation': '"My Lord, forgive and have mercy, and You are the best of the merciful."',
+      'translation':
+          '"My Lord, forgive and have mercy, and You are the best of the merciful."',
       'reference': 'Al-Mu\'minun 23:118',
     },
     {
@@ -127,12 +143,15 @@ class DailyData {
     },
     {
       'arabic': 'وَٱتَّخِذُوا مِن مَّقَامِ إِبْرَاهِيمَ مُصَلًّى',
-      'translation': '"And take from the standing place of Abraham a place of prayer."',
+      'translation':
+          '"And take from the standing place of Abraham a place of prayer."',
       'reference': 'Al-Baqarah 2:125',
     },
     {
-      'arabic': 'إِنَّ ٱلصَّلَاةَ كَانَتْ عَلَى ٱلْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا',
-      'translation': '"Indeed, prayer has been decreed upon the believers a decree of specified times."',
+      'arabic':
+          'إِنَّ ٱلصَّلَاةَ كَانَتْ عَلَى ٱلْمُؤْمِنِينَ كِتَابًا مَّوْقُوتًا',
+      'translation':
+          '"Indeed, prayer has been decreed upon the believers a decree of specified times."',
       'reference': 'An-Nisa 4:103',
     },
     {
@@ -142,12 +161,15 @@ class DailyData {
     },
     {
       'arabic': 'وَمَن يُحْسِنْ أَحْسَنْ لِنَفْسِهِ وَمَن يُسِئْ فَعَلَيْهَا',
-      'translation': '"And whoever does good, it is for himself; and whoever does evil, it is against himself."',
+      'translation':
+          '"And whoever does good, it is for himself; and whoever does evil, it is against himself."',
       'reference': 'An-Nisa 4:131',
     },
     {
-      'arabic': 'وَلَا تَحْسَبَنَّ ٱللَّهَ غَافِلًا عَمَّا يَعْمَلُ ٱلظَّٰلِمُونَ',
-      'translation': '"And never think that Allah is unaware of what the wrongdoers do."',
+      'arabic':
+          'وَلَا تَحْسَبَنَّ ٱللَّهَ غَافِلًا عَمَّا يَعْمَلُ ٱلظَّٰلِمُونَ',
+      'translation':
+          '"And never think that Allah is unaware of what the wrongdoers do."',
       'reference': 'Ibrahim 14:42',
     },
   ];
@@ -160,7 +182,8 @@ class DailyData {
     },
     {
       'arabic': 'خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ',
-      'translation': '"The best of you are those who learn the Quran and teach it."',
+      'translation':
+          '"The best of you are those who learn the Quran and teach it."',
       'reference': 'Sahih Bukhari',
     },
     {
@@ -169,13 +192,17 @@ class DailyData {
       'reference': 'Sahih Muslim',
     },
     {
-      'arabic': 'لاَ يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ',
-      'translation': '"None of you will have faith until he loves for his brother what he loves for himself."',
+      'arabic':
+          'لاَ يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ',
+      'translation':
+          '"None of you will have faith until he loves for his brother what he loves for himself."',
       'reference': 'Sahih Bukhari',
     },
     {
-      'arabic': 'مَنْ كَانَ يُؤْمِنُ بِاللَّهِ وَالْيَوْمِ الآخِرِ فَلْيَقُلْ خَيْرًا أَوْ لِيَصْمُتْ',
-      'translation': '"Whoever believes in Allah and the Last Day, let him speak good or remain silent."',
+      'arabic':
+          'مَنْ كَانَ يُؤْمِنُ بِاللَّهِ وَالْيَوْمِ الآخِرِ فَلْيَقُلْ خَيْرًا أَوْ لِيَصْمُتْ',
+      'translation':
+          '"Whoever believes in Allah and the Last Day, let him speak good or remain silent."',
       'reference': 'Sahih Bukhari',
     },
     {
@@ -184,23 +211,30 @@ class DailyData {
       'reference': 'Sahih Muslim',
     },
     {
-      'arabic': 'مَنْ سَلَكَ طَرِيقًا يَطْلُبُ فِيهِ عِلْمًا سَلَّكَ اللَّهُ طَرِيقًا مِنْ طُرُقِ الجَنَّةِ',
-      'translation': '"Whoever travels a path seeking knowledge, Allah will make easy for him a path to Paradise."',
+      'arabic':
+          'مَنْ سَلَكَ طَرِيقًا يَطْلُبُ فِيهِ عِلْمًا سَلَّكَ اللَّهُ طَرِيقًا مِنْ طُرُقِ الجَنَّةِ',
+      'translation':
+          '"Whoever travels a path seeking knowledge, Allah will make easy for him a path to Paradise."',
       'reference': 'Sunan Ibn Majah',
     },
     {
       'arabic': 'الْمُسْلِمُ مَنْ يَسْلَمُ النَّاسُ مِنْ لِسَانِهِ وَيَدِهِ',
-      'translation': '"A Muslim is one from whose tongue and hand the people are safe."',
+      'translation':
+          '"A Muslim is one from whose tongue and hand the people are safe."',
       'reference': 'Sahih Bukhari',
     },
     {
-      'arabic': 'مَنْ يَصُنْ مُؤْمِنًا يَصُنْهُ اللَّهُ مِنْ شَرِّ الدُّنْيَا وَالْآخِرَةِ',
-      'translation': '"Whoever defends a Muslim, Allah will defend him from the evil of this world and the Hereafter."',
+      'arabic':
+          'مَنْ يَصُنْ مُؤْمِنًا يَصُنْهُ اللَّهُ مِنْ شَرِّ الدُّنْيَا وَالْآخِرَةِ',
+      'translation':
+          '"Whoever defends a Muslim, Allah will defend him from the evil of this world and the Hereafter."',
       'reference': 'Sunan Ibn Majah',
     },
     {
-      'arabic': 'إِنَّمَا الرِّزْقُ مِنْ سَمَاءٍ وَإِنَّمَا الْعِلْمُ مِنْ تَحْتِ الرِّسَالَةِ',
-      'translation': '"Indeed, sustenance is from the heaven, and knowledge is from beneath the message."',
+      'arabic':
+          'إِنَّمَا الرِّزْقُ مِنْ سَمَاءٍ وَإِنَّمَا الْعِلْمُ مِنْ تَحْتِ الرِّسَالَةِ',
+      'translation':
+          '"Indeed, sustenance is from the heaven, and knowledge is from beneath the message."',
       'reference': 'Sunan Ibn Majah',
     },
     {
@@ -209,58 +243,75 @@ class DailyData {
       'reference': 'Sahih Bukhari',
     },
     {
-      'arabic': 'الْحِكْمَةُ ضَالَّةُ الْمُؤْمِنِ فَحَيْثُ وَجَدَهَا فَهُوَ أَحَقُّ بِهَا',
-      'translation': '"Wisdom is the lost property of the believer; wherever he finds it, he has more right to it."',
+      'arabic':
+          'الْحِكْمَةُ ضَالَّةُ الْمُؤْمِنِ فَحَيْثُ وَجَدَهَا فَهُوَ أَحَقُّ بِهَا',
+      'translation':
+          '"Wisdom is the lost property of the believer; wherever he finds it, he has more right to it."',
       'reference': 'Sunan Ibn Majah',
     },
     {
-      'arabic': 'مَنْ يَصْنَعْ عَمَلًا صَالِحًا يَجِدْ ثَوَابَهُ فِي الدُّنْيَا وَالْآخِرَةِ',
-      'translation': '"Whoever does a righteous deed will find its reward in this world and the Hereafter."',
+      'arabic':
+          'مَنْ يَصْنَعْ عَمَلًا صَالِحًا يَجِدْ ثَوَابَهُ فِي الدُّنْيَا وَالْآخِرَةِ',
+      'translation':
+          '"Whoever does a righteous deed will find its reward in this world and the Hereafter."',
       'reference': 'Sahih Bukhari',
     },
     {
-      'arabic': 'إِنَّ اللَّهَ يُحِبُّ أَنْ يُرَىٰ آثَارُ نِعْمَتِهِ عَلَى عَبْدِهِ',
-      'translation': '"Indeed, Allah loves to see the effects of His blessings upon His servant."',
+      'arabic':
+          'إِنَّ اللَّهَ يُحِبُّ أَنْ يُرَىٰ آثَارُ نِعْمَتِهِ عَلَى عَبْدِهِ',
+      'translation':
+          '"Indeed, Allah loves to see the effects of His blessings upon His servant."',
       'reference': 'Sunan Ibn Majah',
     },
     {
       'arabic': 'مَنْ تَوَضَّأَ حَسَنًا كَانَتْ صَلاتُهُ بُرْهَانًا لَهُ',
-      'translation': '"Whoever performs ablution well, his prayer will be a proof for him."',
+      'translation':
+          '"Whoever performs ablution well, his prayer will be a proof for him."',
       'reference': 'Sunan Ibn Majah',
     },
     {
       'arabic': 'الْقُرْآنُ يَشْفَعُ لِصَاحِبِهِ يَوْمَ الْقِيَامَةِ',
-      'translation': '"The Quran will intercede for its companion on the Day of Resurrection."',
+      'translation':
+          '"The Quran will intercede for its companion on the Day of Resurrection."',
       'reference': 'Sahih Muslim',
     },
     {
       'arabic': 'مَنْ يَقْرَأُ الْقُرْآنَ وَيَحْفَظُهُ يُحْشَرُ مَعَ الرُّسُلِ',
-      'translation': '"Whoever recites the Quran and memorizes it will be resurrected with the messengers."',
+      'translation':
+          '"Whoever recites the Quran and memorizes it will be resurrected with the messengers."',
       'reference': 'Sahih Bukhari',
     },
     {
-      'arabic': 'إِنَّ لِلَّهِ مَلَائِكَةً يَتَحَوَّلُونَ فِي الطَّرِيقِ يَلْتَمِسُونَ مَجَالِسَ الذِّكْرِ',
-      'translation': '"Indeed, Allah has angels who travel the roads seeking the circles of remembrance."',
+      'arabic':
+          'إِنَّ لِلَّهِ مَلَائِكَةً يَتَحَوَّلُونَ فِي الطَّرِيقِ يَلْتَمِسُونَ مَجَالِسَ الذِّكْرِ',
+      'translation':
+          '"Indeed, Allah has angels who travel the roads seeking the circles of remembrance."',
       'reference': 'Sahih Bukhari',
     },
     {
       'arabic': 'مَنْ يَذْكُرُ اللَّهَ وَحْدَهُ يَحْفَظُهُ أَرْبَعُونَ مَلَكًا',
-      'translation': '"Whoever remembers Allah alone will be guarded by forty angels."',
+      'translation':
+          '"Whoever remembers Allah alone will be guarded by forty angels."',
       'reference': 'Sunan Ibn Majah',
     },
     {
-      'arabic': 'الصَّوَابِقُ الصَّوَابِقُ مَنْ تَقَرَّبَ إِلَى اللَّهِ شَيْئًا تَقَرَّبَ اللَّهُ إِلَيْهِ ذِرَاعًا',
-      'translation': '"The forerunners, the forerunners - whoever draws near to Allah a little, Allah will draw near to him an arm\'s length."',
+      'arabic':
+          'الصَّوَابِقُ الصَّوَابِقُ مَنْ تَقَرَّبَ إِلَى اللَّهِ شَيْئًا تَقَرَّبَ اللَّهُ إِلَيْهِ ذِرَاعًا',
+      'translation':
+          '"The forerunners, the forerunners - whoever draws near to Allah a little, Allah will draw near to him an arm\'s length."',
       'reference': 'Sahih Bukhari',
     },
     {
       'arabic': 'إِنَّ اللَّهَ يُحِبُّ الْمُحِبِّينَ لِلَّهِ',
-      'translation': '"Indeed, Allah loves those who love for the sake of Allah."',
+      'translation':
+          '"Indeed, Allah loves those who love for the sake of Allah."',
       'reference': 'Sunan Ibn Majah',
     },
     {
-      'arabic': 'مَنْ يَصُنْ عِصْمَتَهُ يَصُنْهُ اللَّهُ مِنْ شَرِّ كُلِّ شَيْءٍ',
-      'translation': '"Whoever guards his chastity, Allah will guard him from the evil of everything."',
+      'arabic':
+          'مَنْ يَصُنْ عِصْمَتَهُ يَصُنْهُ اللَّهُ مِنْ شَرِّ كُلِّ شَيْءٍ',
+      'translation':
+          '"Whoever guards his chastity, Allah will guard him from the evil of everything."',
       'reference': 'Sunan Ibn Majah',
     },
     {
@@ -270,7 +321,8 @@ class DailyData {
     },
     {
       'arabic': 'مَنْ يُرِدْ اللَّهُ بِهِ خَيْرًا يُفَقِّهْهُ فِي الدِّينِ',
-      'translation': '"Whoever Allah intends good for, He makes him understand the religion."',
+      'translation':
+          '"Whoever Allah intends good for, He makes him understand the religion."',
       'reference': 'Sahih Bukhari',
     },
     {
@@ -284,8 +336,10 @@ class DailyData {
       'reference': 'Sunan Ibn Majah',
     },
     {
-      'arabic': 'مَنْ يَتَوَضَّأَ وَقْتَ الصَّلَاةِ تَحْتَهُ مَلَكٌ يَصِلُ لَهُ أَثَرَهُ',
-      'translation': '"Whoever performs ablution at the time of prayer has an angel beneath him who follows his steps."',
+      'arabic':
+          'مَنْ يَتَوَضَّأَ وَقْتَ الصَّلَاةِ تَحْتَهُ مَلَكٌ يَصِلُ لَهُ أَثَرَهُ',
+      'translation':
+          '"Whoever performs ablution at the time of prayer has an angel beneath him who follows his steps."',
       'reference': 'Sunan Ibn Majah',
     },
     {
@@ -295,7 +349,8 @@ class DailyData {
     },
     {
       'arabic': 'الصَّلَاةُ نُورٌ وَالزَّكَاةُ بُرْهَانٌ وَالصِّيَامُ جُنَّةٌ',
-      'translation': '"Prayer is light, zakah is a proof, and fasting is a shield."',
+      'translation':
+          '"Prayer is light, zakah is a proof, and fasting is a shield."',
       'reference': 'Sunan Ibn Majah',
     },
     {
@@ -312,24 +367,20 @@ class DailyData {
   static List<Map<String, String>> getDailyAyahs(int count) {
     final now = DateTime.now();
     final seed = _generateSeed(now, 'ayahs');
-    final shuffled = List<Map<String, String>>.from(ayahs)..shuffle(_SeededRandom(seed));
+    final shuffled = List<Map<String, String>>.from(ayahs)
+      ..shuffle(_SeededRandom(seed));
     return shuffled.take(count).map((ayah) {
-      return {
-        ...ayah,
-        'arabic': cleanArabicText(ayah['arabic'] ?? ''),
-      };
+      return {...ayah, 'arabic': cleanArabicText(ayah['arabic'] ?? '')};
     }).toList();
   }
 
   static List<Map<String, String>> getDailyHadiths(int count) {
     final now = DateTime.now();
     final seed = _generateSeed(now, 'hadiths');
-    final shuffled = List<Map<String, String>>.from(hadiths)..shuffle(_SeededRandom(seed));
+    final shuffled = List<Map<String, String>>.from(hadiths)
+      ..shuffle(_SeededRandom(seed));
     return shuffled.take(count).map((hadith) {
-      return {
-        ...hadith,
-        'arabic': cleanArabicText(hadith['arabic'] ?? ''),
-      };
+      return {...hadith, 'arabic': cleanArabicText(hadith['arabic'] ?? '')};
     }).toList();
   }
 }
