@@ -7,14 +7,14 @@ class DownloadDialog extends StatelessWidget {
   final String id;
   final String title;
   final String audioUrl;
-  final String? pdfUrl;
+  final String? pdfAssetPath;
 
   const DownloadDialog({
     super.key,
     required this.id,
     required this.title,
     required this.audioUrl,
-    this.pdfUrl,
+    this.pdfAssetPath,
   });
 
   @override
@@ -71,7 +71,7 @@ class DownloadDialog extends StatelessWidget {
             },
             onDelete: () => service.deleteFile(id, DownloadType.audio),
           ),
-          if (pdfUrl != null) ...[
+          if (pdfAssetPath != null) ...[
             const SizedBox(height: 12),
             _DownloadTile(
               id: id,
@@ -80,7 +80,10 @@ class DownloadDialog extends StatelessWidget {
               icon: Icons.picture_as_pdf_rounded,
               isDownloaded: service.isDownloaded(id, DownloadType.pdf),
               onDownload: () {
-                service.download(id: id, url: pdfUrl!, type: DownloadType.pdf);
+                service.downloadPdfFromAsset(
+                  id: id,
+                  assetPath: pdfAssetPath!,
+                );
                 Navigator.pop(context);
               },
               onDelete: () => service.deleteFile(id, DownloadType.pdf),

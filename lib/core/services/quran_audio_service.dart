@@ -1,9 +1,9 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'quran_download_service.dart';
 
-class QuranAudioService extends ChangeNotifier {
+class QuranAudioService extends ChangeNotifier with WidgetsBindingObserver {
   static final QuranAudioService _instance = QuranAudioService._internal();
   factory QuranAudioService() => _instance;
 
@@ -22,6 +22,14 @@ class QuranAudioService extends ChangeNotifier {
       _isPlaying = state.playing;
       notifyListeners();
     });
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _player.pause();
+    }
   }
 
   Future<void> playSurah(int surahNum, String name) async {
@@ -151,6 +159,7 @@ class QuranAudioService extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _player.dispose();
     super.dispose();
   }

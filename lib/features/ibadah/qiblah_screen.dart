@@ -24,6 +24,11 @@ class _QiblahScreenState extends State<QiblahScreen>
   double _compassHeading = 0;
   bool _isLoading = true;
   String _errorMessage = '';
+  bool _hasValidPosition = false;
+  double _accuracyMeters = 0;
+  bool _showFlatHint = false;
+  double _smoothedHeading = 0;
+  final List<double> _recentRawHeadings = [];
 
   StreamSubscription<CompassEvent>? _compassSubscription;
   StreamSubscription<Position>? _locationSubscription;
@@ -152,23 +157,19 @@ class _QiblahScreenState extends State<QiblahScreen>
   // ═══════════════════════════════════════════════════════════════════════════
 
   Future<void> _initialize() async {
-    // 1. Try to get last known position first (instant)
-    final lastPos = await Geolocator.getLastKnownPosition();
-    if (lastPos != null && mounted) {
-      setState(() {
-        _currentPosition = lastPos;
-        _qiblahBearing = _calculateQiblahBearing();
-        _targetQiblahAngle = _qiblahBearing - _compassHeading;
-        _isLoading = false;
-      });
-    }
+    _compassSubscription?.cancel();
+    _locationSubscription?.cancel();
+    _currentPosition = null;
+    _hasValidPosition = false;
+    _qiblahBearing = 0;
+    _targetQiblahAngle = 0;
 
-    // 2. Start sensors immediately (they don't strictly require high-accuracy location to begin rendering the dial)
+    // Start the compass immediately so the dial is ready once a valid
+    // position arrives. The finder never renders its result without one.
     _startCompass();
-    _startLocationUpdates();
 
-    // 3. Handle permissions and fresh location in background
-    _checkLocationPermission();
+    // Permissions + location (stream is only subscribed once granted).
+    await _checkLocationPermission();
   }
 
   Future<void> _checkLocationPermission() async {
@@ -176,17 +177,19 @@ class _QiblahScreenState extends State<QiblahScreen>
       // Check service and permission
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        if (mounted && _currentPosition == null) {
-          setState(() => _errorMessage = 'Location services are disabled.');
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Location services are disabled.';
+            _isLoading = false;
+          });
         }
         return;
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
 
-      // PASSIVE CHECK: Only request if it's the FIRST time or we already have it.
       if (permission == LocationPermission.denied) {
-        if (mounted && _currentPosition == null) {
+        if (mounted) {
           setState(() {
             _errorMessage = 'Location permission is required for Qiblah.';
             _isLoading = false;
@@ -196,29 +199,36 @@ class _QiblahScreenState extends State<QiblahScreen>
       }
 
       if (permission == LocationPermission.deniedForever) {
-        if (mounted && _currentPosition == null) {
+        if (mounted) {
           setState(
-            () =>
-                _errorMessage = 'Location permissions are permanently denied.',
+            () => _errorMessage = 'Location permissions are permanently denied.',
           );
+          setState(() => _isLoading = false);
         }
         return;
       }
 
-      // If we have permission, get position
+      // Permission granted — now subscribe to live updates and get a fix.
+      _startLocationUpdates();
       _requestFreshLocation();
     } catch (e) {
-      if (mounted && _currentPosition == null) {
-        setState(() => _errorMessage = 'Error initializing location: $e');
+      if (mounted && !_hasValidPosition) {
+        setState(() {
+          _errorMessage = 'Error initializing location: $e';
+          _isLoading = false;
+        });
       }
     }
   }
 
-  /// Explicitly request permission and re-initialize. Use for the 'RETRY' button.
+  /// Explicitly request permission and re-initialize. Use for the 'GRANT PERMISSION' button.
   Future<void> _requestPermissionAndRetry() async {
     setState(() {
       _errorMessage = '';
       _isLoading = true;
+      _hasValidPosition = false;
+      _currentPosition = null;
+      _qiblahBearing = 0;
     });
 
     LocationPermission permission = await Geolocator.checkPermission();
@@ -237,46 +247,83 @@ class _QiblahScreenState extends State<QiblahScreen>
     }
   }
 
-  void _requestFreshLocation() {
-    Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.medium,
-          timeLimit: const Duration(seconds: 5),
-        )
-        .then((pos) {
-          if (mounted) {
-            setState(() {
-              _currentPosition = pos;
-              _qiblahBearing = _calculateQiblahBearing();
-              _targetQiblahAngle = _qiblahBearing - _compassHeading;
-              _isLoading = false;
-            });
-          }
-        })
-        .catchError((e) {
-          if (mounted && _currentPosition == null) {
-            setState(() => _isLoading = false);
-          }
+  Future<void> _requestFreshLocation() async {
+    // Keep trying until we get an accurate fix (or run out of attempts).
+    for (int attempt = 0; attempt < 5; attempt++) {
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 8),
+        );
+
+        if (!mounted) return;
+
+        // Reject coarse fixes so the bearing is not thrown off.
+        if (pos.accuracy > 60) {
+          setState(() => _accuracyMeters = pos.accuracy);
+          continue;
+        }
+
+        setState(() {
+          _currentPosition = pos;
+          _accuracyMeters = pos.accuracy;
+          _qiblahBearing = _calculateQiblahBearing();
+          _targetQiblahAngle = _qiblahBearing - _compassHeading;
+          _hasValidPosition = true;
+          _isLoading = false;
+          _errorMessage = '';
         });
+        return;
+      } catch (e) {
+        // Timeout / failure — try again unless we already have a good fix.
+        if (mounted && _hasValidPosition) return;
+      }
+    }
+
+    // No accurate fix after retries.
+    if (mounted && !_hasValidPosition) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage =
+            'Unable to get an accurate location. Make sure GPS is on and try again.';
+      });
+    }
   }
 
   void _startLocationUpdates() {
-    _locationSubscription =
-        Geolocator.getPositionStream(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-            distanceFilter: 10, // metres — only recalculate after moving 10 m
-          ),
-        ).listen((Position position) {
-          if (!mounted) return;
-          setState(() {
-            _currentPosition = position;
-            _qiblahBearing = _calculateQiblahBearing();
-            // FIX: recompute with the CURRENT live compass heading every time
-            // the location updates, so the Qiblah icon stays accurate.
-            _targetQiblahAngle = _qiblahBearing - _compassHeading;
-            _isLoading = false;
-          });
+    _locationSubscription?.cancel();
+    _locationSubscription = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5, // metres — recalculate after moving 5 m
+      ),
+    ).listen(
+      (Position position) {
+        if (!mounted) return;
+
+        // Keep the most accurate fix — don't downgrade a good bearing.
+        if (_hasValidPosition && position.accuracy > _accuracyMeters) return;
+
+        setState(() {
+          _currentPosition = position;
+          _accuracyMeters = position.accuracy;
+          _qiblahBearing = _calculateQiblahBearing();
+          _targetQiblahAngle = _qiblahBearing - _compassHeading;
+          _hasValidPosition = true;
+          _isLoading = false;
+          _errorMessage = '';
         });
+      },
+      onError: (Object e) {
+        if (mounted && !_hasValidPosition) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = 'Location stream error. Make sure GPS is on.';
+          });
+        }
+      },
+      cancelOnError: false,
+    );
   }
 
   void _startCompass() {
@@ -301,34 +348,49 @@ class _QiblahScreenState extends State<QiblahScreen>
         // Normalize to [0, 360)
         final double heading = (rawHeading % 360 + 360) % 360;
 
-        // ── Update target angles ────────────────────────────────────────────
+        // ── Smooth the heading to reduce magnetometer jitter ─────────────
+        if (!_compassInitialized) {
+          _smoothedHeading = heading;
+          // Snap display angles to the first real reading so there is no
+          // "spin from 0" artifact on startup.
+          _displayNeedleAngle = -heading;
+          _displayQiblahAngle = _qiblahBearing - heading;
+          _compassInitialized = true;
+          if (!_ticker.isActive) _ticker.start();
+        } else {
+          final diff = _shortestAngularDiff(heading, _smoothedHeading);
+          _smoothedHeading = (_smoothedHeading + diff * 0.3 + 360) % 360;
+        }
+        final double h = _smoothedHeading;
+
+        // ── "Keep your phone flat" hint based on raw heading spread ───────
+        _recentRawHeadings.add(heading);
+        if (_recentRawHeadings.length > 12) _recentRawHeadings.removeAt(0);
+        final double spread = _recentRawHeadings.length > 4
+            ? _recentRawHeadings.reduce((a, b) => math.max(a, b)) -
+                  _recentRawHeadings.reduce((a, b) => math.min(a, b))
+            : 0.0;
+        final bool showFlatHint = spread > 25;
+
+        // ── Update target angles ──────────────────────────────────────────
         // The compass DIAL rotates opposite to the phone heading so that N
         // always points to screen-top.
-        final double needleTarget = -heading;
+        final double needleTarget = -h;
 
         // The Qiblah ICON angle = absolute Qiblah bearing minus current heading.
         // This keeps the icon fixed on the Kaaba regardless of phone orientation.
-        final double qiblahTarget = _qiblahBearing - heading;
-
-        if (!_compassInitialized) {
-          // Snap display angles to the first real reading so there is no
-          // "spin from 0" artifact on startup.
-          _displayNeedleAngle = needleTarget;
-          _displayQiblahAngle = qiblahTarget;
-          _compassInitialized = true;
-          if (!_ticker.isActive) _ticker.start();
-        }
+        final double qiblahTarget = _qiblahBearing - h;
 
         _targetNeedleAngle = needleTarget;
         _targetQiblahAngle = qiblahTarget;
 
         setState(() {
-          _compassHeading = heading;
-          _isLoading = false;
+          _compassHeading = h;
+          _showFlatHint = showFlatHint;
         });
       },
       onError: (Object e) {
-        if (mounted) {
+        if (mounted && !_hasValidPosition) {
           setState(() => _errorMessage = 'Compass error: $e');
         }
       },
@@ -340,7 +402,7 @@ class _QiblahScreenState extends State<QiblahScreen>
   // ═══════════════════════════════════════════════════════════════════════════
 
   double _calculateDistance() {
-    if (_currentPosition == null) return 5432;
+    if (_currentPosition == null) return 0;
     return Geolocator.distanceBetween(
           _currentPosition!.latitude,
           _currentPosition!.longitude,
@@ -387,71 +449,16 @@ class _QiblahScreenState extends State<QiblahScreen>
       );
     }
 
-    // ── Permission / sensor error ─────────────────────────────────────────────
-    if (_errorMessage.isNotEmpty && _currentPosition == null) {
-      return Scaffold(
-        backgroundColor: _bg,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.location_off_rounded,
-                  color: AppColors.gold,
-                  size: 64,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  _errorMessage,
-                  style: const TextStyle(
-                    color: _white,
-                    fontFamily: 'Cairo',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Make sure your GPS is on and you have granted location permissions.',
-                  style: TextStyle(
-                    color: AppColors.textGrey,
-                    fontFamily: 'Cairo',
-                    fontSize: 13,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.gold,
-                      foregroundColor: _bg,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: _requestPermissionAndRetry,
-                    child: const Text(
-                      'GRANT PERMISSION',
-                      style: TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+    // ── No valid location / permission / sensor error ────────────────────────
+    // The Qiblah finder MUST NOT render a result without a current, valid
+    // location — a stale cached fix or a denied permission shows this instead.
+    if (_errorMessage.isNotEmpty ||
+        !_hasValidPosition ||
+        _currentPosition == null) {
+      return _buildErrorScaffold(
+        _errorMessage.isNotEmpty
+            ? _errorMessage
+            : 'Location is required for Qiblah.',
       );
     }
 
@@ -510,6 +517,16 @@ class _QiblahScreenState extends State<QiblahScreen>
                         '${qiblahBearing.toStringAsFixed(1)}°',
                         Icons.explore_outlined,
                       ),
+                      Container(
+                        width: 1,
+                        height: 40,
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                      _buildInfoItem(
+                        'Accuracy',
+                        '±${_accuracyMeters.toStringAsFixed(0)}m',
+                        Icons.speed_rounded,
+                      ),
                     ],
                   ),
                 ),
@@ -567,6 +584,20 @@ class _QiblahScreenState extends State<QiblahScreen>
                 ),
               ),
 
+              // ── Keep-flat hint (shown while heading is unstable) ───────────
+              if (_showFlatHint) ...[
+                const SizedBox(height: 10),
+                Text(
+                  'Hold your phone flat for a more accurate reading',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.gold.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+
               // ── Next-prayer card ───────────────────────────────────────────
               if (_prayerTimes != null)
                 Flexible(
@@ -622,6 +653,83 @@ class _QiblahScreenState extends State<QiblahScreen>
   // ═══════════════════════════════════════════════════════════════════════════
   //  WIDGETS
   // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildErrorScaffold(String message) {
+    return Scaffold(
+      backgroundColor: _bg,
+      body: TooltipOverlay(
+        id: 'tut_qiblah',
+        title: 'Qibla Finder',
+        description: 'Find the Qibla direction from anywhere in the world',
+        arrowDirection: TooltipArrowDirection.up,
+        onNext: () {
+          Navigator.maybePop(context);
+          TutorialService.instance.next();
+        },
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.location_off_rounded,
+                  color: AppColors.gold,
+                  size: 64,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: _white,
+                    fontFamily: 'Cairo',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Make sure your GPS is on and you have granted location permissions.',
+                  style: TextStyle(
+                    color: AppColors.textGrey,
+                    fontFamily: 'Cairo',
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.gold,
+                      foregroundColor: _bg,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: _requestPermissionAndRetry,
+                    child: const Text(
+                      'GRANT PERMISSION',
+                      style: TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildInfoItem(String label, String value, IconData icon) {
     return Column(

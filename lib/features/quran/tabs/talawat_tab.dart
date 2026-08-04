@@ -823,8 +823,7 @@ class SharedSurahCard extends StatelessWidget {
                                     title: surah['name'],
                                     audioUrl:
                                         'https://server7.mp3quran.net/basit/${'${surah['num']}'.padLeft(3, '0')}.mp3',
-                                    pdfUrl:
-                                        'https://pdf.quran.ws/pdfs/hafs/surah/quran-hafs-surah-${surah['num']}-${surah['pdfSlug']}.pdf',
+                                    pdfAssetPath: getSurahPdfAssetPath(surah),
                                   ),
                                 );
                               },
@@ -1191,8 +1190,6 @@ class SharedJuzCard extends StatelessWidget {
                                     title: 'Juz ${meta.num}',
                                     audioUrl:
                                         'https://server7.mp3quran.net/basit/juz_${'${meta.num}'.padLeft(2, '0')}.mp3',
-                                    pdfUrl:
-                                        'https://pdf.quran.ws/pdfs/hafs/juz/quran-hafs-juz-${meta.num}.pdf',
                                   ),
                                 );
                               },

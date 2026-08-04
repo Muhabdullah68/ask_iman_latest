@@ -22,3 +22,10 @@
 
 # Keep enum classes
 -keepclassmembers enum * { *; }
+
+# Gson — preserve generic signatures for TypeToken at runtime (R8 strips these)
+-keepattributes Signature
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+-keep class com.google.gson.** { *; }
+-dontwarn com.google.gson.**

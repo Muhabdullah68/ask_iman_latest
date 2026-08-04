@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/ask_iman_app_bar.dart';
+import '../../../core/services/quran_audio_service.dart';
 import '../data/curated_data.dart';
 import '../data/surahs_data.dart';
 import '../data/quran_api_service.dart';
@@ -899,7 +900,78 @@ class _TafseerVolumeReaderState extends State<TafseerVolumeReader> {
             widget.isUrdu,
             arabicFont: widget.arabicFont,
           ),
+          _buildAyahAudioRow(ayah),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAyahAudioRow(Map<String, dynamic> ayah) {
+    final parts = (ayah['ayah_key'] as String? ?? '').split(':');
+    if (parts.length != 2) return const SizedBox.shrink();
+    final surahNum = int.tryParse(parts[0]);
+    final ayahNum = int.tryParse(parts[1]);
+    if (surahNum == null || ayahNum == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: ListenableBuilder(
+          listenable: QuranAudioService(),
+          builder: (context, _) {
+            final audio = QuranAudioService();
+            final isThisAyahPlaying =
+                audio.isPlaying && audio.currentId == 'ayah_$surahNum-$ayahNum';
+            return GestureDetector(
+              onTap: () {
+                if (isThisAyahPlaying) {
+                  audio.stop();
+                } else {
+                  audio.playAyah(surahNum, ayahNum);
+                }
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: isThisAyahPlaying
+                          ? AppColors.gold
+                          : AppColors.primaryDark,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isThisAyahPlaying
+                          ? Icons.stop_rounded
+                          : Icons.play_arrow_rounded,
+                      color: isThisAyahPlaying
+                          ? AppColors.primaryDarkest
+                          : AppColors.gold,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isThisAyahPlaying
+                        ? 'Stop Recitation'
+                        : 'Play Recitation',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 11,
+                      color: isThisAyahPlaying
+                          ? AppColors.gold
+                          : AppColors.textGrey,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

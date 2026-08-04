@@ -21,11 +21,10 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   int _currentIndex = 0;
-  final List<int> _history = [0];
-  final GlobalKey<NavigatorState> _shellNavigatorKey =
-      GlobalKey<NavigatorState>();
   AnimationController? _celebrationController;
   Animation<double>? _celebrationAnimation;
+  bool _celebrationShowing = false;
+  int _lastHandledStep = -1;
 
   @override
   void initState() {
@@ -62,6 +61,11 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     final step = svc.currentStep;
     if (step == null) return;
 
+    // Only act once per step — prevents re-pushing routes or re-navigating
+    // on every notifyListeners (e.g. forceRefresh after scroll/tab changes).
+    if (svc.currentStepIndex == _lastHandledStep) return;
+    _lastHandledStep = svc.currentStepIndex;
+
     // First, ensure we go to Home for reset
     if (svc.currentStepIndex == 0 && _currentIndex != 0) {
       _changeTab(0);
@@ -93,6 +97,8 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   }
 
   void _showCelebration() {
+    if (_celebrationShowing) return;
+    _celebrationShowing = true;
     _celebrationController = AnimationController(
       duration: const Duration(seconds: 1),
       vsync: this,
@@ -199,6 +205,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     ).then((_) {
       _celebrationController?.dispose();
       _celebrationController = null;
+      _celebrationShowing = false;
     });
   }
 
@@ -206,7 +213,6 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     if (_currentIndex == index) return;
     setState(() {
       _currentIndex = index;
-      _history.add(index);
     });
     if (index == 1 && !TutorialService.instance.isActive) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -216,14 +222,9 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   }
 
   Future<bool> _onWillPop() async {
-    if (_shellNavigatorKey.currentState?.canPop() ?? false) {
-      _shellNavigatorKey.currentState?.pop();
-      return false;
-    }
-    if (_history.length > 1) {
+    if (_currentIndex != 0) {
       setState(() {
-        _history.removeLast();
-        _currentIndex = _history.last;
+        _currentIndex = 0;
       });
       return false;
     }

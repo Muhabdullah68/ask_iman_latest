@@ -8,14 +8,11 @@ import '../../core/theme/app_colors.dart';
 import '../../core/services/community_service.dart';
 import '../../core/services/prayer_service.dart';
 import '../../core/services/tutorial_service.dart';
-import '../auth/sign_up_screen.dart';
 import '../../core/providers/locale_provider.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
 import '../ibadah/ibadah_screen.dart';
-import '../charity/charity_list_screen.dart';
-import '../charity/my_charity_screen.dart';
 import '../auth/sign_in_screen.dart';
 
 // ─── PROFILE SCREEN ──────────────────────────────────────────────────────────
@@ -336,20 +333,24 @@ class ProfileScreen extends StatelessWidget {
         _actionRow(
           Icons.favorite_outline_rounded,
           'Charity & Causes',
-          'Donate, raise, and request help',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CharityListScreen()),
-          ),
+          'Coming Soon',
+          isComingSoon: true,
+          // Ships in the next app update after Play Store launch.
+          // onTap: () => Navigator.push(
+          //   context,
+          //   MaterialPageRoute(builder: (_) => const CharityListScreen()),
+          // ),
         ),
         _actionRow(
           Icons.receipt_long_outlined,
           'My Charity',
-          'Track your donations and causes',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const MyCharityScreen()),
-          ),
+          'Coming Soon',
+          isComingSoon: true,
+          // Ships in the next app update after Play Store launch.
+          // onTap: () => Navigator.push(
+          //   context,
+          //   MaterialPageRoute(builder: (_) => const MyCharityScreen()),
+          // ),
         ),
       ]);
 
@@ -385,13 +386,15 @@ class ProfileScreen extends StatelessWidget {
         _actionRow(
           Icons.auto_stories,
           'Apply as Teacher',
-          'Share your knowledge with the community',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const SignUpScreen(initialRole: UserRole.teacher),
-            ),
-          ),
+          'Coming Soon',
+          isComingSoon: true,
+          // Ships in the next app update after Play Store launch.
+          // onTap: () => Navigator.push(
+          //   context,
+          //   MaterialPageRoute(
+          //     builder: (_) => const SignUpScreen(initialRole: UserRole.teacher),
+          //   ),
+          // ),
         ),
       );
     }

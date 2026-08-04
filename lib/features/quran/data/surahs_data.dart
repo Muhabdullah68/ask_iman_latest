@@ -101,7 +101,6 @@ class SurahsData {
     'Saffat',
     'Sajdah',
     'Shams',
-    'Shuara',
     'Shura',
     'Taghabun',
     'Taha',

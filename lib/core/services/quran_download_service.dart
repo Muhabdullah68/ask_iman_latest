@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 enum DownloadType { audio, pdf }
 
@@ -88,6 +89,40 @@ class QuranDownloadService extends ChangeNotifier {
           }
         },
       );
+
+      _progressMap[key] = DownloadProgress(progress: 1.0, isDownloading: false);
+      await _prefs!.setBool('is_downloaded_$key', true);
+      notifyListeners();
+    } catch (e) {
+      _progressMap[key] = DownloadProgress(
+        progress: 0,
+        isDownloading: false,
+        error: e.toString(),
+      );
+      notifyListeners();
+    }
+  }
+
+  Future<void> downloadPdfFromAsset({
+    required String id,
+    required String assetPath,
+  }) async {
+    if (!_initialized) await init();
+
+    final key = '${id}_${DownloadType.pdf.name}';
+    if (_progressMap[key]?.isDownloading == true) return;
+
+    final savePath = await getFilePath(id, DownloadType.pdf);
+
+    try {
+      _progressMap[key] = DownloadProgress(progress: 0, isDownloading: true);
+      notifyListeners();
+
+      // PDFs ship bundled as assets — copying locally is fully offline and
+      // avoids the (dead) external pdf.quran.ws endpoint.
+      final data = await rootBundle.load(assetPath);
+      final file = File(savePath);
+      await file.writeAsBytes(data.buffer.asUint8List(), flush: true);
 
       _progressMap[key] = DownloadProgress(progress: 1.0, isDownloading: false);
       await _prefs!.setBool('is_downloaded_$key', true);
