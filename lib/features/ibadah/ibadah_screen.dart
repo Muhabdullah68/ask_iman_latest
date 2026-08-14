@@ -24,6 +24,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/services/prayer_service.dart';
+import '../../core/utils/breakpoints.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
 import '../../core/services/tutorial_service.dart';
@@ -81,6 +82,8 @@ class _IbadahScreenState extends State<IbadahScreen> {
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
           ),
+        child: ContentContainer(
+          maxWidth: 1200,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -98,6 +101,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
               const SizedBox(height: 40),
             ],
           ),
+        ),
         ),
       ),
     );
@@ -343,6 +347,8 @@ class _IbadahScreenState extends State<IbadahScreen> {
             _buildPrayersShimmer()
           else if (prayers.isEmpty)
             _buildEmptyPrayers()
+          else if (context.isTablet || context.isDesktop)
+            _buildPrayersTimeline(prayers)
           else
             Container(
               decoration: BoxDecoration(
@@ -360,7 +366,8 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 ),
               ),
             ),
-          if (_svc.prayerTimes != null) ...[
+          if (_svc.prayerTimes != null &&
+              !(context.isTablet || context.isDesktop)) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -403,6 +410,157 @@ class _IbadahScreenState extends State<IbadahScreen> {
       ),
     );
   }
+
+  // ── Desktop horizontal prayer timeline ─────────────────────────────────────
+  Widget _buildPrayersTimeline(List<PrayerInfo> prayers) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final p in prayers) _timelinePill(p),
+        if (_svc.prayerTimes != null)
+          _timelinePillSunrise(_svc.sunriseFormatted),
+      ],
+    );
+  }
+
+  Widget _timelinePill(PrayerInfo p) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: p.isNext
+              ? AppColors.gold
+              : AppColors.primaryDarkest.withValues(alpha: 0.3),
+          width: p.isNext ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _prayerIcon(p.name),
+            color: AppColors.gold,
+            size: 20,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            p.name,
+            style: const TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textCream,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                p.timeShort,
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  p.amPm,
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 9,
+                    color: AppColors.gold.withValues(alpha: 0.8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (p.isNext) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.gold,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'NEXT',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primaryDarkest,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _timelinePillSunrise(String time) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.bgWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.wb_sunny_outlined, color: AppColors.gold, size: 20),
+          const SizedBox(height: 6),
+          const Text(
+            'Sunrise',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                time,
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primaryDark,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static const Map<String, IconData> _prayerIcons = {
+    'Fajr': Icons.wb_twilight,
+    'Dhuhr': Icons.wb_sunny_rounded,
+    'Asr': Icons.light_mode_outlined,
+    'Maghrib': Icons.wb_twilight,
+    'Isha': Icons.nightlight_round,
+  };
+
+  IconData _prayerIcon(String name) =>
+      _prayerIcons[name] ?? Icons.access_time;
 
   Widget _buildPrayersShimmer() {
     return Container(
@@ -477,18 +635,21 @@ class _IbadahScreenState extends State<IbadahScreen> {
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildHijriCalendar() {
     final today = HijriDate.today;
+    final isWide = context.isTablet || context.isDesktop;
 
-    // Determine if the selected day has an occasion (for tooltip)
+    // Determine if the selected day has an occasion (for tooltip/panel)
     final allOccasions = HijriDate.islamicOccasions(_viewHijriYear);
-    final selectedOccasion = _selectedDay == null
-        ? null
-        : allOccasions.firstWhere(
-            (o) =>
-                o['month'] as int == _viewHijriMonth &&
-                o['day'] as int == _selectedDay,
-            orElse: () => {},
-          );
-    final hasOccasion = selectedOccasion != null && selectedOccasion.isNotEmpty;
+    final activeDay = _selectedDay ?? today.day;
+    final activeMonth = _selectedDay == null ? today.month : _viewHijriMonth;
+    final activeYear = _selectedDay == null ? today.year : _viewHijriYear;
+    final selectedOccasion = allOccasions.firstWhere(
+      (o) =>
+          o['month'] as int == activeMonth && o['day'] as int == activeDay,
+      orElse: () => {},
+    );
+    final hasOccasion = selectedOccasion.isNotEmpty;
+    final occasionName =
+        hasOccasion ? selectedOccasion['name'] as String : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -531,235 +692,44 @@ class _IbadahScreenState extends State<IbadahScreen> {
           ),
           const SizedBox(height: 14),
 
-          // ── Unified dark calendar card ──
-          Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0D2818), Color(0xFF1A3D28)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryDarkest.withValues(alpha: 0.35),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // ── Top hero: today's date ──
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Left: big day number
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${today.day}',
-                            style: const TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 64,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              height: 1,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            today.monthName.toUpperCase(),
-                            style: const TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.gold,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      // Right: Arabic name + Gregorian pill
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            today.monthNameAr,
-                            style: const TextStyle(
-                              fontFamily: 'Amiri',
-                              fontSize: 26,
-                              color: AppColors.gold,
-                              height: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.18),
-                              ),
-                            ),
-                            child: Text(
-                              DateFormat('EEE, d MMM y').format(DateTime.now()),
-                              style: const TextStyle(
-                                fontFamily: 'Cairo',
-                                fontSize: 11,
-                                color: AppColors.textCream,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // ── Thin gold divider ──
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 14,
-                  ),
-                  child: Container(
-                    height: 1,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          AppColors.gold.withValues(alpha: 0.5),
-                          Colors.transparent,
-                        ],
+          // ── Calendar card + permanent day-info panel (desktop split) ──
+          if (isWide)
+            LayoutBuilder(
+              builder: (ctx, c) {
+                final panelW = (c.maxWidth * 0.30).clamp(260.0, 340.0);
+                final calW = c.maxWidth - panelW - 16;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: calW,
+                      child: _buildCalendarCard(
+                        today,
+                        showTooltip: false,
+                        occasionName: occasionName,
                       ),
                     ),
-                  ),
-                ),
-
-                // ── Month navigation ──
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      _calNavBtn(
-                        Icons.chevron_left,
-                        () => setState(() {
-                          _viewHijriMonth--;
-                          _selectedDay = null;
-                          if (_viewHijriMonth < 1) {
-                            _viewHijriMonth = 12;
-                            _viewHijriYear--;
-                          }
-                        }),
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: panelW,
+                      child: _buildDayInfoPanel(
+                        today,
+                        activeDay: activeDay,
+                        activeMonth: activeMonth,
+                        activeYear: activeYear,
+                        occasionName: occasionName,
                       ),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Text(
-                              HijriDate(
-                                day: 1,
-                                month: _viewHijriMonth,
-                                year: _viewHijriYear,
-                              ).monthName,
-                              style: const TextStyle(
-                                fontFamily: 'Cairo',
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              '$_viewHijriYear AH',
-                              style: TextStyle(
-                                fontFamily: 'Cairo',
-                                fontSize: 10,
-                                color: Colors.white.withValues(alpha: 0.5),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      _calNavBtn(
-                        Icons.chevron_right,
-                        () => setState(() {
-                          _viewHijriMonth++;
-                          _selectedDay = null;
-                          if (_viewHijriMonth > 12) {
-                            _viewHijriMonth = 1;
-                            _viewHijriYear++;
-                          }
-                        }),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 14),
-
-                // ── Day-of-week headers ──
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                        .asMap()
-                        .entries
-                        .map(
-                          (e) => SizedBox(
-                            width: 36,
-                            child: Center(
-                              child: Text(
-                                e.value,
-                                style: TextStyle(
-                                  fontFamily: 'Cairo',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: e.key == 5
-                                      ? AppColors.gold
-                                      : Colors.white.withValues(alpha: 0.45),
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                // ── Day grid ──
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: _buildMonthGrid(today),
-                ),
-
-                // ── Selected-day tooltip (animates in below the grid) ──
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOut,
-                  child: _selectedDay == null
-                      ? const SizedBox(height: 16)
-                      : _buildDayTooltip(
-                          _selectedDay!,
-                          today,
-                          hasOccasion
-                              ? selectedOccasion['name'] as String
-                              : null,
-                        ),
-                ),
-              ],
+                    ),
+                  ],
+                );
+              },
+            )
+          else
+            _buildCalendarCard(
+              today,
+              showTooltip: true,
+              occasionName: occasionName,
             ),
-          ),
 
           const SizedBox(height: 20),
 
@@ -767,6 +737,468 @@ class _IbadahScreenState extends State<IbadahScreen> {
           _buildIslamicOccasions(today),
         ],
       ),
+    );
+  }
+
+  // ── Unified dark calendar card ─────────────────────────────────────────────
+  Widget _buildCalendarCard(
+    HijriDate today, {
+    required bool showTooltip,
+    String? occasionName,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0D2818), Color(0xFF1A3D28)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDarkest.withValues(alpha: 0.35),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ── Top hero: today's date ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left: big day number
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${today.day}',
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 64,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      today.monthName.toUpperCase(),
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                // Right: Arabic name + Gregorian pill
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      today.monthNameAr,
+                      style: const TextStyle(
+                        fontFamily: 'Amiri',
+                        fontSize: 26,
+                        color: AppColors.gold,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.18),
+                        ),
+                      ),
+                      child: Text(
+                        DateFormat('EEE, d MMM y').format(DateTime.now()),
+                        style: const TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 11,
+                          color: AppColors.textCream,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // ── Thin gold divider ──
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 14,
+            ),
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    AppColors.gold.withValues(alpha: 0.5),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Month navigation ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                _calNavBtn(
+                  Icons.chevron_left,
+                  () => setState(() {
+                    _viewHijriMonth--;
+                    _selectedDay = null;
+                    if (_viewHijriMonth < 1) {
+                      _viewHijriMonth = 12;
+                      _viewHijriYear--;
+                    }
+                  }),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        HijriDate(
+                          day: 1,
+                          month: _viewHijriMonth,
+                          year: _viewHijriYear,
+                        ).monthName,
+                        style: const TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        '$_viewHijriYear AH',
+                        style: TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 10,
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _calNavBtn(
+                  Icons.chevron_right,
+                  () => setState(() {
+                    _viewHijriMonth++;
+                    _selectedDay = null;
+                    if (_viewHijriMonth > 12) {
+                      _viewHijriMonth = 1;
+                      _viewHijriYear++;
+                    }
+                  }),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // ── Day-of-week headers ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                  .asMap()
+                  .entries
+                  .map(
+                    (e) => SizedBox(
+                      width: 36,
+                      child: Center(
+                        child: Text(
+                          e.value,
+                          style: TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: e.key == 5
+                                ? AppColors.gold
+                                : Colors.white.withValues(alpha: 0.45),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          // ── Day grid ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: _buildMonthGrid(today),
+          ),
+
+          // ── Selected-day info (inline on mobile, permanent panel on desktop) ──
+          if (showTooltip)
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
+              child: _selectedDay == null
+                  ? const SizedBox(height: 16)
+                  : _buildDayTooltip(
+                      _selectedDay!,
+                      today,
+                      occasionName,
+                    ),
+            )
+          else
+            const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  // ── Permanent day-info panel (desktop right rail) ──────────────────────────
+  Widget _buildDayInfoPanel(
+    HijriDate today, {
+    required int activeDay,
+    required int activeMonth,
+    required int activeYear,
+    String? occasionName,
+  }) {
+    final isToday =
+        activeDay == today.day &&
+        activeMonth == today.month &&
+        activeYear == today.year;
+    final hDate = HijriDate(
+      day: activeDay,
+      month: activeMonth,
+      year: activeYear,
+    );
+    final gregDate = _hijriToGregorian(activeDay, activeMonth, activeYear);
+    final gregFormatted = DateFormat('EEEE, d MMMM y').format(gregDate);
+    final monthName = HijriDate(
+      day: 1,
+      month: activeMonth,
+      year: activeYear,
+    ).monthName;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0D2818), Color(0xFF1A3D28)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDarkest.withValues(alpha: 0.25),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'DAY DETAILS',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.gold,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const Spacer(),
+              if (isToday)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.20),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.gold.withValues(alpha: 0.50),
+                    ),
+                  ),
+                  child: const Text(
+                    'Today',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: occasionName != null
+                      ? AppColors.gold.withValues(alpha: 0.15)
+                      : Colors.white.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: occasionName != null
+                        ? AppColors.gold
+                        : AppColors.gold.withValues(alpha: 0.35),
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    '$activeDay',
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      monthName.toUpperCase(),
+                      style: TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white.withValues(alpha: 0.65),
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hDate.formatted,
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          _panelRow(
+            Icons.calendar_today_outlined,
+            'Gregorian',
+            gregFormatted,
+          ),
+          const SizedBox(height: 10),
+          _panelRow(
+            Icons.nights_stay_outlined,
+            'Hijri Month',
+            monthName,
+          ),
+          if (occasionName != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.gold.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    _occasionIcon(occasionName),
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      occasionName,
+                      style: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.gold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _panelRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.gold, size: 16),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 78,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.55),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1077,6 +1509,158 @@ class _IbadahScreenState extends State<IbadahScreen> {
     final showCount = _showAllOccasions ? sorted.length : 2;
     final visible = sorted.take(showCount).toList();
 
+    Widget card(int i, Map<String, dynamic> o) {
+      final name = o['name'] as String;
+      final month = o['month'] as int;
+      final day = o['day'] as int;
+      final hDate = HijriDate(day: day, month: month, year: today.year);
+      final gregDate = _hijriToGregorian(day, month, today.year);
+      final gregFormatted = DateFormat('d MMM').format(gregDate);
+      final isUpcomingItem =
+          month > today.month || (month == today.month && day >= today.day);
+      final isNear = month == today.month && (day - today.day).abs() <= 7;
+      final isFirst = i == 0 && isUpcomingItem;
+      final icon = _occasionIcon(name);
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          gradient: isFirst
+              ? const LinearGradient(
+                  colors: [Color(0xFF0D2818), Color(0xFF1A3D28)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isFirst
+              ? null
+              : isNear
+              ? AppColors.primaryDark.withValues(alpha: 0.06)
+              : AppColors.bgWhite,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isFirst
+                ? AppColors.gold.withValues(alpha: 0.35)
+                : isNear
+                ? AppColors.primaryDark.withValues(alpha: 0.25)
+                : AppColors.borderLight,
+            width: isFirst ? 1.2 : 1.0,
+          ),
+          boxShadow: isFirst
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryDarkest.withValues(alpha: 0.18),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: Row(
+            children: [
+              // Icon circle
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: isFirst
+                      ? AppColors.gold.withValues(alpha: 0.18)
+                      : isNear
+                      ? AppColors.primaryDark
+                      : AppColors.bgCream,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Center(
+                  child: Text(icon, style: const TextStyle(fontSize: 20)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Name + date
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: isFirst ? Colors.white : AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${hDate.formatted}  ·  $gregFormatted',
+                      style: TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 11,
+                        color: isFirst
+                            ? Colors.white.withValues(alpha: 0.55)
+                            : AppColors.textGrey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Badge
+              if (isFirst)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    'Next',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primaryDarkest,
+                    ),
+                  ),
+                )
+              else if (isNear)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Text(
+                    'Soon',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.goldDark,
+                    ),
+                  ),
+                )
+              else if (!isUpcomingItem)
+                Text(
+                  gregFormatted,
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 11,
+                    color: AppColors.textLightGrey,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1113,166 +1697,27 @@ class _IbadahScreenState extends State<IbadahScreen> {
         ),
         const SizedBox(height: 12),
 
-        ...visible.asMap().entries.map((entry) {
-          final i = entry.key;
-          final o = entry.value;
-          final name = o['name'] as String;
-          final month = o['month'] as int;
-          final day = o['day'] as int;
-
-          final hDate = HijriDate(day: day, month: month, year: today.year);
-          final gregDate = _hijriToGregorian(day, month, today.year);
-          final gregFormatted = DateFormat('d MMM').format(gregDate);
-
-          final isUpcomingItem =
-              month > today.month || (month == today.month && day >= today.day);
-          final isNear = month == today.month && (day - today.day).abs() <= 7;
-          final isFirst = i == 0 && isUpcomingItem;
-
-          // Special icon per event
-          final icon = _occasionIcon(name);
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            decoration: BoxDecoration(
-              gradient: isFirst
-                  ? const LinearGradient(
-                      colors: [Color(0xFF0D2818), Color(0xFF1A3D28)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : null,
-              color: isFirst
-                  ? null
-                  : isNear
-                  ? AppColors.primaryDark.withValues(alpha: 0.06)
-                  : AppColors.bgWhite,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isFirst
-                    ? AppColors.gold.withValues(alpha: 0.35)
-                    : isNear
-                    ? AppColors.primaryDark.withValues(alpha: 0.25)
-                    : AppColors.borderLight,
-                width: isFirst ? 1.2 : 1.0,
-              ),
-              boxShadow: isFirst
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primaryDarkest.withValues(alpha: 0.18),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              child: Row(
+        // Desktop: full 2-column event grid (always visible, no expand)
+        if (context.isTablet || context.isDesktop)
+          LayoutBuilder(
+            builder: (ctx, c) {
+              final itemW = (c.maxWidth - 12) / 2;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 0,
                 children: [
-                  // Icon circle
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: isFirst
-                          ? AppColors.gold.withValues(alpha: 0.18)
-                          : isNear
-                          ? AppColors.primaryDark
-                          : AppColors.bgCream,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Center(
-                      child: Text(icon, style: const TextStyle(fontSize: 20)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Name + date
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: isFirst ? Colors.white : AppColors.textDark,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${hDate.formatted}  ·  $gregFormatted',
-                          style: TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 11,
-                            color: isFirst
-                                ? Colors.white.withValues(alpha: 0.55)
-                                : AppColors.textGrey,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Badge
-                  if (isFirst)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.gold,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primaryDarkest,
-                        ),
-                      ),
-                    )
-                  else if (isNear)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.gold.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Text(
-                        'Soon',
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.goldDark,
-                        ),
-                      ),
-                    )
-                  else if (!isUpcomingItem)
-                    Text(
-                      gregFormatted,
-                      style: TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 11,
-                        color: AppColors.textLightGrey,
-                      ),
-                    ),
+                  for (var i = 0; i < sorted.length; i++)
+                    SizedBox(width: itemW, child: card(i, sorted[i])),
                 ],
-              ),
-            ),
-          );
-        }),
+              );
+            },
+          )
+        else ...[
+          ...visible.asMap().entries.map((entry) => card(entry.key, entry.value)),
+        ],
 
-        // ── Show more / show less button ──
-        if (sorted.length > 2)
+        // ── Show more / show less button (mobile only — desktop shows all) ──
+        if (!(context.isTablet || context.isDesktop) && sorted.length > 2)
           GestureDetector(
             onTap: () => setState(() => _showAllOccasions = !_showAllOccasions),
             child: Container(
@@ -1399,7 +1844,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildToolCard(
+                  child: _ToolCard(
                     imagePath: 'assets/images/Kaaba.png',
                     label: 'Qiblah',
                     subtitle: 'Find direction',
@@ -1411,7 +1856,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildToolCard(
+                  child: _ToolCard(
                     imagePath: 'assets/images/tasbih beads.png',
                     label: 'Tasbeeh',
                     subtitle: 'Dhikr counter',
@@ -1435,74 +1880,6 @@ class _IbadahScreenState extends State<IbadahScreen> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToolCard({
-    required String imagePath,
-    required String label,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AspectRatio(
-        aspectRatio: 1.6,
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.primaryDark,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset(
-                imagePath,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const SizedBox(),
-              ),
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0x33000000), Color(0xCC000000)],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 12,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 11,
-                        color: AppColors.textGreenMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -1740,6 +2117,117 @@ class _IbadahScreenState extends State<IbadahScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => NotifSettingsSheet(service: _svc),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// QUICK TOOL CARD (hover-aware)
+// ══════════════════════════════════════════════════════════════════════════════
+class _ToolCard extends StatefulWidget {
+  final String imagePath;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+  const _ToolCard({
+    required this.imagePath,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  State<_ToolCard> createState() => _ToolCardState();
+}
+
+class _ToolCardState extends State<_ToolCard> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: AppColors.primaryDark,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _hovered
+                  ? AppColors.gold
+                  : AppColors.primaryDarkest.withValues(alpha: 0.3),
+              width: _hovered ? 1.5 : 1,
+            ),
+            boxShadow: _hovered
+                ? [
+                    BoxShadow(
+                      color: AppColors.primaryDarkest.withValues(alpha: 0.35),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ]
+                : null,
+          ),
+          child: AspectRatio(
+            aspectRatio: 1.6,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    widget.imagePath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const SizedBox(),
+                  ),
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x33000000), Color(0xCC000000)],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 12,
+                    right: 12,
+                    bottom: 12,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.label,
+                          style: const TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          widget.subtitle,
+                          style: const TextStyle(
+                            fontFamily: 'Cairo',
+                            fontSize: 11,
+                            color: AppColors.textGreenMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
