@@ -6,6 +6,7 @@
 
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../data/ahadees_data.dart';
 
 // ── Book slugs ───────────────────────────────────────────────────────────────
@@ -191,18 +192,23 @@ class _AhadeesTabState extends State<AhadeesTab>
           _buildBookListHeader(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.8,
-              ),
-              itemCount: _books.length,
-              itemBuilder: (context, index) =>
-                  _buildGridBookCard(_books[index]),
+            child: LayoutBuilder(
+              builder: (ctx, c) {
+                final isWide = ctx.isTablet || ctx.isDesktop;
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: isWide ? 3 : 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: isWide ? 1.1 : 0.8,
+                  ),
+                  itemCount: _books.length,
+                  itemBuilder: (context, index) =>
+                      _buildGridBookCard(_books[index]),
+                );
+              },
             ),
           ),
           const SizedBox(height: 32),

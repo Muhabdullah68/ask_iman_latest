@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/breakpoints.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
@@ -332,48 +333,51 @@ class QuranScreenState extends State<QuranScreen>
         title: _getCurrentTutorialTitle(context),
         description: _getCurrentTutorialDesc(context),
         arrowDirection: TooltipArrowDirection.up,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_tc.index < 3) _buildSearchBar(context),
-            _buildTabBar(context),
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                child: TabBarView(
-                  controller: _tc,
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    TalawatTab(
-                      searchQuery: _searchQuery,
-                      useUrduFont: _useUrduTranslation,
-                      arabicFont: _selectedFont,
-                    ),
-                    TranslationTab(
-                      searchQuery: _searchQuery,
-                      useUrduFont: _useUrduTranslation,
-                      arabicFont: _selectedFont,
-                    ),
-                    TafseerTab(
-                      searchQuery: _searchQuery,
-                      useUrduFont: _useUrduTranslation,
-                      arabicFont: _selectedFont,
-                    ),
-                    AyahTab(
-                      searchQuery: _searchQuery,
-                      useUrduFont: _useUrduTranslation,
-                      arabicFont: _selectedFont,
-                    ),
-                    AhadeesTab(
-                      searchQuery: _searchQuery,
-                      arabicFont: _selectedFont,
-                      useUrduFont: _useUrduTranslation,
-                    ),
-                  ],
+        child: ContentContainer(
+          maxWidth: 1200,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_tc.index < 3) _buildSearchBar(context),
+              _buildTabBar(context),
+              Expanded(
+                child: Container(
+                  color: Colors.white,
+                  child: TabBarView(
+                    controller: _tc,
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      TalawatTab(
+                        searchQuery: _searchQuery,
+                        useUrduFont: _useUrduTranslation,
+                        arabicFont: _selectedFont,
+                      ),
+                      TranslationTab(
+                        searchQuery: _searchQuery,
+                        useUrduFont: _useUrduTranslation,
+                        arabicFont: _selectedFont,
+                      ),
+                      TafseerTab(
+                        searchQuery: _searchQuery,
+                        useUrduFont: _useUrduTranslation,
+                        arabicFont: _selectedFont,
+                      ),
+                      AyahTab(
+                        searchQuery: _searchQuery,
+                        useUrduFont: _useUrduTranslation,
+                        arabicFont: _selectedFont,
+                      ),
+                      AhadeesTab(
+                        searchQuery: _searchQuery,
+                        arabicFont: _selectedFont,
+                        useUrduFont: _useUrduTranslation,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

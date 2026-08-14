@@ -33,6 +33,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../../../core/services/quran_download_service.dart';
 import '../../../core/services/quran_audio_service.dart';
 import '../widgets/download_dialog.dart';
@@ -308,51 +309,68 @@ class _SurahListViewState extends State<_SurahListView>
     super.build(context);
     final list = _filtered;
     if (list.isEmpty) return _EmptySearchState(query: widget.searchQuery);
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: list.length,
-      itemBuilder: (_, i) {
-        final s = list[i];
-        return SharedSurahCard(
-          surah: s,
-          useUrduFont: widget.useUrduFont,
-          arabicFont: widget.arabicFont,
-          onTap: () {
-            if (widget.onTap != null) {
-              widget.onTap!(s);
-            } else if (widget.mode == ReadMode.tafseer) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TafseerReaderScreen(
-                    surah: s,
-                    book: const {
-                      'name': 'Ibn Kathir',
-                      'arabic': 'تفسير ابن كثير',
-                    },
-                    isUrdu: widget.useUrduFont,
-                    arabicFont: widget.arabicFont,
-                  ),
+
+    Widget tile(int i) {
+      final s = list[i];
+      return SharedSurahCard(
+        surah: s,
+        useUrduFont: widget.useUrduFont,
+        arabicFont: widget.arabicFont,
+        onTap: () {
+          if (widget.onTap != null) {
+            widget.onTap!(s);
+          } else if (widget.mode == ReadMode.tafseer) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => TafseerReaderScreen(
+                  surah: s,
+                  book: const {
+                    'name': 'Ibn Kathir',
+                    'arabic': 'تفسير ابن كثير',
+                  },
+                  isUrdu: widget.useUrduFont,
+                  arabicFont: widget.arabicFont,
                 ),
-              );
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ArabicReadScreen(
-                    surah: s,
-                    showTranslation: widget.mode == ReadMode.tarjuma,
-                    useUrduFont: widget.useUrduFont,
-                    arabicFont: widget.arabicFont,
-                  ),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ArabicReadScreen(
+                  surah: s,
+                  showTranslation: widget.mode == ReadMode.tarjuma,
+                  useUrduFont: widget.useUrduFont,
+                  arabicFont: widget.arabicFont,
                 ),
-              );
-            }
-          },
-        );
-      },
-    );
+              ),
+            );
+          }
+        },
+      );
+    }
+
+    final isWide = context.isTablet || context.isDesktop;
+    return isWide
+        ? GridView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 8,
+              mainAxisExtent: 80,
+            ),
+            itemCount: list.length,
+            itemBuilder: (_, i) => tile(i),
+          )
+        : ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: list.length,
+            itemBuilder: (_, i) => tile(i),
+          );
   }
 }
 
@@ -400,33 +418,50 @@ class _JuzListViewState extends State<_JuzListView>
     super.build(context);
     final list = _filtered;
     if (list.isEmpty) return _EmptySearchState(query: widget.searchQuery);
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: list.length,
-      itemBuilder: (_, i) => SharedJuzCard(
-        meta: list[i],
-        useUrduFont: widget.useUrduFont,
-        arabicFont: widget.arabicFont,
-        onTap: () {
-          if (widget.mode == ReadMode.tafseer) {
-            // Juz tafseer logic can be added here if needed
-          } else {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ArabicReadScreen.juz(
-                  meta: list[i],
-                  showTranslation: widget.mode == ReadMode.tarjuma,
-                  useUrduFont: widget.useUrduFont,
-                  arabicFont: widget.arabicFont,
+
+    Widget tile(int i) => SharedJuzCard(
+          meta: list[i],
+          useUrduFont: widget.useUrduFont,
+          arabicFont: widget.arabicFont,
+          onTap: () {
+            if (widget.mode == ReadMode.tafseer) {
+              // Juz tafseer logic can be added here if needed
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ArabicReadScreen.juz(
+                    meta: list[i],
+                    showTranslation: widget.mode == ReadMode.tarjuma,
+                    useUrduFont: widget.useUrduFont,
+                    arabicFont: widget.arabicFont,
+                  ),
                 ),
-              ),
-            );
-          }
-        },
-      ),
-    );
+              );
+            }
+          },
+        );
+
+    final isWide = context.isTablet || context.isDesktop;
+    return isWide
+        ? GridView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 8,
+              mainAxisExtent: 80,
+            ),
+            itemCount: list.length,
+            itemBuilder: (_, i) => tile(i),
+          )
+        : ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: list.length,
+            itemBuilder: (_, i) => tile(i),
+          );
   }
 }
 

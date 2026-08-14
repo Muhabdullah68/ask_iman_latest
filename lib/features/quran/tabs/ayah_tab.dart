@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../data/curated_data.dart';
 
 class AyahTab extends StatefulWidget {
@@ -238,14 +239,37 @@ class _TopicContent extends StatelessWidget {
             ),
           ),
         ],
-        ...filteredAyats.map(
-          (item) => _AyahTafseerCard(
-            item: item,
-            useUrduFont: useUrduFont,
-            arabicFont: arabicFont,
-            showTafseer: showTafseer,
+        if (context.isTablet || context.isDesktop)
+          LayoutBuilder(
+            builder: (ctx, c) {
+              final itemW = (c.maxWidth - 16) / 2;
+              return Wrap(
+                spacing: 16,
+                runSpacing: 0,
+                children: [
+                  for (final item in filteredAyats)
+                    SizedBox(
+                      width: itemW,
+                      child: _AyahTafseerCard(
+                        item: item,
+                        useUrduFont: useUrduFont,
+                        arabicFont: arabicFont,
+                        showTafseer: showTafseer,
+                      ),
+                    ),
+                ],
+              );
+            },
+          )
+        else
+          ...filteredAyats.map(
+            (item) => _AyahTafseerCard(
+              item: item,
+              useUrduFont: useUrduFont,
+              arabicFont: arabicFont,
+              showTafseer: showTafseer,
+            ),
           ),
-        ),
         if (searchQuery.isNotEmpty &&
             filteredAyats.isEmpty &&
             filteredDaily == null)

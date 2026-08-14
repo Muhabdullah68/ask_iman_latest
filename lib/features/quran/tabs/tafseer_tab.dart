@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/breakpoints.dart';
 import '../../../shared/widgets/ask_iman_app_bar.dart';
 import '../../../core/services/quran_audio_service.dart';
 import '../data/curated_data.dart';
@@ -177,17 +178,22 @@ class _TafseerTabState extends State<TafseerTab>
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.85,
-              ),
-              itemCount: _sources.length,
-              itemBuilder: (ctx, i) => _buildBookCard(_sources[i]),
+            child: LayoutBuilder(
+              builder: (ctx, c) {
+                final isWide = ctx.isTablet || ctx.isDesktop;
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: isWide ? 3 : 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: isWide ? 1.05 : 0.85,
+                  ),
+                  itemCount: _sources.length,
+                  itemBuilder: (ctx, i) => _buildBookCard(_sources[i]),
+                );
+              },
             ),
           ),
           const SizedBox(height: 32),
