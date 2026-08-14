@@ -374,6 +374,79 @@ class DailyData {
     }).toList();
   }
 
+  static final List<Map<String, String>> duas = [
+    {
+      'arabic':
+          'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَى وَالتُّقَى وَالْعَفَافَ وَالْغِنَى',
+      'translation':
+          '"O Allah, I ask You for guidance, piety, chastity, and self-sufficiency."',
+      'reference': 'Sahih Muslim',
+    },
+    {
+      'arabic':
+          'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
+      'translation':
+          '"Our Lord, give us good in this world and good in the Hereafter, and protect us from the punishment of the Fire."',
+      'reference': 'Al-Baqarah 2:201',
+    },
+    {
+      'arabic':
+          'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَالْعَجْزِ وَالْكَسَلِ، وَالْجُبْنِ وَالْبُخْلِ',
+      'translation':
+          '"O Allah, I seek refuge in You from anxiety and sorrow, weakness and laziness, cowardice and miserliness."',
+      'reference': 'Sahih Bukhari',
+    },
+    {
+      'arabic': 'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ',
+      'translation': '"O Ever-Living, O Self-Sustaining, by Your mercy I seek help."',
+      'reference': 'Sunan Abu Dawud',
+    },
+    {
+      'arabic': 'رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي',
+      'translation': '"My Lord, expand for me my chest and ease for me my task."',
+      'reference': 'Ta-Ha 20:25-26',
+    },
+    {
+      'arabic': 'اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي',
+      'translation':
+          '"O Allah, You are Forgiving and love forgiveness, so forgive me."',
+      'reference': 'Sunan Ibn Majah',
+    },
+    {
+      'arabic':
+          'حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ',
+      'translation':
+          '"Allah is sufficient for me; there is no deity except Him. Upon Him I rely, and He is the Lord of the Great Throne."',
+      'reference': 'At-Tawbah 9:129',
+    },
+    {
+      'arabic': 'اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ وَعَلَى آلِ مُحَمَّدٍ',
+      'translation':
+          '"O Allah, send prayers upon Muhammad and upon the family of Muhammad."',
+      'reference': 'Sahih Bukhari',
+    },
+    {
+      'arabic': 'رَبِّ زِدْنِي عِلْمًا',
+      'translation': '"My Lord, increase me in knowledge."',
+      'reference': 'Ta-Ha 20:114',
+    },
+    {
+      'arabic': 'اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ',
+      'translation':
+          '"O Allah, help me to remember You, to thank You, and to worship You excellently."',
+      'reference': 'Sunan Abu Dawud',
+    },
+  ];
+
+  static Map<String, String> getDailyDua() {
+    final now = DateTime.now();
+    final seed = _generateSeed(now, 'dua');
+    final shuffled = List<Map<String, String>>.from(duas)
+      ..shuffle(_SeededRandom(seed));
+    final dua = shuffled.first;
+    return {...dua, 'arabic': cleanArabicText(dua['arabic'] ?? '')};
+  }
+
   static List<Map<String, String>> getDailyHadiths(int count) {
     final now = DateTime.now();
     final seed = _generateSeed(now, 'hadiths');

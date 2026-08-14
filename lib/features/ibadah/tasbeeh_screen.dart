@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:vibration/vibration.dart';
@@ -399,8 +400,11 @@ class _TasbeehScreenState extends State<TasbeehScreen>
       _playClickSound(); // No await, just fire and forget
     }
     if (_hapticEnabled) {
-      // Use STRONG, GUARANTEED vibration with the vibration package!
-      Vibration.vibrate(duration: 100); // Vibrate for 100ms
+      // The vibration package has no web support — fall back to HapticFeedback.
+      if (!kIsWeb) {
+        // Use STRONG, GUARANTEED vibration with the vibration package!
+        Vibration.vibrate(duration: 100); // Vibrate for 100ms
+      }
       // Also use HapticFeedback for extra effect
       HapticFeedback.heavyImpact();
       HapticFeedback.mediumImpact();

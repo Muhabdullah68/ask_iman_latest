@@ -44,8 +44,8 @@ class TutorialService extends ChangeNotifier {
     TutorialStep(
       id: 'tut_home_streaks',
       screen: 'home',
-      titleKey: 'tutHomeStreaksTitle',
-      descKey: 'tutHomeStreaksDesc',
+      titleKey: 'tutHomeDuaTitle',
+      descKey: 'tutHomeDuaDesc',
       arrowDirection: TooltipArrowDirection.up,
     ),
     TutorialStep(

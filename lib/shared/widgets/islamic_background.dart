@@ -5,17 +5,20 @@ import '../../core/theme/app_colors.dart';
 class IslamicBackground extends StatelessWidget {
   final Widget? child;
   final bool showPattern;
-  final double patternOpacity;
+  final double? patternOpacity;
   const IslamicBackground({
     super.key,
     this.child,
     this.showPattern = true,
-    this.patternOpacity = 0.06,
+    this.patternOpacity,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Make the 8-point star pattern clearly visible in both themes:
+    // lighter in light mode (0.12), stronger in dark mode (0.18).
+    final opacity = patternOpacity ?? (isDark ? 0.18 : 0.12);
     return Stack(
       children: [
         Positioned.fill(
@@ -45,7 +48,7 @@ class IslamicBackground extends StatelessWidget {
               child: CustomPaint(
                 painter: _IslamicPatternPainter(
                   color: isDark ? AppColors.gold : AppColors.primaryDark,
-                  opacity: patternOpacity,
+                  opacity: opacity,
                 ),
                 size: Size.infinite,
               ),

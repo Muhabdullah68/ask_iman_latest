@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/family/group_detail_screen.dart' as family;
@@ -22,6 +23,9 @@ class FcmService {
 
   Future<void> initialize({String? uid}) async {
     if (_initialized) return;
+    // Web push notifications require a VAPID key + service worker setup that
+    // is configured separately — skip here so the site runs without FCM.
+    if (kIsWeb) return;
     _currentUid = uid;
 
     FirebaseMessaging.onBackgroundMessage(_backgroundHandler);
@@ -93,6 +97,7 @@ class FcmService {
   }
 
   Future<void> setUid(String uid) async {
+    if (kIsWeb) return;
     _currentUid = uid;
     String? token = await _fcm.getToken();
     if (token != null) {
@@ -139,10 +144,12 @@ class FcmService {
   }
 
   Future<void> subscribeToGroup(String groupId) async {
+    if (kIsWeb) return;
     await _fcm.subscribeToTopic('group_$groupId');
   }
 
   Future<void> unsubscribeFromGroup(String groupId) async {
+    if (kIsWeb) return;
     await _fcm.unsubscribeFromTopic('group_$groupId');
   }
 

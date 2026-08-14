@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 import 'package:geolocator/geolocator.dart';
@@ -43,6 +44,9 @@ class _QiblahScreenState extends State<QiblahScreen>
 
   // ─── Whether we have received at least one compass reading ───────────────────
   bool _compassInitialized = false;
+
+  // ─── Web: compass sensor is unavailable — show a static bearing card ─────────
+  final bool _isWebFallback = kIsWeb;
 
   /// Drives 60 fps smooth interpolation without an AnimationController.
   late Ticker _ticker;
@@ -327,6 +331,10 @@ class _QiblahScreenState extends State<QiblahScreen>
   }
 
   void _startCompass() {
+    // The flutter_compass plugin has no web support — skip the sensor and
+    // present a static bearing card instead.
+    if (_isWebFallback) return;
+
     final compassStream = FlutterCompass.events;
     if (compassStream == null) {
       if (mounted) {
@@ -532,70 +540,74 @@ class _QiblahScreenState extends State<QiblahScreen>
                 ),
               ),
 
-              const Spacer(flex: 2),
-              _buildCompassView(),
-              const Spacer(flex: 1),
+              if (_isWebFallback) ...[
+                Expanded(child: _buildWebFallbackView(qiblahBearing)),
+              ] else ...[
+                const Spacer(flex: 2),
+                _buildCompassView(),
+                const Spacer(flex: 1),
 
-              // ── Heading label ──────────────────────────────────────────────
-              Text(
-                '${heading.toStringAsFixed(0)}° ${_getDirectionLabel(heading)}',
-                style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 42,
-                  fontWeight: FontWeight.w800,
-                  color: _white,
-                ),
-              ),
-              const SizedBox(height: 4),
-
-              // ── Facing label ───────────────────────────────────────────────
-              Opacity(
-                opacity: isFacingQiblah ? 1.0 : 0.7,
-                child: Text(
-                  isFacingQiblah
-                      ? 'Facing Kaaba'
-                      : 'Turn ${relativeAngle < 180 ? 'Right' : 'Left'}',
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 18,
-                    fontWeight: isFacingQiblah
-                        ? FontWeight.w800
-                        : FontWeight.w600,
-                    color: isFacingQiblah
-                        ? const Color(0xFF52B788)
-                        : _white.withValues(alpha: 0.7),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // ── Coordinates ────────────────────────────────────────────────
-              Text(
-                _currentPosition == null
-                    ? 'Acquiring Location...'
-                    : '${_currentPosition!.latitude.toStringAsFixed(2)}°, '
-                          '${_currentPosition!.longitude.toStringAsFixed(2)}°',
-                style: TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: _white.withValues(alpha: 0.5),
-                ),
-              ),
-
-              // ── Keep-flat hint (shown while heading is unstable) ───────────
-              if (_showFlatHint) ...[
-                const SizedBox(height: 10),
+                // ── Heading label ──────────────────────────────────────────────
                 Text(
-                  'Hold your phone flat for a more accurate reading',
-                  style: TextStyle(
+                  '${heading.toStringAsFixed(0)}° ${_getDirectionLabel(heading)}',
+                  style: const TextStyle(
                     fontFamily: 'Cairo',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.gold.withValues(alpha: 0.9),
+                    fontSize: 42,
+                    fontWeight: FontWeight.w800,
+                    color: _white,
                   ),
                 ),
+                const SizedBox(height: 4),
+
+                // ── Facing label ───────────────────────────────────────────────
+                Opacity(
+                  opacity: isFacingQiblah ? 1.0 : 0.7,
+                  child: Text(
+                    isFacingQiblah
+                        ? 'Facing Kaaba'
+                        : 'Turn ${relativeAngle < 180 ? 'Right' : 'Left'}',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 18,
+                      fontWeight: isFacingQiblah
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      color: isFacingQiblah
+                          ? const Color(0xFF52B788)
+                          : _white.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // ── Coordinates ────────────────────────────────────────────────
+                Text(
+                  _currentPosition == null
+                      ? 'Acquiring Location...'
+                      : '${_currentPosition!.latitude.toStringAsFixed(2)}°, '
+                            '${_currentPosition!.longitude.toStringAsFixed(2)}°',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: _white.withValues(alpha: 0.5),
+                  ),
+                ),
+
+                // ── Keep-flat hint (shown while heading is unstable) ───────────
+                if (_showFlatHint) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Hold your phone flat for a more accurate reading',
+                    style: TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.gold.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
               ],
 
               // ── Next-prayer card ───────────────────────────────────────────
@@ -608,41 +620,47 @@ class _QiblahScreenState extends State<QiblahScreen>
                   ),
                 ),
 
-              const Spacer(flex: 3),
+              if (_isWebFallback) ...[
+                const Spacer(flex: 3),
+              ] else ...[
+                const Spacer(flex: 3),
 
-              // ── Accuracy progress bar ──────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 40,
-                  vertical: 20,
-                ),
-                child: Container(
-                  height: 14,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0D281C),
-                    borderRadius: BorderRadius.circular(7),
+                // ── Accuracy progress bar ──────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 20,
                   ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: isFacingQiblah
-                        ? 1.0
-                        : (1 -
-                                  (relativeAngle > 180
-                                          ? 360 - relativeAngle
-                                          : relativeAngle) /
-                                      180)
-                              .clamp(0.1, 1.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isFacingQiblah ? const Color(0xFF52B788) : _gold,
-                        borderRadius: BorderRadius.circular(7),
+                  child: Container(
+                    height: 14,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D281C),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: isFacingQiblah
+                          ? 1.0
+                          : (1 -
+                                    (relativeAngle > 180
+                                            ? 360 - relativeAngle
+                                            : relativeAngle) /
+                                        180)
+                                .clamp(0.1, 1.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isFacingQiblah
+                              ? const Color(0xFF52B788)
+                              : _gold,
+                          borderRadius: BorderRadius.circular(7),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
+                const SizedBox(height: 10),
+              ],
             ],
           ),
         ),
@@ -838,6 +856,125 @@ class _QiblahScreenState extends State<QiblahScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ─── WEB FALLBACK VIEW ─────────────────────────────────────────────────────
+  // No compass sensor in the browser — render a static dial showing the
+  // calculated bearing to the Kaaba (from browser geolocation).
+  Widget _buildWebFallbackView(double qiblahBearing) {
+    final size = MediaQuery.of(context).size.width * 0.78;
+    const markerSize = 60.0;
+
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: size + markerSize,
+              height: size + markerSize,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: size,
+                    height: size,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const RadialGradient(
+                        colors: [Color(0xFF1E3328), Color(0xFF0F1A14)],
+                        center: Alignment(-0.3, -0.3),
+                      ),
+                      border: Border.all(color: _border, width: 1.5),
+                    ),
+                  ),
+                  RepaintBoundary(
+                    child: CustomPaint(
+                      size: Size(size, size),
+                      painter: _TickMarkPainter(),
+                    ),
+                  ),
+                  RepaintBoundary(
+                    child: CustomPaint(
+                      size: Size(size * 0.7, size * 0.7),
+                      painter: _StarRosePainter(),
+                    ),
+                  ),
+                  Transform.rotate(
+                    angle: qiblahBearing * math.pi / 180,
+                    child: SizedBox(
+                      width: size + markerSize,
+                      height: size + markerSize,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Positioned(
+                            top: 0,
+                            child: RepaintBoundary(
+                              child: Image.asset(
+                                'assets/images/qiblah_icon.png',
+                                width: markerSize,
+                                height: markerSize,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _bg,
+                      border: Border.all(color: _gold, width: 1.5),
+                    ),
+                    child: const Center(
+                      child: CircleAvatar(radius: 3, backgroundColor: _gold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'QIBLA DIRECTION',
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 2,
+                color: _gold,
+                fontFamily: 'Cairo',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${qiblahBearing.toStringAsFixed(1)}° ${_getDirectionLabel(qiblahBearing)}',
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 42,
+                fontWeight: FontWeight.w800,
+                color: _white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Compass sensor is not available in your browser.\n'
+              'This is the fixed qibla direction for your location.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: _white.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

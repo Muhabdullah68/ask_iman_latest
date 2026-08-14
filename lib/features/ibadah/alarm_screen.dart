@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/l10n/app_localizations.dart';
@@ -24,7 +25,7 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _alarmService.addListener(_onUpdate);
-    if (Platform.isAndroid) {
+    if (!kIsWeb && Platform.isAndroid) {
       _checkBatteryOptimization();
       _checkPowerSavingMode();
     }
@@ -39,7 +40,7 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && Platform.isAndroid) {
+    if (state == AppLifecycleState.resumed && !kIsWeb && Platform.isAndroid) {
       _checkBatteryOptimization();
       _checkPowerSavingMode();
       setState(() {
@@ -272,7 +273,10 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Battery Optimization Banner
-            if (Platform.isAndroid && !_isBatteryOptimized && !_bannerDismissed)
+            if (!kIsWeb &&
+                Platform.isAndroid &&
+                !_isBatteryOptimized &&
+                !_bannerDismissed)
               _buildBatteryBanner(),
 
             // Header

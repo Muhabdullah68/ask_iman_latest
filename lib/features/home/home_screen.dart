@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/l10n/app_localizations.dart';
+import '../../core/utils/breakpoints.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
 import '../../shared/widgets/islamic_background.dart';
+import '../../shared/widgets/theme_hero_banner.dart';
 import '../../core/services/tutorial_service.dart';
 import '../ibadah/qiblah_screen.dart';
 import '../ibadah/tasbeeh_screen.dart';
@@ -239,21 +241,26 @@ class _HomeScreenState extends State<HomeScreen> {
         child: SingleChildScrollView(
           controller: _scrollController,
           physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              _buildAyahOfDay(context),
-              const SizedBox(height: 28),
-              _buildSacredJourney(context),
-              const SizedBox(height: 28),
-              _buildSoulProgress(context),
-              const SizedBox(height: 28),
-              _buildStreakSection(context),
-              const SizedBox(height: 28),
-              _buildDailyInspiration(context),
-              const SizedBox(height: 40),
-            ],
+          child: ContentContainer(
+            maxWidth: 1200,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 12),
+                const ThemeHeroBanner(),
+                const SizedBox(height: 24),
+                _buildAyahOfDay(context),
+                const SizedBox(height: 28),
+                _buildSacredJourney(context),
+                const SizedBox(height: 28),
+                _buildSoulProgress(context),
+                const SizedBox(height: 28),
+                _buildDailyDuaSection(context),
+                const SizedBox(height: 28),
+                _buildDailyInspiration(context),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
@@ -265,6 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   Widget _buildAyahOfDay(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final showGrid = context.isTablet || context.isDesktop;
     return TooltipOverlay(
       id: 'tut_home_ayah',
       title: loc.translate('tutHomeTitle'),
@@ -275,37 +283,63 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _sectionHeader(loc.translate('ayahOfTheDay')),
           const SizedBox(height: 14),
-          SizedBox(
-            height: 310,
-            child: PageView(
-              controller: _ayahController,
-              onPageChanged: (i) => setState(() => _ayahPageIndex = i),
-              children: _dailyAyahs
-                  .map((ayah) => _AyahCard(ayah: ayah))
-                  .toList(),
+          if (showGrid)
+            _buildAyahGrid()
+          else ...[
+            SizedBox(
+              height: 310,
+              child: PageView(
+                controller: _ayahController,
+                onPageChanged: (i) => setState(() => _ayahPageIndex = i),
+                children: _dailyAyahs
+                    .map((ayah) => _AyahCard(ayah: ayah))
+                    .toList(),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          // Dot indicators — centred
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(
-              5,
-              (i) => AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: i == _ayahPageIndex ? 20 : 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: i == _ayahPageIndex
-                      ? AppColors.gold
-                      : AppColors.textLightGrey,
-                  borderRadius: BorderRadius.circular(3),
+            const SizedBox(height: 12),
+            // Dot indicators — centred
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                5,
+                (i) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: i == _ayahPageIndex ? 20 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: i == _ayahPageIndex
+                        ? AppColors.gold
+                        : AppColors.textLightGrey,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+
+  // Desktop/tablet: two ayah cards per row instead of a paging carousel
+  Widget _buildAyahGrid() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1.35,
+        ),
+        itemCount: _dailyAyahs.length,
+        itemBuilder: (_, i) => _AyahCard(
+          ayah: _dailyAyahs[i],
+          margin: EdgeInsets.zero,
+        ),
       ),
     );
   }
@@ -316,6 +350,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSacredJourney(BuildContext context) {
     final items = _sacredItems(context);
     final loc = AppLocalizations.of(context);
+    final isDesktop = context.isDesktop;
     return KeyedSubtree(
       key: _sacredKey,
       child: Column(
@@ -328,11 +363,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: isDesktop ? 3 : 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 1.0,
+                childAspectRatio: isDesktop ? 1.1 : 1.0,
               ),
               itemCount: items.length,
               itemBuilder: (_, i) {
@@ -412,6 +447,27 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   Widget _buildSoulProgress(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final progressCards = [
+      _SoulProgressCard(
+        label: loc.translate('namaz'),
+        sub: loc.translate('weekly'),
+        value: _soulProgress['namaz']!,
+        display: '${(_soulProgress['namaz']! * 100).toInt()}%',
+      ),
+      _SoulProgressCard(
+        label: loc.translate('quran'),
+        sub: loc.translate('weekly'),
+        value: _soulProgress['quran']!,
+        display: '${(_soulProgress['quran']! * 100).toInt()}%',
+      ),
+      _SoulProgressCard(
+        label: loc.translate('zikr'),
+        sub: loc.translate('weekly'),
+        value: _soulProgress['zikr']!,
+        display: '${(_soulProgress['zikr']! * 100).toInt()}%',
+      ),
+    ];
+    final isWide = context.isTablet || context.isDesktop;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -419,139 +475,176 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 14),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              _SoulProgressCard(
-                label: loc.translate('namaz'),
-                sub: loc.translate('weekly'),
-                value: _soulProgress['namaz']!,
-                display: '${(_soulProgress['namaz']! * 100).toInt()}%',
-              ),
-              const SizedBox(height: 10),
-              _SoulProgressCard(
-                label: loc.translate('quran'),
-                sub: loc.translate('weekly'),
-                value: _soulProgress['quran']!,
-                display: '${(_soulProgress['quran']! * 100).toInt()}%',
-              ),
-              const SizedBox(height: 10),
-              _SoulProgressCard(
-                label: loc.translate('zikr'),
-                sub: loc.translate('weekly'),
-                value: _soulProgress['zikr']!,
-                display: '${(_soulProgress['zikr']! * 100).toInt()}%',
-              ),
-            ],
-          ),
+          child: isWide
+              ? Row(
+                  children: [
+                    Expanded(child: progressCards[0]),
+                    const SizedBox(width: 12),
+                    Expanded(child: progressCards[1]),
+                    const SizedBox(width: 12),
+                    Expanded(child: progressCards[2]),
+                  ],
+                )
+              : Column(
+                  children: [
+                    progressCards[0],
+                    const SizedBox(height: 10),
+                    progressCards[1],
+                    const SizedBox(height: 10),
+                    progressCards[2],
+                  ],
+                ),
         ),
       ],
     );
   }
 
   // ════════════════════════════════════════════════════════════════════════════
-  // SECTION 3.5 — Streak Section
+  // SECTION 3.5 — Daily Dua (replaces Home streak card on the dashboard)
   // ════════════════════════════════════════════════════════════════════════════
-  Widget _buildStreakSection(BuildContext context) {
+  Widget _buildDailyDuaSection(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final dua = DailyData.getDailyDua();
+    final isWide = context.isTablet || context.isDesktop;
     return KeyedSubtree(
       key: _streaksKey,
       child: TooltipOverlay(
         id: 'tut_home_streaks',
-        title: loc.translate('tutHomeStreaksTitle'),
-        description: loc.translate('tutHomeStreaksDesc'),
+        title: loc.translate('tutHomeDuaTitle'),
+        description: loc.translate('tutHomeDuaDesc'),
         arrowDirection: TooltipArrowDirection.up,
-        child: StreamBuilder<AppUser?>(
-          stream: CommunityService.instance.watchCurrentUser(),
-          builder: (context, snapshot) {
-            final streak = snapshot.data?.streakCount ?? 0;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppColors.primaryDark, AppColors.primaryMid],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primaryDark.withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [AppColors.primaryDark, AppColors.primaryMid],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryDark.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.gold.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
+              ],
+            ),
+            child: isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: _buildDuaDetails(loc, dua, center: false),
                       ),
-                      child: const Icon(
-                        Icons.local_fire_department_rounded,
-                        color: AppColors.gold,
-                        size: 32,
+                      Container(
+                        width: 1,
+                        height: 150,
+                        color: Colors.white.withValues(alpha: 0.15),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            loc.translate('currentStreak'),
-                            style: const TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textGreenMuted,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          Text(
-                            '$streak ${loc.translate('days')}',
-                            style: const TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textWhite,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: 28),
+                      Expanded(
+                        flex: 3,
+                        child: _buildDuaArabic(loc, dua),
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Text(
-                        loc.translate('keepItUp'),
-                        style: const TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.gold,
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildDuaDetails(loc, dua, center: true),
+                      const SizedBox(height: 20),
+                      _buildDuaArabic(loc, dua),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDuaDetails(
+    AppLocalizations loc,
+    Map<String, String> dua, {
+    required bool center,
+  }) {
+    final align = center ? TextAlign.center : TextAlign.start;
+    return Column(
+      crossAxisAlignment:
+          center ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.gold.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.gold.withValues(alpha: 0.4),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.volunteer_activism_rounded,
+                color: AppColors.gold,
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                loc.translate('dailyDua'),
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.gold,
+                  letterSpacing: 1.5,
                 ),
               ),
-            );
-          },
+            ],
+          ),
         ),
+        const SizedBox(height: 14),
+        Text(
+          dua['translation'] ?? '',
+          textAlign: align,
+          style: const TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textWhite,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          dua['reference'] ?? '',
+          textAlign: align,
+          style: const TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppColors.gold,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDuaArabic(AppLocalizations loc, Map<String, String> dua) {
+    return Text(
+      dua['arabic'] ?? '',
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.rtl,
+      style: const TextStyle(
+        fontFamily: 'Amiri',
+        fontSize: 26,
+        color: AppColors.gold,
+        height: 1.7,
       ),
     );
   }
@@ -561,6 +654,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // ════════════════════════════════════════════════════════════════════════════
   Widget _buildDailyInspiration(BuildContext context) {
     final loc = AppLocalizations.of(context);
+    final isWide = context.isTablet || context.isDesktop;
     return KeyedSubtree(
       key: _dailyInspirationKey,
       child: TooltipOverlay(
@@ -573,15 +667,36 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _sectionHeader(loc.translate('dailyInspiration')),
             const SizedBox(height: 14),
-            SizedBox(
-              height: 310, // Match Ayah card height
-              child: PageView(
-                physics: const BouncingScrollPhysics(),
-                children: _dailyHadiths
-                    .map((hadith) => _AyahCard(ayah: hadith))
-                    .toList(),
+            if (isWide)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.35,
+                  ),
+                  itemCount: _dailyHadiths.length,
+                  itemBuilder: (_, i) => _AyahCard(
+                    ayah: _dailyHadiths[i],
+                    margin: EdgeInsets.zero,
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                height: 310, // Match Ayah card height
+                child: PageView(
+                  physics: const BouncingScrollPhysics(),
+                  children: _dailyHadiths
+                      .map((hadith) => _AyahCard(ayah: hadith))
+                      .toList(),
+                ),
               ),
-            ),
             const SizedBox(height: 20),
           ],
         ),
@@ -595,15 +710,19 @@ class _HomeScreenState extends State<HomeScreen> {
 // ══════════════════════════════════════════════════════════════════════════════
 class _AyahCard extends StatelessWidget {
   final Map<String, String> ayah;
+  final EdgeInsetsGeometry margin;
 
-  const _AyahCard({required this.ayah});
+  const _AyahCard({
+    required this.ayah,
+    this.margin = const EdgeInsets.symmetric(horizontal: 16),
+  });
 
   @override
   Widget build(BuildContext context) {
     return ClipPath(
       clipper: _MosqueDomeClipper(),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
+        margin: margin,
         decoration: const BoxDecoration(
           color: AppColors.primaryDark,
           image: DecorationImage(

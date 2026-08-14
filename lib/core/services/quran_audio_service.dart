@@ -1,5 +1,6 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 import 'quran_download_service.dart';
 
@@ -36,7 +37,8 @@ class QuranAudioService extends ChangeNotifier with WidgetsBindingObserver {
     final id = 'surah_$surahNum';
     _currentId = id;
 
-    final isDownloaded = _downloadService.isDownloaded(id, DownloadType.audio);
+    final isDownloaded =
+        !kIsWeb && _downloadService.isDownloaded(id, DownloadType.audio);
     late AudioSource source;
 
     if (isDownloaded) {
@@ -84,10 +86,8 @@ class QuranAudioService extends ChangeNotifier with WidgetsBindingObserver {
 
     for (var surahNum in surahsInRange) {
       final surahId = 'surah_$surahNum';
-      final isDownloaded = _downloadService.isDownloaded(
-        surahId,
-        DownloadType.audio,
-      );
+      final isDownloaded = !kIsWeb &&
+          _downloadService.isDownloaded(surahId, DownloadType.audio);
 
       if (isDownloaded) {
         final path = await _downloadService.getFilePath(

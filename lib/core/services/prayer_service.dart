@@ -20,6 +20,7 @@ import 'dart:async';
 import 'package:adhan/adhan.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
@@ -304,7 +305,7 @@ class PrayerService extends ChangeNotifier {
       _notifEnabled = v;
       if (v) {
         _scheduleAllNotifications();
-      } else {
+      } else if (!kIsWeb) {
         _notifPlugin?.cancelAll();
       }
       notifyListeners();
@@ -408,7 +409,8 @@ class PrayerService extends ChangeNotifier {
   }
 
   Future<void> _scheduleAllNotifications({DateTime? customTime}) async {
-    if (_notifPlugin == null || _prayerTimes == null) return;
+    // Local notifications are not supported on web — skip scheduling.
+    if (kIsWeb || _notifPlugin == null || _prayerTimes == null) return;
     // Cancel only prayer notifications (IDs 0-14) — NOT alarms/family reminders
     for (int i = 0; i <= 14; i++) {
       await _notifPlugin!.cancel(i);
