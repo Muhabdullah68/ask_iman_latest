@@ -1,74 +1,150 @@
-// lib/core/utils/app_responsive.dart
-// ─────────────────────────────────────────────────────────────────────────────
-// APP RESPONSIVE UTILITY
-//
-// Usage (in any build/helper method):
-//   final r = AppResponsive(context);
-//
-//   r.sp(14)        → scaled font size
-//   r.w(16)         → scaled horizontal dimension / padding
-//   r.h(20)         → scaled vertical dimension / padding
-//   r.radius(12)    → scaled border radius
-//   r.iconSize(24)  → scaled icon size
-//   r.avatarSize(40)→ scaled avatar diameter
-//   r.bottomInset   → keyboard bottom inset
-//
-// Design base: 390×844 (Pixel 7 / iPhone 14 logical pixels).
-// Clamped so very small (<320) or very large (>430) screens stay usable.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../theme/figma_tokens.dart';
 
+/// Responsive breakpoint helpers — consistent with Figma design system.
+///
+/// Breakpoints:
+///  - Mobile:  < 768  (original Flutter app single-column design — untouched)
+///  - Tablet:  768–1199 (2-column layouts, chips above content)
+///  - Desktop: ≥ 1200 (3-column + sidebar rails, flagship layouts)
 class AppResponsive {
-  final BuildContext _ctx;
-  late final double _sw;
-  late final double _sh;
-  late final double _sf; // width scale factor
-  late final double _tf; // text scale factor
+  AppResponsive._();
 
-  static const double _baseW = 390.0;
-  static const double _baseH = 844.0;
+  static const double mobileMax = FigmaTokens.breakpointMobileMax;
+  static const double tabletMax = FigmaTokens.breakpointTabletMax;
+  static const double desktopMin = FigmaTokens.breakpointDesktopMin;
 
-  AppResponsive(this._ctx) {
-    final mq = MediaQuery.of(_ctx);
-    _sw = mq.size.width;
-    _sh = mq.size.height;
-    _sf = (_sw / _baseW).clamp(0.80, 1.15);
-    _tf = (_sw / _baseW).clamp(0.82, 1.10);
+  static bool isMobile(BuildContext context) =>
+      MediaQuery.of(context).size.width < mobileMax;
+
+  static bool isTablet(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    return w >= mobileMax && w <= tabletMax;
   }
 
-  double get screenWidth => _sw;
-  double get screenHeight => _sh;
+  static bool isDesktop(BuildContext context) =>
+      MediaQuery.of(context).size.width >= desktopMin;
 
-  /// Scaled font size
-  double sp(double size) => (size * _tf).roundToDouble();
+  /// Returns the right widget variant for current width:
+  ///  - desktop or web on large screen → desktop
+  ///  - tablet range → tablet
+  ///  - else → mobile (default, original app layout)
+  static T pick<T>(
+    BuildContext context, {
+    required T mobile,
+    T? tablet,
+    T? desktop,
+  }) {
+    if (isDesktop(context) && desktop != null) return desktop;
+    if (isTablet(context) && tablet != null) return tablet;
+    return mobile;
+  }
 
-  /// Scaled horizontal spacing / padding / width
-  double w(double dp) => (dp * _sf).roundToDouble();
+  /// Preferred horizontal padding around page content
+  static double pagePadding(BuildContext context) =>
+      isDesktop(context) ? 48 : (isTablet(context) ? 32 : 16);
 
-  /// Scaled vertical spacing / padding / height
-  double h(double dp) =>
-      (dp * (_sh / _baseH).clamp(0.80, 1.15)).roundToDouble();
+  /// Max content width to prevent UI stretching on FHD/4K screens
+  static const double maxContentWidth = 1400;
 
-  /// Scaled border radius
-  double radius(double dp) => (dp * _sf).roundToDouble();
+  /// Cross-axis count for grids, responsive to breakpoint.
+  /// [mobileCount] must be provided, the rest are optional fallbacks.
+  static int crossAxisCount(
+    BuildContext context, {
+    required int mobileCount,
+    int? tabletCount,
+    int? desktopCount,
+  }) {
+    if (isDesktop(context) && desktopCount != null) return desktopCount;
+    if (isTablet(context) && tabletCount != null) return tabletCount;
+    return mobileCount;
+  }
+}
 
-  /// Scaled icon size (clamped 12–48)
-  double iconSize(double dp) => (dp * _sf).clamp(12.0, 48.0);
+// ────────────────────────────────────────────────────────────────
+// BuildContext convenience extensions
+// ────────────────────────────────────────────────────────────────
+extension ResponsiveContext on BuildContext {
+  bool get isMobileScreen => AppResponsive.isMobile(this);
+  bool get isTabletScreen => AppResponsive.isTablet(this);
+  bool get isDesktopScreen => AppResponsive.isDesktop(this);
 
-  /// Scaled avatar / circle diameter (clamped 24–80)
-  double avatarSize(double dp) => (dp * _sf).clamp(24.0, 80.0);
+  /// True if running on Flutter Web (any width)
+  bool get isWebPlatform => kIsWeb;
 
-  /// Keyboard inset
-  double get bottomInset => MediaQuery.of(_ctx).viewInsets.bottom;
+  double get screenWidth => MediaQuery.of(this).size.width;
+  double get screenHeight => MediaQuery.of(this).size.height;
 
-  /// Safe bottom padding
-  double get bottomPadding => MediaQuery.of(_ctx).padding.bottom;
+  double get pagePadding => AppResponsive.pagePadding(this);
 
-  /// Safe top padding
-  double get topPadding => MediaQuery.of(_ctx).padding.top;
+  T responsivePick<T>({
+    required T mobile,
+    T? tablet,
+    T? desktop,
+  }) =>
+      AppResponsive.pick(
+        this,
+        mobile: mobile,
+        tablet: tablet,
+        desktop: desktop,
+      );
+}
 
-  bool get isSmall => _sw < 360;
-  bool get isMedium => _sw >= 360 && _sw < 400;
-  bool get isLarge => _sw >= 400;
+// ────────────────────────────────────────────────────────────────
+// Responsive Builder — composes layouts by breakpoint.
+//
+// Example:
+//   ResponsiveBuilder(
+//     mobile: (ctx) => Column(children: tiles),
+//     tablet: (ctx) => GridView.count(crossAxisCount: 2, children: tiles),
+//     desktop: (ctx) => Row(children: tiles),
+//   )
+// ────────────────────────────────────────────────────────────────
+class ResponsiveBuilder extends StatelessWidget {
+  final WidgetBuilder mobile;
+  final WidgetBuilder? tablet;
+  final WidgetBuilder? desktop;
+
+  const ResponsiveBuilder({
+    super.key,
+    required this.mobile,
+    this.tablet,
+    this.desktop,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (AppResponsive.isDesktop(context) && desktop != null) {
+      return desktop!(context);
+    }
+    if (AppResponsive.isTablet(context) && tablet != null) {
+      return tablet!(context);
+    }
+    return mobile(context);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────
+// Content width limiter — prevents content from stretching on 4K.
+// Wraps child with a Center + ConstrainedBox at 1400px max width.
+// ────────────────────────────────────────────────────────────────
+class PageContentWidth extends StatelessWidget {
+  final Widget child;
+  final double maxWidth;
+  const PageContentWidth({
+    super.key,
+    required this.child,
+    this.maxWidth = AppResponsive.maxContentWidth,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: child,
+      ),
+    );
+  }
 }

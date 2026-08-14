@@ -15,7 +15,7 @@ import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
 import '../../shared/widgets/islamic_background.dart';
-import '../ibadah/ibadah_screen.dart';
+import '../../shared/widgets/notif_settings_sheet.dart';
 import '../auth/sign_in_screen.dart';
 
 // ─── PROFILE SCREEN ──────────────────────────────────────────────────────────

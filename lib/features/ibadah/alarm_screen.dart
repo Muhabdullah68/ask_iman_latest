@@ -292,31 +292,38 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
                   ),
                 ),
                 const Spacer(),
-                GestureDetector(
-                  onTap: () => _openAlarmDialog(),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryDark,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryDark.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.add,
-                      color: AppColors.textCream,
-                      size: 28,
+                if (!kIsWeb)
+                  GestureDetector(
+                    onTap: () => _openAlarmDialog(),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryDark,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryDark.withValues(alpha: 0.2),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        color: AppColors.textCream,
+                        size: 28,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 24),
+
+            // Web: local alarms unsupported — show browser-notification info
+            if (kIsWeb) ...[
+              _buildWebInfoCard(),
+              const SizedBox(height: 24),
+            ],
 
             // Alarms List
             if (_alarmService.alarms.isEmpty)
@@ -327,6 +334,99 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
               }),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildWebInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0D2818), Color(0xFF1A3D28)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDarkest.withValues(alpha: 0.3),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.notifications_active_outlined,
+                color: AppColors.gold,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Prayer reminders on web',
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Local alarm scheduling is only available in the mobile app. '
+            'Enable browser notifications to receive prayer time reminders on this device.',
+            style: TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 12,
+              height: 1.5,
+              color: Colors.white.withValues(alpha: 0.75),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Firebase Cloud Messaging (project: ask-iman-prod)',
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.gold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'VAPID key: Firebase console → Project settings → Cloud Messaging → '
+                  'Web Push certificates. Wire it with a service worker to push '
+                  'prayer-time notifications from the server.',
+                  style: TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 10,
+                    height: 1.5,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

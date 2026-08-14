@@ -8,8 +8,18 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn()
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // LAYER 1 (PRIMARY): Firebase Auth Custom Claim — set via Firebase CLI.
+      // This is unforgeable: it's signed into the JWT auth token itself.
+      // Required by Requirement 3: even if /secret-admin-dashboard URL is guessed,
+      // a non-admin user CANNOT read/write admin-only collections.
+      //
+      // LAYER 2 (FALLBACK): Firestore user-doc role field — preserved for backwards
+      // compatibility while the admin custom claim is being provisioned via CLI.
+      // Both layers together guarantee no accidental lockout during migration.
+      return isSignedIn() && (
+        request.auth.token.role == 'admin'
+        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
     }
 
     function isOwner(userId) {

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../core/utils/app_responsive.dart';
 import 'charity_service.dart';
 
 class RequestCharityScreen extends StatefulWidget {
@@ -184,11 +183,10 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final r = AppResponsive(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Request Help')),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(r.w(16)),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
@@ -207,7 +205,7 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
                           v?.trim().isEmpty == true ? 'Required' : null,
                     ),
                   ),
-                  SizedBox(width: r.w(12)),
+                  SizedBox(width: 12),
                   Expanded(
                     child: _buildField(
                       'Last Name *',
@@ -266,7 +264,7 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
               Text(
                 'Request Type *',
                 style: TextStyle(
-                  fontSize: r.sp(14),
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: Colors.grey[800],
                 ),
@@ -349,7 +347,7 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
                       }
                     }),
                   ),
-                  SizedBox(width: r.w(12)),
+                  SizedBox(width: 12),
                   Expanded(
                     child: _buildImageUpload('Back *', _cnicBack, () async {
                       final f = await _picker.pickImage(
