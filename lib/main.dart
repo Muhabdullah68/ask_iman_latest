@@ -116,6 +116,12 @@ class AskImanApp extends StatelessWidget {
             themeMode: themeProvider.themeMode,
             theme: AppTheme.getLightTheme(localeProvider.locale),
             darkTheme: AppTheme.getDarkTheme(localeProvider.locale),
+            builder: (context, child) => AnimatedTheme(
+              data: Theme.of(context),
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
+              child: child!,
+            ),
             navigatorKey: AlarmService.instance.navigatorKey,
             locale: localeProvider.locale,
             localizationsDelegates: const [

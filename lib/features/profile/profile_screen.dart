@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/breakpoints.dart';
 import '../../core/services/community_service.dart';
 import '../../core/services/prayer_service.dart';
 import '../../core/services/tutorial_service.dart';
@@ -94,17 +95,23 @@ class ProfileScreen extends StatelessWidget {
               arrowDirection: TooltipArrowDirection.down,
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    _buildProfileHeader(context, user),
-                    const SizedBox(height: 12),
-                    _buildContributionSection(context),
-                    const SizedBox(height: 12),
-                    _buildActionSection(context, user),
-                    _buildSupportSection(context),
-                    _buildLogout(context),
-                    const SizedBox(height: 32),
-                  ],
+                child: ContentContainer(
+                  maxWidth: 1200,
+                  child: Column(
+                    children: [
+                      _buildProfileHeader(context, user),
+                      const SizedBox(height: 12),
+                      _buildContributionSection(context),
+                      const SizedBox(height: 12),
+                      _buildActionSection(context, user),
+                      const SizedBox(height: 12),
+                      _buildAppearanceSection(context),
+                      const SizedBox(height: 12),
+                      _buildSupportSection(context),
+                      _buildLogout(context),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -115,10 +122,11 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileHeader(BuildContext context, AppUser user) {
+    final isWide = context.isTablet || context.isDesktop;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isWide ? 32 : 24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -134,143 +142,254 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-              Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.gold, width: 2.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: Container(
-                    color: AppColors.primaryMid,
-                    child: user.photoUrl != null
-                        ? Image.network(
-                            user.photoUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => const Icon(
-                              Icons.person,
-                              size: 50,
-                              color: AppColors.textCream,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.person,
-                            size: 50,
-                            color: AppColors.textCream,
-                          ),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AppColors.gold,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.verified_rounded,
-                    size: 16,
-                    color: AppColors.primaryDarkest,
-                  ),
-                ),
+      child: isWide
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(flex: 3, child: _profileIdentity(context, user)),
+                const SizedBox(width: 24),
+                Expanded(flex: 7, child: _profileStats(context, user)),
+              ],
+            )
+          : Column(
+              children: [
+                _buildAvatar(user, size: 90),
+                const SizedBox(height: 16),
+                _profileName(user),
+                const SizedBox(height: 4),
+                _roleBadge(user),
+                const SizedBox(height: 8),
+                _profileBio(user),
+                const SizedBox(height: 20),
+                _mobileStatsRow(user),
+                const SizedBox(height: 24),
+                _editButton(context, user),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildAvatar(AppUser user, {required double size}) {
+    return Stack(
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.gold, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 10,
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          child: ClipOval(
+            child: Container(
+              color: AppColors.primaryMid,
+              child: user.photoUrl != null
+                  ? Image.network(
+                      user.photoUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Icon(
+                        Icons.person,
+                        size: size * 0.55,
+                        color: AppColors.textCream,
+                      ),
+                    )
+                  : Icon(
+                      Icons.person,
+                      size: size * 0.55,
+                      color: AppColors.textCream,
+                    ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(
+              color: AppColors.gold,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.verified_rounded,
+              size: size * 0.18,
+              color: AppColors.primaryDarkest,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _profileName(AppUser user) {
+    return Text(
+      user.name,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontFamily: 'Cairo',
+        fontSize: 22,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textWhite,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+
+  Widget _roleBadge(AppUser user) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: _roleColor(user.role.name).withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        user.role.name[0].toUpperCase() + user.role.name.substring(1),
+        style: TextStyle(
+          fontFamily: 'Cairo',
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: _roleColor(user.role.name),
+        ),
+      ),
+    );
+  }
+
+  Widget _profileBio(AppUser user) {
+    return Text(
+      user.bio.isEmpty ? 'Stay consistent in your Deen 🌙' : user.bio,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontFamily: 'Cairo',
+        fontSize: 13,
+        color: AppColors.textGreenMuted,
+      ),
+    );
+  }
+
+  Widget _mobileStatsRow(AppUser user) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _headerStat('🔥', '${user.streakCount}', 'STREAK'),
+        _verticalDivider(),
+        _headerStat('📖', '75%', 'QURAN'),
+        _verticalDivider(),
+        _headerStat('🕌', '92%', 'NAMAZ'),
+      ],
+    );
+  }
+
+  // Desktop: avatar + identity on the left (30%)
+  Widget _profileIdentity(BuildContext context, AppUser user) {
+    return Column(
+      children: [
+        _buildAvatar(user, size: 110),
+        const SizedBox(height: 18),
+        _profileName(user),
+        const SizedBox(height: 6),
+        _roleBadge(user),
+        const SizedBox(height: 10),
+        _profileBio(user),
+        const SizedBox(height: 20),
+        _editButton(context, user),
+      ],
+    );
+  }
+
+  // Desktop: 4-up stat cards on the right (70%)
+  Widget _profileStats(BuildContext context, AppUser user) {
+    final stats = <(String, String, String)>[
+      ('🔥', '${user.streakCount}', 'STREAK'),
+      ('📖', '75%', 'QURAN'),
+      ('🕌', '92%', 'NAMAZ'),
+      ('👥', '${user.friends.length}', 'COMMUNITY'),
+    ];
+    return LayoutBuilder(
+      builder: (ctx, c) {
+        final itemW = (c.maxWidth - 36) / 4;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final s in stats)
+              SizedBox(width: itemW, child: _statCard(s.$1, s.$2, s.$3)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _statCard(String emoji, String value, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 20)),
+          const SizedBox(height: 8),
           Text(
-            user.name,
+            value,
             style: const TextStyle(
               fontFamily: 'Cairo',
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: AppColors.textWhite,
-              letterSpacing: 0.5,
+              color: AppColors.gold,
             ),
           ),
           const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            decoration: BoxDecoration(
-              color: _roleColor(user.role.name).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              user.role.name[0].toUpperCase() + user.role.name.substring(1),
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: _roleColor(user.role.name),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
           Text(
-            user.bio.isEmpty ? 'Stay consistent in your Deen 🌙' : user.bio,
-            textAlign: TextAlign.center,
+            label,
             style: const TextStyle(
               fontFamily: 'Cairo',
-              fontSize: 13,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
               color: AppColors.textGreenMuted,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _headerStat('🔥', '${user.streakCount}', 'STREAK'),
-              _verticalDivider(),
-              _headerStat('📖', '75%', 'QURAN'),
-              _verticalDivider(),
-              _headerStat('🕌', '92%', 'NAMAZ'),
-            ],
-          ),
-          const SizedBox(height: 24),
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => EditProfileScreen(user: user)),
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.gold,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.gold.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: const Text(
-                'EDIT PROFILE',
-                style: TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primaryDarkest,
-                  letterSpacing: 1.0,
-                ),
-              ),
+              letterSpacing: 0.5,
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _editButton(BuildContext context, AppUser user) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => EditProfileScreen(user: user)),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.gold,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.gold.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Text(
+          'EDIT PROFILE',
+          style: TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: AppColors.primaryDarkest,
+            letterSpacing: 1.0,
+          ),
+        ),
       ),
     );
   }
@@ -327,7 +446,7 @@ class ProfileScreen extends StatelessWidget {
   );
 
   Widget _buildContributionSection(BuildContext context) =>
-      _glassSection('My Contributions', [
+      _glassSection(context, 'My Contributions', [
         _actionRow(
           Icons.favorite_outline_rounded,
           'Charity & Causes',
@@ -350,7 +469,7 @@ class ProfileScreen extends StatelessWidget {
           //   MaterialPageRoute(builder: (_) => const MyCharityScreen()),
           // ),
         ),
-      ]);
+      ], columns: 2);
 
   Widget _buildActionSection(BuildContext context, AppUser user) {
     final actions = <Widget>[
@@ -396,46 +515,260 @@ class ProfileScreen extends StatelessWidget {
         ),
       );
     }
-    return _glassSection('Personal Journey', actions);
+    return _glassSection(context, 'Personal Journey', actions, columns: 2);
   }
 
+  // ── Appearance Section: 3-segment Theme picker + 3-language picker ─────────
+  Widget _buildAppearanceSection(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          child: Text(
+            loc.translate('appearance').toUpperCase(),
+            style: const TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primaryDark,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.bgWhite,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.borderLight),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: LayoutBuilder(
+            builder: (ctx, c) {
+              final isWide = context.isTablet || context.isDesktop;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.palette_outlined,
+                        color: AppColors.primaryDark,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Theme',
+                        style: const TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _buildThemeSegments(ctx),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.language_rounded,
+                        color: AppColors.primaryDark,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        loc.translate('appLanguage'),
+                        style: const TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _buildLanguageSegments(ctx),
+                  if (isWide) const SizedBox(height: 6),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildThemeSegments(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return _segmentRow([
+          _segment(
+            icon: Icons.light_mode_rounded,
+            label: 'Light',
+            selected: themeProvider.themeMode == ThemeMode.light,
+            onTap: () => themeProvider.setThemeMode(ThemeMode.light),
+          ),
+          _segment(
+            icon: Icons.dark_mode_rounded,
+            label: 'Dark',
+            selected: themeProvider.themeMode == ThemeMode.dark,
+            onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
+          ),
+          _segment(
+            icon: Icons.settings_brightness_rounded,
+            label: 'System',
+            selected: themeProvider.themeMode == ThemeMode.system,
+            onTap: () => themeProvider.setThemeMode(ThemeMode.system),
+          ),
+        ]);
+      },
+    );
+  }
+
+  Widget _buildLanguageSegments(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, _) {
+        return _segmentRow([
+          _segment(
+            icon: null,
+            label: loc.translate('english'),
+            selected: localeProvider.locale.languageCode == 'en',
+            onTap: () => localeProvider.setLocale(const Locale('en')),
+          ),
+          _segment(
+            icon: null,
+            label: loc.translate('urdu'),
+            selected: localeProvider.locale.languageCode == 'ur',
+            onTap: () => localeProvider.setLocale(const Locale('ur')),
+          ),
+          _segment(
+            icon: null,
+            label: loc.translate('pashto'),
+            selected: localeProvider.locale.languageCode == 'ps',
+            onTap: () => localeProvider.setLocale(const Locale('ps')),
+          ),
+        ]);
+      },
+    );
+  }
+
+  Widget _segmentRow(List<Widget> segments) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.bgCream,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < segments.length; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            Expanded(child: segments[i]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _segment({
+    required IconData? icon,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryDark : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 15,
+                color: selected ? AppColors.gold : AppColors.textGrey,
+              ),
+              const SizedBox(width: 6),
+            ],
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? AppColors.gold
+                      : AppColors.textGrey,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Support & Safety Section ───────────────────────────────────────────────
   Widget _buildSupportSection(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    return _glassSection(loc.translate('supportAndSafety'), [
-      _actionRow(
-        Icons.report_gmailerrorred_rounded,
-        loc.translate('reportAnIssue'),
-        'Technical or content feedback',
+    final isWide = context.isTablet || context.isDesktop;
+    final items = <({
+      IconData icon,
+      String title,
+      String sub,
+      VoidCallback onTap,
+    })>[
+      (
+        icon: Icons.report_gmailerrorred_rounded,
+        title: loc.translate('reportAnIssue'),
+        sub: 'Technical or content feedback',
         onTap: () => _showReportDialog(context),
       ),
-      _actionRow(
-        Icons.help_outline_rounded,
-        loc.translate('helpCentre'),
-        'FAQs and contact support',
+      (
+        icon: Icons.help_outline_rounded,
+        title: loc.translate('helpCentre'),
+        sub: 'FAQs and contact support',
         onTap: () => _showHelpCentre(context),
       ),
-      _actionRow(
-        Icons.privacy_tip_outlined,
-        loc.translate('privacyPolicy'),
-        'Data protection and usage',
+      (
+        icon: Icons.privacy_tip_outlined,
+        title: loc.translate('privacyPolicy'),
+        sub: 'Data protection and usage',
         onTap: () => _showPrivacyPolicy(context),
       ),
-      _actionRow(
-        Icons.info_outline_rounded,
-        loc.translate('aboutAskIman'),
-        'Version 1.0.4 (Stable)',
+      (
+        icon: Icons.info_outline_rounded,
+        title: loc.translate('aboutAskIman'),
+        sub: 'Version 1.0.4 (Stable)',
         onTap: () => _showAboutDialog(context),
       ),
-      _actionRow(
-        Icons.language_rounded,
-        loc.translate('appLanguage'),
-        'English / اردو / پښتو',
-        onTap: () => _showLanguageDialog(context),
-      ),
-      _actionRow(
-        Icons.restart_alt_rounded,
-        'Reset Tutorial',
-        'Show all onboarding tips again',
+      (
+        icon: Icons.restart_alt_rounded,
+        title: 'Reset Tutorial',
+        sub: 'Show all onboarding tips again',
         onTap: () async {
           final tutorial = TutorialService.instance;
           await tutorial.resetAll();
@@ -446,36 +779,138 @@ class ProfileScreen extends StatelessWidget {
           }
         },
       ),
-      Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
-          String subtitle;
-          IconData icon;
-          switch (themeProvider.themeMode) {
-            case ThemeMode.light:
-              subtitle = 'Light';
-              icon = Icons.light_mode_rounded;
-              break;
-            case ThemeMode.dark:
-              subtitle = 'Dark';
-              icon = Icons.dark_mode_rounded;
-              break;
-            case ThemeMode.system:
-              subtitle = 'System';
-              icon = Icons.settings_brightness_rounded;
-              break;
-          }
-          return _actionRow(
-            icon,
-            loc.translate('appearance'),
-            subtitle,
-            onTap: themeProvider.toggleTheme,
-          );
-        },
-      ),
-    ]);
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          child: Text(
+            loc.translate('supportAndSafety').toUpperCase(),
+            style: const TextStyle(
+              fontFamily: 'Cairo',
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primaryDark,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.bgWhite,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.borderLight),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: isWide
+              ? Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: LayoutBuilder(
+                    builder: (ctx, c) {
+                      final itemW = (c.maxWidth - 3 * 12) / 4;
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          for (final it in items)
+                            SizedBox(
+                              width: itemW,
+                              child: _supportTile(
+                                it.icon,
+                                it.title,
+                                it.sub,
+                                it.onTap,
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                )
+              : Column(
+                  children: [
+                    for (final it in items)
+                      _actionRow(
+                        it.icon,
+                        it.title,
+                        it.sub,
+                        onTap: it.onTap,
+                      ),
+                  ],
+                ),
+        ),
+      ],
+    );
   }
 
-  Widget _glassSection(String title, List<Widget> children) {
+  Widget _supportTile(
+    IconData icon,
+    String title,
+    String sub,
+    VoidCallback onTap,
+  ) {
+    return Material(
+      color: AppColors.bgCream,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.borderLight),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: AppColors.primaryDark, size: 22),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                sub,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 11,
+                  color: AppColors.textGrey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _glassSection(
+    BuildContext context,
+    String title,
+    List<Widget> children, {
+    int columns = 1,
+  }) {
+    final isWide = context.isTablet || context.isDesktop;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -506,7 +941,24 @@ class ProfileScreen extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(children: children),
+          child: isWide && columns > 1
+              ? Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: LayoutBuilder(
+                    builder: (ctx, c) {
+                      final itemW = (c.maxWidth - 12) / 2;
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          for (final child in children)
+                            SizedBox(width: itemW, child: child),
+                        ],
+                      );
+                    },
+                  ),
+                )
+              : Column(children: children),
         ),
       ],
     );
@@ -1007,107 +1459,6 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  void _showLanguageDialog(BuildContext context) {
-    final loc = AppLocalizations.of(context);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.bgCream,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 8),
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.borderLight,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    loc.translate('selectLanguage'),
-                    style: const TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primaryDark,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _languageTile(
-                  loc.translate('english'),
-                  '🇬🇧',
-                  const Locale('en'),
-                  ctx,
-                ),
-                _languageTile(
-                  loc.translate('urdu'),
-                  '🇵🇰',
-                  const Locale('ur'),
-                  ctx,
-                ),
-                _languageTile(
-                  loc.translate('pashto'),
-                  '🇦🇫',
-                  const Locale('ps'),
-                  ctx,
-                ),
-                const SizedBox(height: 32),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _languageTile(
-    String name,
-    String flag,
-    Locale locale,
-    BuildContext context,
-  ) {
-    return Consumer<LocaleProvider>(
-      builder: (context, localeProvider, child) {
-        return ListTile(
-          leading: Text(flag, style: const TextStyle(fontSize: 24)),
-          title: Text(
-            name,
-            style: const TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textDark,
-            ),
-          ),
-          trailing: localeProvider.locale == locale
-              ? const Icon(
-                  Icons.check_circle_rounded,
-                  color: AppColors.primaryDark,
-                )
-              : null,
-          onTap: () {
-            localeProvider.setLocale(locale);
-            Navigator.pop(context);
-          },
-        );
-      },
     );
   }
 
