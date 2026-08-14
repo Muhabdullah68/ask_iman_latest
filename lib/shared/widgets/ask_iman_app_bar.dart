@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/community_service.dart';
+import '../../core/providers/theme_provider.dart';
 
 class AskImanAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBackButton;
@@ -111,6 +113,25 @@ class AskImanAppBar extends StatelessWidget implements PreferredSizeWidget {
           if (actions != null) ...actions!,
 
           const SizedBox(width: 4),
+
+          // Theme Toggle Button
+          Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) {
+              final isDark = themeProvider.themeMode == ThemeMode.dark;
+              return IconButton(
+                onPressed: themeProvider.toggleTheme,
+                tooltip: isDark ? 'Switch to Light' : 'Switch to Dark',
+                icon: Icon(
+                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: AppColors.gold,
+                  size: 22,
+                ),
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              );
+            },
+          ),
+
+          const SizedBox(width: 2),
 
           // Streak badge (Wrapped in Flexible or Fixed width to prevent overflow)
           StreamBuilder<User?>(

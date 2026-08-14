@@ -9,9 +9,11 @@ import '../../core/services/community_service.dart';
 import '../../core/services/prayer_service.dart';
 import '../../core/services/tutorial_service.dart';
 import '../../core/providers/locale_provider.dart';
+import '../../core/providers/theme_provider.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
+import '../../shared/widgets/islamic_background.dart';
 import '../ibadah/ibadah_screen.dart';
 import '../auth/sign_in_screen.dart';
 
@@ -26,9 +28,11 @@ class ProfileScreen extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            backgroundColor: AppColors.bgCream,
-            body: Center(
-              child: CircularProgressIndicator(color: AppColors.gold),
+            backgroundColor: Colors.transparent,
+            body: IslamicBackground(
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.gold),
+              ),
             ),
           );
         }
@@ -36,78 +40,72 @@ class ProfileScreen extends StatelessWidget {
         final user = snapshot.data;
         if (user == null) {
           return Scaffold(
-            backgroundColor: AppColors.bgCream,
+            backgroundColor: Colors.transparent,
             appBar: const AskImanAppBar(),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.person_outline,
-                    size: 64,
-                    color: AppColors.textGrey,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Sign in to view your profile',
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 14,
-                      color: AppColors.textGrey,
+            body: IslamicBackground(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.person_outline,
+                      size: 64,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkTextMuted
+                          : AppColors.textGrey,
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SignInScreen()),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryDark,
-                      foregroundColor: AppColors.gold,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(26),
-                      ),
-                    ),
-                    child: const Text(
-                      'Sign In',
+                    const SizedBox(height: 16),
+                    Text(
+                      'Sign in to view your profile',
                       style: TextStyle(
                         fontFamily: 'Cairo',
                         fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.textGrey,
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SignInScreen()),
+                      ),
+                      child: const Text('Sign In'),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
         }
 
         return Scaffold(
-          backgroundColor: AppColors.bgCream,
+          backgroundColor: Colors.transparent,
           appBar: const AskImanAppBar(),
-          body: TooltipOverlay(
-            id: 'tut_profile',
-            title: AppLocalizations.of(
-              context,
-            ).translate('tutProfileSettingsTitle'),
-            description: AppLocalizations.of(
-              context,
-            ).translate('tutProfileSettingsDesc'),
-            arrowDirection: TooltipArrowDirection.down,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                children: [
-                  _buildProfileHeader(context, user),
-                  const SizedBox(height: 12),
-                  _buildContributionSection(context),
-                  const SizedBox(height: 12),
-                  _buildActionSection(context, user),
-                  _buildSupportSection(context),
-                  _buildLogout(context),
-                  const SizedBox(height: 32),
-                ],
+          body: IslamicBackground(
+            child: TooltipOverlay(
+              id: 'tut_profile',
+              title: AppLocalizations.of(
+                context,
+              ).translate('tutProfileSettingsTitle'),
+              description: AppLocalizations.of(
+                context,
+              ).translate('tutProfileSettingsDesc'),
+              arrowDirection: TooltipArrowDirection.down,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildProfileHeader(context, user),
+                    const SizedBox(height: 12),
+                    _buildContributionSection(context),
+                    const SizedBox(height: 12),
+                    _buildActionSection(context, user),
+                    _buildSupportSection(context),
+                    _buildLogout(context),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
             ),
           ),
@@ -448,11 +446,31 @@ class ProfileScreen extends StatelessWidget {
           }
         },
       ),
-      _actionRow(
-        Icons.dark_mode_outlined,
-        loc.translate('appearance'),
-        loc.translate('comingSoon'),
-        isComingSoon: true,
+      Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          String subtitle;
+          IconData icon;
+          switch (themeProvider.themeMode) {
+            case ThemeMode.light:
+              subtitle = 'Light';
+              icon = Icons.light_mode_rounded;
+              break;
+            case ThemeMode.dark:
+              subtitle = 'Dark';
+              icon = Icons.dark_mode_rounded;
+              break;
+            case ThemeMode.system:
+              subtitle = 'System';
+              icon = Icons.settings_brightness_rounded;
+              break;
+          }
+          return _actionRow(
+            icon,
+            loc.translate('appearance'),
+            subtitle,
+            onTap: themeProvider.toggleTheme,
+          );
+        },
       ),
     ]);
   }

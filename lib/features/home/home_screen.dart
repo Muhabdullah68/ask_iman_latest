@@ -4,6 +4,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
+import '../../shared/widgets/islamic_background.dart';
 import '../../core/services/tutorial_service.dart';
 import '../ibadah/qiblah_screen.dart';
 import '../ibadah/tasbeeh_screen.dart';
@@ -232,26 +233,28 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgCream,
+      backgroundColor: Colors.transparent,
       appBar: const AskImanAppBar(),
-      body: SingleChildScrollView(
-        controller: _scrollController,
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            _buildAyahOfDay(context),
-            const SizedBox(height: 28),
-            _buildSacredJourney(context),
-            const SizedBox(height: 28),
-            _buildSoulProgress(context),
-            const SizedBox(height: 28),
-            _buildStreakSection(context),
-            const SizedBox(height: 28),
-            _buildDailyInspiration(context),
-            const SizedBox(height: 40),
-          ],
+      body: IslamicBackground(
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              _buildAyahOfDay(context),
+              const SizedBox(height: 28),
+              _buildSacredJourney(context),
+              const SizedBox(height: 28),
+              _buildSoulProgress(context),
+              const SizedBox(height: 28),
+              _buildStreakSection(context),
+              const SizedBox(height: 28),
+              _buildDailyInspiration(context),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/community_service.dart';
 import 'pending_enrollment_screen.dart';
@@ -486,8 +485,11 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
                   color: AppColors.textGrey,
                 ),
                 onPressed: () => setState(() {
-                  if (label == 'Password') _obscurePass = !_obscurePass;
-                  else _obscureConfirm = !_obscureConfirm;
+                  if (label == 'Password') {
+                    _obscurePass = !_obscurePass;
+                  } else {
+                    _obscureConfirm = !_obscureConfirm;
+                  }
                 }),
               )
             : null,

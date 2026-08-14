@@ -252,6 +252,7 @@ class _PendingUsersTab extends StatelessWidget {
                       await fs.collection('approvals').doc(docId).update({
                         'status': 'approved',
                       });
+                      if (!context.mounted) return;
                       _snack(context, 'Approved: $title');
                     }, 'Approve'),
                     const SizedBox(width: 4),
@@ -259,6 +260,7 @@ class _PendingUsersTab extends StatelessWidget {
                       await fs.collection('approvals').doc(docId).update({
                         'status': 'rejected',
                       });
+                      if (!context.mounted) return;
                       _snack(context, 'Rejected: $title');
                     }, 'Reject'),
                   ],
@@ -345,6 +347,7 @@ class _PendingClassesTab extends StatelessWidget {
                       await fs.collection('approvals').doc(docId).update({
                         'status': 'approved',
                       });
+                      if (!context.mounted) return;
                       _snack(context, 'Approved: $title');
                     }, 'Approve'),
                     const SizedBox(width: 4),
@@ -355,6 +358,7 @@ class _PendingClassesTab extends StatelessWidget {
                       await fs.collection('approvals').doc(docId).update({
                         'status': 'rejected',
                       });
+                      if (!context.mounted) return;
                       _snack(context, 'Rejected: $title');
                     }, 'Reject'),
                   ],
@@ -1483,16 +1487,18 @@ class _RequestsTab extends StatelessWidget {
                     if (status == 'active') ...[
                       _iconBtn(Icons.check_circle, AppColors.success, () async {
                         await CharityService.instance.approveRequest(docId);
-                        if (context.mounted)
+                        if (context.mounted) {
                           _snack(
                             context,
                             'Request approved → campaign created',
                           );
+                        }
                       }, 'Approve'),
                       _iconBtn(Icons.cancel, AppColors.error, () async {
                         await CharityService.instance.rejectRequest(docId);
-                        if (context.mounted)
+                        if (context.mounted) {
                           _snack(context, 'Request rejected');
+                        }
                       }, 'Reject'),
                     ],
                     _iconBtn(Icons.copy, AppColors.textGrey, () {
@@ -2128,12 +2134,14 @@ class _ClassesTabState extends State<_ClassesTab> {
                 .orderBy('createdAt', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.hasError)
+              if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
-              if (!snapshot.hasData)
+              }
+              if (!snapshot.hasData) {
                 return const Center(
                   child: CircularProgressIndicator(color: AppColors.gold),
                 );
+              }
 
               var docs = snapshot.data!.docs;
               if (_filter != 'All') {
@@ -2145,8 +2153,9 @@ class _ClassesTabState extends State<_ClassesTab> {
                 }).toList();
               }
 
-              if (docs.isEmpty)
+              if (docs.isEmpty) {
                 return const Center(child: Text('No classes found.'));
+              }
 
               return ListView.builder(
                 padding: const EdgeInsets.all(12),
@@ -2848,6 +2857,7 @@ class _UsersTabState extends State<_UsersTab> {
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'role': newRole,
       });
+      if (!context.mounted) return;
       _snack(
         context,
         'Changed $name to ${newRole[0].toUpperCase()}${newRole.substring(1)}',
@@ -3187,6 +3197,7 @@ class _EnrollmentCard extends StatelessWidget {
       'status': 'approved',
     });
     await fs.collection('users').doc(doc.id).update({'isApproved': true});
+    if (!context.mounted) return;
     _snack(context, 'Enrollment approved');
   }
 
@@ -3195,6 +3206,7 @@ class _EnrollmentCard extends StatelessWidget {
     await fs.collection('enrollments').doc(doc.id).update({
       'status': 'rejected',
     });
+    if (!context.mounted) return;
     _snack(context, 'Enrollment rejected');
   }
 }
@@ -3697,6 +3709,7 @@ class _TeacherAppCard extends StatelessWidget {
       'status': 'approved',
     });
     await batch.commit();
+    if (!context.mounted) return;
     _snack(context, 'Teacher application approved');
   }
 
@@ -3710,6 +3723,7 @@ class _TeacherAppCard extends StatelessWidget {
       'status': 'rejected',
     });
     await batch.commit();
+    if (!context.mounted) return;
     _snack(context, 'Teacher application rejected');
   }
 }

@@ -104,7 +104,7 @@ class _PendingEnrollmentScreenState extends State<PendingEnrollmentScreen> {
                 onPressed: () async {
                   _timer?.cancel();
                   await FirebaseAuth.instance.signOut();
-                  if (mounted) {
+                  if (context.mounted) {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (_) => const MainShell()),
                       (route) => false,

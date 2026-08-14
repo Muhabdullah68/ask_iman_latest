@@ -16,6 +16,7 @@ import 'core/services/tutorial_service.dart';
 import 'core/services/fcm_service.dart';
 import 'core/l10n/app_localizations.dart';
 import 'core/providers/locale_provider.dart';
+import 'core/providers/theme_provider.dart';
 import 'features/splash/splash_screen.dart';
 
 void main() async {
@@ -97,22 +98,25 @@ class AskImanApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => AlarmService.instance),
         ChangeNotifierProvider(create: (_) => PrayerService()),
         ChangeNotifierProvider(create: (_) => QuranDownloadService()),
         ChangeNotifierProvider(create: (_) => TutorialService.instance),
       ],
-      child: Consumer<LocaleProvider>(
-        builder: (context, localeProvider, child) {
+      child: Consumer2<LocaleProvider, ThemeProvider>(
+        builder: (context, localeProvider, themeProvider, child) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'ASK Iman',
-            theme: AppTheme.getTheme(localeProvider.locale),
+            themeMode: themeProvider.themeMode,
+            theme: AppTheme.getLightTheme(localeProvider.locale),
+            darkTheme: AppTheme.getDarkTheme(localeProvider.locale),
             navigatorKey: AlarmService.instance.navigatorKey,
             locale: localeProvider.locale,
-            localizationsDelegates: [
-              const AppLocalizationsDelegate(),
+            localizationsDelegates: const [
+              AppLocalizationsDelegate(),
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
