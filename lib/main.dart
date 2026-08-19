@@ -7,6 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'admin_meta_stub.dart'
   if (dart.library.html) 'admin_meta_web.dart';
+import 'firebase_options.dart' show DefaultFirebaseOptions;
+import 'web/web_router.dart' show router;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -45,7 +47,9 @@ void main() async {
   debugPrint('MAIN: Orientation set');
 
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     debugPrint('MAIN: Firebase initialized');
   } catch (e) {
     debugPrint('MAIN: Firebase error: $e');
@@ -115,6 +119,34 @@ class AskImanApp extends StatelessWidget {
       ],
       child: Consumer2<LocaleProvider, ThemeProvider>(
         builder: (context, localeProvider, themeProvider, child) {
+          if (kIsWeb) {
+            return MaterialApp.router(
+              debugShowCheckedModeBanner: false,
+              title: 'ASK Iman',
+              themeMode: themeProvider.themeMode,
+              theme: AppTheme.getLightTheme(localeProvider.locale),
+              darkTheme: AppTheme.getDarkTheme(localeProvider.locale),
+              builder: (context, child) => AnimatedTheme(
+                data: Theme.of(context),
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeInOut,
+                child: child!,
+              ),
+              routerConfig: router,
+              locale: localeProvider.locale,
+              localizationsDelegates: const [
+                AppLocalizationsDelegate(),
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: const [
+                Locale('en'),
+                Locale('ur'),
+                Locale('ps'),
+              ],
+            );
+          }
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'ASK Iman',
@@ -135,7 +167,11 @@ class AskImanApp extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            supportedLocales: const [Locale('en'), Locale('ur'), Locale('ps')],
+            supportedLocales: const [
+              Locale('en'),
+              Locale('ur'),
+              Locale('ps'),
+            ],
             home: const SplashScreen(),
             onGenerateRoute: _adminSecretRouteGuard,
             onUnknownRoute: (settings) => MaterialPageRoute(

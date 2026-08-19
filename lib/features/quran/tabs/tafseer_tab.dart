@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/breakpoints.dart';
+import '../../../core/utils/seo_meta.dart';
 import '../../../shared/widgets/ask_iman_app_bar.dart';
 import '../../../core/services/quran_audio_service.dart';
 import '../data/curated_data.dart';
@@ -624,6 +625,7 @@ class _TafseerVolumeReaderState extends State<TafseerVolumeReader> {
   @override
   void initState() {
     super.initState();
+    setPageTitle('Tafseer — Surah ${widget.volume['name']} · Ask Iman');
     _parseVolumeRange();
     _loadNextSurah();
     _scrollController.addListener(_onScroll);

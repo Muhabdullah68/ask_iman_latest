@@ -34,6 +34,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/breakpoints.dart';
+import '../../../core/utils/seo_meta.dart';
 import '../../../core/services/quran_download_service.dart';
 import '../../../core/services/quran_audio_service.dart';
 import '../widgets/download_dialog.dart';
@@ -1310,6 +1311,11 @@ class _ArabicReadScreenState extends State<ArabicReadScreen> {
   @override
   void initState() {
     super.initState();
+    setPageTitle(
+      widget.isJuzMode
+          ? 'Juz ${widget.juzMeta!.num} — Read & Listen · Ask Iman'
+          : 'Surah ${widget.surah?['name'] ?? ''} — Read & Listen · Ask Iman',
+    );
     final validFonts = [
       'AlMushaf',
       'AlMajeed',

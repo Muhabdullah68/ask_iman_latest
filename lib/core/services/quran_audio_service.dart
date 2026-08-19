@@ -157,6 +157,18 @@ class QuranAudioService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  Future<void> previous() async {
+    await _player.seekToPrevious();
+  }
+
+  Future<void> next() async {
+    await _player.seekToNext();
+  }
+
+  Future<void> setSpeed(double speed) async {
+    await _player.setSpeed(speed);
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);

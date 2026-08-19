@@ -65,6 +65,7 @@ class QuranDownloadService extends ChangeNotifier {
     required String url,
     required DownloadType type,
   }) async {
+    if (kIsWeb) return;
     if (!_initialized) await init();
 
     final key = '${id}_${type.name}';
@@ -107,6 +108,7 @@ class QuranDownloadService extends ChangeNotifier {
     required String id,
     required String assetPath,
   }) async {
+    if (kIsWeb) return;
     if (!_initialized) await init();
 
     final key = '${id}_${DownloadType.pdf.name}';
@@ -138,6 +140,7 @@ class QuranDownloadService extends ChangeNotifier {
   }
 
   Future<void> deleteFile(String id, DownloadType type) async {
+    if (kIsWeb) return;
     if (!_initialized) await init();
     final path = await getFilePath(id, type);
     final file = File(path);

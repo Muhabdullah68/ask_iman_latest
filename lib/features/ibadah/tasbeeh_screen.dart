@@ -16,6 +16,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:vibration/vibration.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/tutorial_service.dart';
+import '../../core/utils/seo_meta.dart';
 import 'dart:math' as math;
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
@@ -97,7 +98,11 @@ final _kDhikrLibrary = [
 // TASBEEH SCREEN
 // ══════════════════════════════════════════════════════════════════════════════
 class TasbeehScreen extends StatefulWidget {
-  const TasbeehScreen({super.key});
+  const TasbeehScreen({super.key, this.embedded = false});
+
+  /// When true the internal app bar is hidden (used by the website shell).
+  final bool embedded;
+
   @override
   State<TasbeehScreen> createState() => _TasbeehScreenState();
 }
@@ -134,6 +139,7 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   @override
   void initState() {
     super.initState();
+    setPageTitle('Digital Tasbih — Dhikr Counter · Ask Iman');
     _audioPlayer = AudioPlayer();
     _previewPlayer = AudioPlayer();
     _initAudioPlayer(); // Preload the custom sound
@@ -475,7 +481,9 @@ class _TasbeehScreenState extends State<TasbeehScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bgCream,
-      appBar: const AskImanAppBar(showBackButton: true),
+      appBar: widget.embedded
+          ? null
+          : const AskImanAppBar(showBackButton: true),
       body: Stack(
         children: [
           SingleChildScrollView(

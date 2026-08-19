@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'charity_service.dart';
@@ -56,10 +56,10 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
 
   String _selectedCategory = 'General';
 
-  File? _cnicFront;
-  File? _cnicBack;
-  final List<File> _proofImages = [];
-  final List<File> _documents = [];
+  Uint8List? _cnicFront;
+  Uint8List? _cnicBack;
+  final List<Uint8List> _proofImages = [];
+  final List<Uint8List> _documents = [];
 
   final _picker = ImagePicker();
 
@@ -86,7 +86,8 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
       maxWidth: 1024,
     );
     if (picked != null) {
-      setState(() => _proofImages.add(File(picked.path)));
+      final bytes = await picked.readAsBytes();
+      if (mounted) setState(() => _proofImages.add(bytes));
     }
   }
 
@@ -97,7 +98,8 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
       maxWidth: 1024,
     );
     if (picked != null) {
-      setState(() => _documents.add(File(picked.path)));
+      final bytes = await picked.readAsBytes();
+      if (mounted) setState(() => _documents.add(bytes));
     }
   }
 
@@ -127,19 +129,17 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
           : _selectedCategory;
 
       List<String> proofUrls = [];
-      for (final f in _proofImages) {
-        final bytes = await f.readAsBytes();
+      for (final bytes in _proofImages) {
         proofUrls.add(base64Encode(bytes));
       }
 
       List<String> docUrls = [];
-      for (final f in _documents) {
-        final bytes = await f.readAsBytes();
+      for (final bytes in _documents) {
         docUrls.add(base64Encode(bytes));
       }
 
-      final cnicFrontBytes = await _cnicFront!.readAsBytes();
-      final cnicBackBytes = await _cnicBack!.readAsBytes();
+      final cnicFrontBytes = _cnicFront!;
+      final cnicBackBytes = _cnicBack!;
 
       await CharityService.instance.createRequest(
         title: _titleCtrl.text,
@@ -343,7 +343,10 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
                         maxWidth: 1024,
                       );
                       if (f != null) {
-                        setState(() => _cnicFront = File(f.path));
+                        final bytes = await f.readAsBytes();
+                        if (mounted) {
+                          setState(() => _cnicFront = bytes);
+                        }
                       }
                     }),
                   ),
@@ -356,7 +359,10 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
                         maxWidth: 1024,
                       );
                       if (f != null) {
-                        setState(() => _cnicBack = File(f.path));
+                        final bytes = await f.readAsBytes();
+                        if (mounted) {
+                          setState(() => _cnicBack = bytes);
+                        }
                       }
                     }),
                   ),
@@ -481,7 +487,7 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
     );
   }
 
-  Widget _buildImageUpload(String label, File? image, VoidCallback onPick) {
+  Widget _buildImageUpload(String label, Uint8List? image, VoidCallback onPick) {
     return GestureDetector(
       onTap: onPick,
       child: Container(
@@ -496,7 +502,7 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
+                    child: Image.memory(
                       image,
                       width: double.infinity,
                       height: 130,
@@ -542,7 +548,7 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
   }
 
   Widget _buildFileList(
-    List<File> files,
+    List<Uint8List> files,
     String addLabel,
     VoidCallback onAdd,
     void Function(int) onRemove,
@@ -561,7 +567,7 @@ class _RequestCharityScreenState extends State<RequestCharityScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
+                      child: Image.memory(
                         files[i],
                         width: 80,
                         height: 80,

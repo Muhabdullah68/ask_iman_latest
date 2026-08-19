@@ -15,12 +15,24 @@ import 'tabs/juzz_tab.dart';
 import 'data/surahs_data.dart';
 
 class QuranScreen extends StatefulWidget {
-  const QuranScreen({super.key, this.onNavigateToTab});
+  const QuranScreen({
+    super.key,
+    this.onNavigateToTab,
+    this.embedded = false,
+    this.initialTab = 0,
+  });
 
   static final GlobalKey<QuranScreenState> screenKey =
       GlobalKey<QuranScreenState>();
 
   final void Function(int index)? onNavigateToTab;
+
+  /// When true the internal app bar is hidden (used by the website shell,
+  /// which provides its own site navigation).
+  final bool embedded;
+
+  /// Tab opened on first build (used by website deep links).
+  final int initialTab;
 
   @override
   State<QuranScreen> createState() => QuranScreenState();
@@ -68,7 +80,11 @@ class QuranScreenState extends State<QuranScreen>
   @override
   void initState() {
     super.initState();
-    _tc = TabController(length: _tabs.length, vsync: this);
+    _tc = TabController(
+      length: _tabs.length,
+      vsync: this,
+      initialIndex: widget.initialTab.clamp(0, _tabs.length - 1),
+    );
     _tc.addListener(() {
       setState(() {});
       Future.delayed(const Duration(milliseconds: 50), () {
@@ -156,7 +172,7 @@ class QuranScreenState extends State<QuranScreen>
                 ),
                 child: Center(
                   child: Text(
-                    'Ø¨ÙØ³Ù’Ù…Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø§Ù„Ø±ÙŽÙ‘Ø­Ù’Ù…ÙŽÙ†Ù Ø§Ù„Ø±ÙŽÙ‘Ø­ÙÙŠÙ…Ù',
+                    'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: _selectedFont,
@@ -330,33 +346,60 @@ class QuranScreenState extends State<QuranScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: FigmaTokens.surfaceBackground,
-      appBar: _buildAppBar(),
+      appBar: widget.embedded ? null : _buildAppBar(),
       body: Stack(
         children: [
           IslamicBackground(
             patternOpacity: 0.06,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: ContentContainer(
-                maxWidth: 1200,
-                padding: const EdgeInsets.symmetric(horizontal: 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 20),
-                    _buildFigmaHero(context),
-                    const SizedBox(height: 28),
-                    if (_tc.index < 3 || _tc.index == 3) _buildSearchBar(context),
-                    const SizedBox(height: 8),
-                    _buildTabBar(context),
-                    const SizedBox(height: 8),
-                    _buildTabContent(context),
-                    const SizedBox(height: 48),
-                    _buildFigmaFooter(context),
-                    const SizedBox(height: 100),
-                  ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ContentContainer(
+                      maxWidth: 1200,
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (widget.embedded) _buildEmbeddedTopRow(context),
+                          const SizedBox(height: 20),
+                          _buildFigmaHero(context),
+                          const SizedBox(height: 28),
+                          if (_tc.index < 3 || _tc.index == 3)
+                            _buildSearchBar(context),
+                          const SizedBox(height: 8),
+                          _buildTabBar(context),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                Expanded(
+                  flex: 5,
+                  child: _buildTabContent(context),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ContentContainer(
+                      maxWidth: 1200,
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildFigmaFooter(context),
+                          const SizedBox(height: 100),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Positioned(
@@ -459,6 +502,42 @@ class QuranScreenState extends State<QuranScreen>
           onPressed: _showInitialPreferences,
         ),
       ],
+    );
+  }
+
+  /// Slim top row shown when embedded in the website shell: right-aligned
+  /// settings (font / translation) so the page controls stay reachable.
+  Widget _buildEmbeddedTopRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+      child: Row(
+        children: [
+          const Expanded(child: SizedBox()),
+          Text(
+            'Quran Explorer',
+            style: TextStyle(
+              fontFamily: FigmaTokens.fontFamilyUiSans,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: FigmaTokens.textMuted,
+            ),
+          ),
+          const SizedBox(width: 12),
+          IconButton(
+            tooltip: 'Quran settings',
+            onPressed: _showInitialPreferences,
+            style: IconButton.styleFrom(
+              backgroundColor: FigmaTokens.surfaceCard,
+              side: const BorderSide(color: FigmaTokens.borderHairline),
+            ),
+            icon: const Icon(
+              Icons.settings_rounded,
+              color: FigmaTokens.brandDeepGreen,
+              size: 20,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -592,7 +671,7 @@ class QuranScreenState extends State<QuranScreen>
                     _buildStarOrnament(size: 40),
                     const SizedBox(height: 20),
                     Text(
-                      'Ø¨ÙØ³Ù’Ù…Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø§Ù„Ø±ÙŽÙ‘Ø­Ù’Ù…ÙŽÙ°Ù†Ù Ø§Ù„Ø±ÙŽÙ‘Ø­ÙÙŠÙ…Ù',
+                      'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
                       textAlign: TextAlign.center,
                       textDirection: TextDirection.rtl,
                       style: TextStyle(
@@ -604,7 +683,7 @@ class QuranScreenState extends State<QuranScreen>
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Al-QurÊ¾Än al-KarÄ«m',
+                      "Al-Qur'ān al-Karīm",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: FigmaTokens.fontFamilyDisplaySerif,
@@ -766,7 +845,7 @@ class QuranScreenState extends State<QuranScreen>
             builder: (_) => Scaffold(
               appBar: AskImanAppBar(
                 showBackButton: true,
-                title: '${s['arabic']} Â· ${s['name']}',
+                title: '${s['arabic']} · ${s['name']}',
               ),
               body: TalawatTab(
                 searchQuery: _searchQuery,
@@ -846,7 +925,7 @@ class QuranScreenState extends State<QuranScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Â·',
+                        '·',
                         style: TextStyle(
                           color: FigmaTokens.textMuted,
                         ),
@@ -952,7 +1031,7 @@ class QuranScreenState extends State<QuranScreen>
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'Surah Al-Fatihah â€” Mishary al-Afasy',
+                    'Surah Al-Fatihah — Mishary al-Afasy',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -1082,7 +1161,7 @@ class QuranScreenState extends State<QuranScreen>
             child: Row(
               children: [
                 Text(
-                  'Â© ${DateTime.now().year} ASK ÄªMÄ€N â€” All rights reserved.',
+                  '© ${DateTime.now().year} ASK IMAN — All rights reserved.',
                   style: const TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 12,
@@ -1092,7 +1171,7 @@ class QuranScreenState extends State<QuranScreen>
                 ),
                 const Spacer(),
                 Text(
-                  'Built with ðŸ¤² for the Ummah',
+                  'Built with 🤲 for the Ummah',
                   style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 12,
@@ -1125,7 +1204,7 @@ class QuranScreenState extends State<QuranScreen>
               ),
               const SizedBox(width: 8),
               const Text(
-                'Ø§ÛŒÙ…Ø§Ù†',
+                'ایمان',
                 style: TextStyle(
                   fontFamily: 'NotoNastaliq',
                   fontSize: 28,
@@ -1137,7 +1216,7 @@ class QuranScreenState extends State<QuranScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'Guiding hearts to the light of IslÄm â€” one Äyah, one sujÅ«d, one day at a time.',
+            'Guiding hearts to the light of Islām — one āyah, one sujūd, one day at a time.',
             style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 14,

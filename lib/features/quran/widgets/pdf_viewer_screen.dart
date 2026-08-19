@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../../../core/theme/app_colors.dart';
 import 'dart:io';
@@ -84,7 +85,8 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           ),
         );
       }
-    } else if (widget.localPath != null &&
+    } else if (!kIsWeb &&
+        widget.localPath != null &&
         File(widget.localPath!).existsSync()) {
       pdfViewer = SfPdfViewer.file(
         File(widget.localPath!),

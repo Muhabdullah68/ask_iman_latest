@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/prayer_service.dart';
 import '../../core/services/tutorial_service.dart';
+import '../../core/utils/seo_meta.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
 
@@ -77,6 +78,7 @@ class _QiblahScreenState extends State<QiblahScreen>
   @override
   void initState() {
     super.initState();
+    setPageTitle('Qibla Finder — Kaaba Direction · Ask Iman');
     _ticker = createTicker(_onTick);
     _initialize();
     PrayerService().addListener(_onPrayerServiceUpdate);

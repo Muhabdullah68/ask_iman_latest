@@ -1,7 +1,7 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/community_service.dart';
 import '../../auth/pending_approval_screen.dart';
@@ -29,10 +29,10 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
 
   final _picker = ImagePicker();
   final _certNameCtrls = <TextEditingController>[];
-  final _certFileCtrls = <File?>[];
+  final _certFileCtrls = <Uint8List?>[];
 
-  File? _cnicFront;
-  File? _cnicBack;
+  Uint8List? _cnicFront;
+  Uint8List? _cnicBack;
   String _experience = '1-2 years';
   bool _obscurePass = true;
   bool _obscureConfirm = true;
@@ -117,7 +117,10 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
       imageQuality: 70,
       maxWidth: 1024,
     );
-    if (f != null) setState(() => _cnicFront = File(f.path));
+    if (f != null) {
+      final bytes = await f.readAsBytes();
+      if (mounted) setState(() => _cnicFront = bytes);
+    }
   }
 
   Future<void> _pickCnicBack() async {
@@ -126,7 +129,10 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
       imageQuality: 70,
       maxWidth: 1024,
     );
-    if (f != null) setState(() => _cnicBack = File(f.path));
+    if (f != null) {
+      final bytes = await f.readAsBytes();
+      if (mounted) setState(() => _cnicBack = bytes);
+    }
   }
 
   Future<void> _addCertification() async {
@@ -136,9 +142,11 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
       maxWidth: 1024,
     );
     if (f == null) return;
+    final bytes = await f.readAsBytes();
+    if (!mounted) return;
     setState(() {
       _certNameCtrls.add(TextEditingController());
-      _certFileCtrls.add(File(f.path));
+      _certFileCtrls.add(bytes);
     });
   }
 
@@ -150,8 +158,8 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
     });
   }
 
-  List<Map<String, File>> get _certifications {
-    final result = <Map<String, File>>[];
+  List<Map<String, Uint8List>> get _certifications {
+    final result = <Map<String, Uint8List>>[];
     for (int i = 0; i < _certNameCtrls.length; i++) {
       final name = _certNameCtrls[i].text.trim();
       if (name.isNotEmpty && _certFileCtrls[i] != null) {
@@ -561,14 +569,14 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
                   Container(
                     width: double.infinity,
                     height: 100,
-                    decoration: BoxDecoration(
-                      color: AppColors.bgCream,
-                      borderRadius: BorderRadius.circular(8),
-                      image: DecorationImage(
-                        image: FileImage(_certFileCtrls[i]!),
-                        fit: BoxFit.cover,
+                      decoration: BoxDecoration(
+                        color: AppColors.bgCream,
+                        borderRadius: BorderRadius.circular(8),
+                        image: DecorationImage(
+                          image: MemoryImage(_certFileCtrls[i]!),
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
                   ),
                 ],
               ),
@@ -938,7 +946,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
     );
   }
 
-  Widget _buildImagePicker(String label, File? image, VoidCallback onPick) {
+  Widget _buildImagePicker(String label, Uint8List? image, VoidCallback onPick) {
     return GestureDetector(
       onTap: onPick,
       child: Container(
@@ -953,7 +961,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(11),
-                    child: Image.file(
+                    child: Image.memory(
                       image,
                       width: double.infinity,
                       height: 120,

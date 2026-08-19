@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/seo_meta.dart';
 import '../data/surahs_data.dart';
 import 'tafseer_tab.dart';
 
@@ -784,6 +785,7 @@ class _JuzzDetailScreenState extends State<JuzzDetailScreen> {
   @override
   void initState() {
     super.initState();
+    setPageTitle('Juz ${widget.juzz['num']} — Quran Explorer · Ask Iman');
     _loadSurahs();
   }
 

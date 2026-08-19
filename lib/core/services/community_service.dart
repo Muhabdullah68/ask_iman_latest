@@ -415,6 +415,29 @@ class CommunityService {
     }
   }
 
+  /// Web-safe upload: works on both Flutter Web (no dart:io File) and native.
+  /// [bytes] should come from `XFile.readAsBytes()` (image_picker works on web).
+  Future<String?> uploadBytes(
+    Uint8List bytes,
+    String path, {
+    String contentType = 'image/jpeg',
+  }) async {
+    try {
+      final ref = _storage
+          .ref()
+          .child(path)
+          .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+      final uploadTask = await ref.putData(
+        bytes,
+        SettableMetadata(contentType: contentType),
+      );
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('Error uploading bytes: $e');
+      return null;
+    }
+  }
+
   // ── Current user ───────────────────────────────────────────────────────────
 
   Future<AppUser?> getCurrentUser() async {
@@ -1380,10 +1403,10 @@ class CommunityService {
 
   // ── Teacher Application ──────────────────────────────────────────────────────
 
-  Future<String?> _uploadFile(String storagePath, File file) async {
+  Future<String?> _uploadFile(String storagePath, Uint8List bytes) async {
     try {
       final ref = _storage.ref().child(storagePath);
-      await ref.putFile(file);
+      await ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
       return await ref.getDownloadURL();
     } catch (e) {
       debugPrint('Upload error: $e');
@@ -1399,9 +1422,9 @@ class CommunityService {
     required String phone,
     required String address,
     required String cnicNumber,
-    required File cnicFront,
-    required File cnicBack,
-    required List<Map<String, File>> certifications,
+    required Uint8List cnicFront,
+    required Uint8List cnicBack,
+    required List<Map<String, Uint8List>> certifications,
     required String experience,
     required List<String> subjects,
     required List<String> preferredTimings,
@@ -1417,10 +1440,10 @@ class CommunityService {
     List<Map<String, String>> certUrls = [];
     for (final cert in certifications) {
       final name = cert.keys.first;
-      final file = cert.values.first;
+      final bytes = cert.values.first;
       final url = await _uploadFile(
         '$basePath/certs/${name}_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        file,
+        bytes,
       );
       if (url != null) {
         certUrls.add({'name': name, 'url': url});

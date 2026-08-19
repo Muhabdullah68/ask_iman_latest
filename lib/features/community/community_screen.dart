@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/services/community_service.dart';
 import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/breakpoints.dart';
+import '../../core/utils/seo_meta.dart';
 import '../../shared/widgets/islamic_background.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../auth/sign_in_screen.dart';
@@ -15,7 +16,11 @@ import '../charity/charity_list_screen.dart';
 import 'admin/admin_dashboard.dart';
 
 class CommunityScreen extends StatefulWidget {
-  const CommunityScreen({super.key});
+  const CommunityScreen({super.key, this.embedded = false});
+
+  /// When true the internal app bar is hidden (used by the website shell,
+  /// which provides its own site navigation).
+  final bool embedded;
 
   @override
   State<CommunityScreen> createState() => _CommunityScreenState();
@@ -29,7 +34,10 @@ class _CommunityScreenState extends State<CommunityScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    // Streaks is excluded from the website (see changes.txt); the shell
+    // embeds this screen with `embedded: true`.
+    _tabController = TabController(length: widget.embedded ? 4 : 5, vsync: this);
+    setPageTitle('Community — Classes, Groups & Charity · Ask Iman');
   }
 
   @override
@@ -45,7 +53,7 @@ class _CommunityScreenState extends State<CommunityScreen>
 
     return Scaffold(
       backgroundColor: FigmaTokens.surfaceBackground,
-      appBar: const AskImanAppBar(),
+      appBar: widget.embedded ? null : const AskImanAppBar(),
       body: StreamBuilder<AppUser?>(
         stream: _svc.watchCurrentUser(),
         builder: (context, snapshot) {
@@ -74,7 +82,7 @@ class _CommunityScreenState extends State<CommunityScreen>
   Widget _buildGuestView() {
     return Scaffold(
       backgroundColor: FigmaTokens.surfaceBackground,
-      appBar: const AskImanAppBar(),
+      appBar: widget.embedded ? null : const AskImanAppBar(),
       body: IslamicBackground(
         child: SingleChildScrollView(
           child: Column(
@@ -317,7 +325,7 @@ class _CommunityScreenState extends State<CommunityScreen>
       child: const Column(
         children: [
           Text(
-            'Ø¨ÙØ³Ù’Ù…Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø§Ù„Ø±ÙŽÙ‘Ø­Ù’Ù…ÙŽÙ°Ù†Ù Ø§Ù„Ø±ÙŽÙ‘Ø­ÙÙŠÙ…Ù',
+            'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Amiri',
@@ -525,8 +533,8 @@ class _CommunityScreenState extends State<CommunityScreen>
   List<_CampaignData> _getMockCampaigns() {
     return [
       _CampaignData(
-        title: 'Ramadan Food Packs â€” Gaza',
-        category: 'Zakat Â· Food',
+        title: 'Ramadan Food Packs — Gaza',
+        category: 'Zakat · Food',
         imageUrl:
             'https://images.unsplash.com/photo-1532634922-8fe0b757fb13?w=800',
         goal: 25000,
@@ -534,8 +542,8 @@ class _CommunityScreenState extends State<CommunityScreen>
         donors: 142,
       ),
       _CampaignData(
-        title: 'Quran School â€” Orphans Fund',
-        category: 'Sadaqah Â· Education',
+        title: 'Quran School — Orphans Fund',
+        category: 'Sadaqah · Education',
         imageUrl:
             'https://images.unsplash.com/photo-1542816417-0983c9c9ad53?w=800',
         goal: 15000,
@@ -543,8 +551,8 @@ class _CommunityScreenState extends State<CommunityScreen>
         donors: 87,
       ),
       _CampaignData(
-        title: 'Winter Blankets â€” Syria',
-        category: 'Zakat Â· Emergency',
+        title: 'Winter Blankets — Syria',
+        category: 'Zakat · Emergency',
         imageUrl:
             'https://images.unsplash.com/photo-1585417521757-51217ba95166?w=800',
         goal: 10000,
@@ -812,7 +820,7 @@ class _CommunityScreenState extends State<CommunityScreen>
           text: const TextSpan(
             children: [
               TextSpan(
-                text: 'Â· ',
+                text: '· ',
                 style: TextStyle(
                   fontFamily: 'Cairo',
                   fontSize: 28,
@@ -1209,12 +1217,12 @@ class _CommunityScreenState extends State<CommunityScreen>
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
-                tabs: const [
-                  Tab(text: 'Streaks'),
-                  Tab(text: 'Classes'),
-                  Tab(text: 'Family & Friends'),
-                  Tab(text: 'Groups'),
-                  Tab(text: 'Charity'),
+                tabs: [
+                  if (!widget.embedded) const Tab(text: 'Streaks'),
+                  const Tab(text: 'Classes'),
+                  const Tab(text: 'Family & Friends'),
+                  const Tab(text: 'Groups'),
+                  const Tab(text: 'Charity'),
                 ],
               ),
             ),
@@ -1223,7 +1231,7 @@ class _CommunityScreenState extends State<CommunityScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  StreaksTab(currentUser: user),
+                  if (!widget.embedded) StreaksTab(currentUser: user),
                   ClassesTab(currentUser: user),
                   FamilyAndFriendsTab(currentUser: user),
                   GroupsTab(currentUser: user),
@@ -1392,7 +1400,7 @@ class _CommunityScreenState extends State<CommunityScreen>
             ),
             child: const Center(
               child: Text(
-                'Â© 2026 Ask Iman â€” All rights reserved. BarakAllahu feekum.',
+                '© 2026 Ask Iman — All rights reserved. BarakAllahu feekum.',
                 style: TextStyle(
                   fontFamily: 'Cairo',
                   fontSize: 12,
@@ -1442,7 +1450,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                     ),
                   ),
                   TextSpan(
-                    text: 'Ø§ÛŒÙ…Ø§Ù†',
+                    text: 'ایمان',
                     style: TextStyle(
                       fontFamily: 'NotoNastaliq',
                       fontSize: 18,

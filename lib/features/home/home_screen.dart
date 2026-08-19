@@ -104,10 +104,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Map<String, String>> get _sacredCollections => const [
-        {'title': 'Quranic Classics', 'desc': 'TafsÄ«r & Tajweed', 'cover': 'assets/images/Holy Quran.png'},
-        {'title': 'Hadith Insights', 'desc': 'SahÄ«h Collections', 'cover': 'assets/images/islamic lanterns.png'},
-        {'title': 'Daily Wisdom', 'desc': 'Supplications & AdhkÄr', 'cover': 'assets/images/tasbih beads.png'},
-        {'title': 'Stories of Prophets', 'desc': 'Lessons from the QurÊ¾Än', 'cover': 'assets/images/mosque interior.png'},
+        {'title': 'Quranic Classics', 'desc': 'Tafsīr & Tajweed', 'cover': 'assets/images/Holy Quran.png'},
+        {'title': 'Hadith Insights', 'desc': 'Sahīh Collections', 'cover': 'assets/images/islamic lanterns.png'},
+        {'title': 'Daily Wisdom', 'desc': 'Supplications & Adhkār', 'cover': 'assets/images/tasbih beads.png'},
+        {'title': 'Stories of Prophets', 'desc': "Lessons from the Qur'ān", 'cover': 'assets/images/mosque interior.png'},
       ];
 
   Future<void> _loadSoulProgress() async {
@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // â”€â”€ FIGMA SECTION HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── FIGMA SECTION HEADER ─────────────────────────────────────────────
   Widget _sectionHeader(
     String title, {
     String? eyebrow,
@@ -222,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // â”€â”€ FIGMA GOLD ACCENT BAR (left vertical on cards) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── FIGMA GOLD ACCENT BAR (left vertical on cards) ─────────────────
   Widget _goldAccentBar() => Container(
         width: 4,
         height: 48,
@@ -271,9 +271,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // HERO â€” Figma 2-col Mint Panel with Bismillah
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ────────────────────────────────────────────────────────────────────
+  // HERO — Figma 2-col Mint Panel with Bismillah
+  // ────────────────────────────────────────────────────────────────────
   Widget _buildFigmaHero(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final isWide = context.isDesktop || context.isTablet;
@@ -296,7 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
           child: Stack(
             children: [
-              // Background image overlay â€” reduced opacity (changes.txt Â§0.4 / Â§1.1)
+              // Background image overlay — reduced opacity (changes.txt §0.4 / §1.1)
               Positioned.fill(
                 child: Image.asset(
                   'assets/images/mosque interior.png',
@@ -349,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _goldAccentBar(),
         const SizedBox(height: 20),
         Text(
-          'Your trusted companion for QurÊ¾Än, SalÄh, Dhikr, and the path of Ahl al-Sunnah wa al-JamÄÊ¿ah.',
+          "Your trusted companion for Qur'ān, Salāh, Dhikr, and the path of Ahl al-Sunnah wa al-Jamā'ah.",
           style: TextStyle(
             fontFamily: 'Cairo',
             fontSize: 16,
@@ -472,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
         figmaStarOrnament(size: 44),
         const SizedBox(height: 24),
         Text(
-          'Ø¨ÙØ³Ù’Ù…Ù Ø§Ù„Ù„ÙŽÙ‘Ù‡Ù Ø§Ù„Ø±ÙŽÙ‘Ø­Ù’Ù…ÙŽÙ°Ù†Ù Ø§Ù„Ø±ÙŽÙ‘Ø­ÙÙŠÙ…Ù',
+          'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
           textAlign: TextAlign.center,
           textDirection: TextDirection.rtl,
           style: TextStyle(
@@ -484,7 +484,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'In the Name of Allah â€”\nThe Most Gracious, The Most Merciful.',
+          'In the Name of Allah —\nThe Most Gracious, The Most Merciful.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'Cairo',
@@ -501,9 +501,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // SACRED JOURNEY â€” Figma 6-up feature tiles
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ────────────────────────────────────────────────────────────────────
+  // SACRED JOURNEY — Figma 6-up feature tiles
+  // ────────────────────────────────────────────────────────────────────
   Widget _buildSacredJourney(BuildContext context) {
     final items = _sacredItems(context);
     final loc = AppLocalizations.of(context);
@@ -604,9 +604,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // SOUL PROGRESS â€” Figma 3 cards side-by-side
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ────────────────────────────────────────────────────────────────────
+  // SOUL PROGRESS — Figma 3 cards side-by-side
+  // ────────────────────────────────────────────────────────────────────
   Widget _buildSoulProgress(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final progressCards = [
@@ -661,9 +661,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // DAILY INSPIRATION â€” Figma 2-col split panel with star ornament
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ────────────────────────────────────────────────────────────────────
+  // DAILY INSPIRATION — Figma 2-col split panel with star ornament
+  // ────────────────────────────────────────────────────────────────────
   Widget _buildDailyInspiration(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final isWide = context.isDesktop || context.isTablet;
@@ -682,8 +682,8 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _sectionHeader(
               loc.translate('dailyInspiration'),
-              eyebrow: 'Reflect Â· Ponder Â· Apply',
-              actionLabel: 'See More â†’',
+              eyebrow: 'Reflect · Ponder · Apply',
+              actionLabel: 'See More →',
             ),
             const SizedBox(height: 28),
             Padding(
@@ -932,9 +932,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // SACRED COLLECTIONS â€” Figma book covers grid
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ────────────────────────────────────────────────────────────────────
+  // SACRED COLLECTIONS — Figma book covers grid
+  // ────────────────────────────────────────────────────────────────────
   Widget _buildSacredCollections(BuildContext context) {
     final isWide = context.isDesktop || context.isTablet;
     return Column(
@@ -943,7 +943,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _sectionHeader(
           'Sacred Collections',
           eyebrow: 'Curated Knowledge',
-          actionLabel: 'Browse All â†’',
+          actionLabel: 'Browse All →',
         ),
         const SizedBox(height: 28),
         Padding(
@@ -969,9 +969,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // DAILY DUA â€” Figma gradient card
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ────────────────────────────────────────────────────────────────────
+  // DAILY DUA — Figma gradient card
+  // ────────────────────────────────────────────────────────────────────
   Widget _buildDailyDuaSection(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final dua = DailyData.getDailyDua();
@@ -1106,9 +1106,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-  // FOOTER â€” Figma 4-column + gold copyright band
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ────────────────────────────────────────────────────────────────────
+  // FOOTER — Figma 4-column + gold copyright band
+  // ────────────────────────────────────────────────────────────────────
   Widget _buildFigmaFooter(BuildContext context) {
     final isWide = context.isDesktop;
     return Container(
@@ -1164,7 +1164,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               children: [
                 Text(
-                  'Â© ${DateTime.now().year} ASK ÄªMÄ€N â€” All rights reserved.',
+                  '© ${DateTime.now().year} ASK IMAN — All rights reserved.',
                   style: TextStyle(
                     fontFamily: 'Cairo',
                     fontSize: 12,
@@ -1174,7 +1174,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const Spacer(),
                 Text(
-                  'Built with ðŸ¤² for the Ummah',
+                  'Built with 🤲 for the Ummah',
                   style: TextStyle(
                     fontFamily: 'Cairo',
                     fontSize: 12,
@@ -1207,7 +1207,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Ø§ÛŒÙ…Ø§Ù†',
+                'ایمان',
                 style: const TextStyle(
                   fontFamily: 'NotoNastaliq',
                   fontSize: 28,
@@ -1219,7 +1219,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Guiding hearts to the light of IslÄm â€” one Äyah, one sujÅ«d, one day at a time.',
+            'Guiding hearts to the light of Islām — one āyah, one sujūd, one day at a time.',
             style: TextStyle(
               fontFamily: 'Cairo',
               fontSize: 14,
@@ -1372,9 +1372,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// STAR ORNAMENT PAINTER â€” Figma 8-point Islamic star
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ──────────────────────────────────────────────────────────────────────
+// STAR ORNAMENT PAINTER — Figma 8-point Islamic star
+// ──────────────────────────────────────────────────────────────────────
 class _StarOrnamentPainter extends CustomPainter {
   final Color color;
   _StarOrnamentPainter(this.color);
@@ -1405,9 +1405,9 @@ class _StarOrnamentPainter extends CustomPainter {
   bool shouldRepaint(covariant _StarOrnamentPainter oldDelegate) => oldDelegate.color != color;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ──────────────────────────────────────────────────────────────────────
 // MOSQUE DOME CLIPPER
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ──────────────────────────────────────────────────────────────────────
 class _MosqueDomeClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -1435,9 +1435,9 @@ class _MosqueDomeClipper extends CustomClipper<Path> {
   bool shouldReclip(_MosqueDomeClipper old) => false;
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-// SACRED JOURNEY TILE â€” Figma card-style
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ──────────────────────────────────────────────────────────────────────
+// SACRED JOURNEY TILE — Figma card-style
+// ──────────────────────────────────────────────────────────────────────
 class _SacredJourneyTile extends StatelessWidget {
   final String image;
   final String label;
@@ -1532,7 +1532,7 @@ class _SacredJourneyTile extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Tap to explore â†’',
+                        'Tap to explore →',
                         style: TextStyle(
                           fontFamily: 'Cairo',
                           fontSize: 11,
@@ -1552,9 +1552,9 @@ class _SacredJourneyTile extends StatelessWidget {
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ──────────────────────────────────────────────────────────────────────
 // SACRED COLLECTION BOOK CARD
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ──────────────────────────────────────────────────────────────────────
 class _SacredCollectionBook extends StatelessWidget {
   final String title;
   final String description;
@@ -1666,9 +1666,9 @@ class _SacredCollectionBook extends StatelessWidget {
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ──────────────────────────────────────────────────────────────────────
 // SOUL PROGRESS CARD
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// ──────────────────────────────────────────────────────────────────────
 class _SoulProgressCard extends StatelessWidget {
   final String label;
   final String sub;

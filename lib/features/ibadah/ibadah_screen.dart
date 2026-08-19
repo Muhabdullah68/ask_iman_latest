@@ -1,15 +1,21 @@
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/breakpoints.dart';
 import '../../shared/widgets/islamic_background.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
+import '../../shared/widgets/notif_settings_sheet.dart';
 import '../../core/services/prayer_service.dart';
+import 'alarm_screen.dart';
 import 'qiblah_screen.dart';
 import 'tasbeeh_screen.dart';
 
 class IbadahScreen extends StatefulWidget {
-  const IbadahScreen({super.key});
+  const IbadahScreen({super.key, this.embedded = false});
+
+  /// When true the internal app bar is hidden (used by the website shell,
+  /// which provides its own site navigation).
+  final bool embedded;
 
   @override
   State<IbadahScreen> createState() => _IbadahScreenState();
@@ -48,7 +54,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: isDark ? FigmaTokens.darkBg : FigmaTokens.surfaceBackground,
-      appBar: const AskImanAppBar(),
+      appBar: widget.embedded ? null : const AskImanAppBar(),
       body: RefreshIndicator(
         color: FigmaTokens.accentGoldAmber,
         backgroundColor: FigmaTokens.brandDeepGreen,
@@ -110,38 +116,67 @@ class _IbadahScreenState extends State<IbadahScreen> {
                   gradient: FigmaTokens.heroGradientLight,
                   color: FigmaTokens.surfacePanelMint,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
                   children: [
-                    Text(
-                      'YOUR DAILY IBADAH COMPANION',
-                      style: TextStyle(
-                        fontFamily: FigmaTokens.fontFamilyUiSans,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2.2,
-                        color: FigmaTokens.brandDeepGreen.withValues(alpha: 0.65),
-                      ),
-                    ),
-                    const SizedBox(height: FigmaTokens.spacing2),
-                    Text(
-                      'Calendar & Tools',
-                      style: TextStyle(
-                        fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: FigmaTokens.brandDeepGreen,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: FigmaTokens.spacing4),
-                    Wrap(
-                      spacing: FigmaTokens.spacing2,
-                      runSpacing: FigmaTokens.spacing2,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _statPill('Hijri ${hijri.year}', true),
-                        _statPill('$gregYear CE', false),
+                        Text(
+                          'YOUR DAILY IBADAH COMPANION',
+                          style: TextStyle(
+                            fontFamily: FigmaTokens.fontFamilyUiSans,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2.2,
+                            color: FigmaTokens.brandDeepGreen
+                                .withValues(alpha: 0.65),
+                          ),
+                        ),
+                        const SizedBox(height: FigmaTokens.spacing2),
+                        Text(
+                          'Calendar & Tools',
+                          style: TextStyle(
+                            fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: FigmaTokens.brandDeepGreen,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: FigmaTokens.spacing4),
+                        Wrap(
+                          spacing: FigmaTokens.spacing2,
+                          runSpacing: FigmaTokens.spacing2,
+                          children: [
+                            _statPill('Hijri ${hijri.year}', true),
+                            _statPill('$gregYear CE', false),
+                          ],
+                        ),
                       ],
+                    ),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: () => _showSettingsSheet(),
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: FigmaTokens.surfaceCard,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: FigmaTokens.borderHairline,
+                              width: 1,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.settings_rounded,
+                            size: 19,
+                            color: FigmaTokens.brandDeepGreen,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -720,7 +755,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
         title: 'Prayer Times',
         subtitle: 'Salah schedule',
         icon: Icons.access_time_filled_rounded,
-        onTap: () {},
+        onTap: () => _showPrayerTimesSheet(),
       ),
       _ToolItem(
         title: 'Qibla Finder',
@@ -735,7 +770,7 @@ class _IbadahScreenState extends State<IbadahScreen> {
         title: 'Sunnah Duas',
         subtitle: 'Daily supplications',
         icon: Icons.menu_book_rounded,
-        onTap: () {},
+        onTap: () => _showSunnahDuasSheet(),
       ),
       _ToolItem(
         title: '99 Names',
@@ -968,6 +1003,535 @@ class _IbadahScreenState extends State<IbadahScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // ── Sheets & Settings ──────────────────────────────────────────────────────────
+
+  void _showSheet(Widget child, {double maxWidth = 460}) {
+    if (context.isTablet || context.isDesktop) {
+      showDialog(
+        context: context,
+        builder: (_) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Center(
+            child: Container(
+              width: maxWidth,
+              constraints: const BoxConstraints(maxHeight: 560),
+              decoration: BoxDecoration(
+                color: FigmaTokens.surfaceCard,
+                borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
+              ),
+              child: SingleChildScrollView(child: child),
+            ),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => Container(
+          decoration: BoxDecoration(
+            color: FigmaTokens.surfaceCard,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(28),
+            ),
+          ),
+          child: SingleChildScrollView(child: child),
+        ),
+      );
+    }
+  }
+
+  Widget _sheetHandle() {
+    return Center(
+      child: Container(
+        width: 40,
+        height: 4,
+        margin: const EdgeInsets.only(top: 12),
+        decoration: BoxDecoration(
+          color: FigmaTokens.borderHairline,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+
+  void _showSettingsSheet() {
+    _showSheet(
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            _sheetHandle(),
+            const SizedBox(height: 16),
+            Text(
+              'Ibadah Settings',
+              style: TextStyle(
+                fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+                color: FigmaTokens.textHeading,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Prayer calculation method, reminders and alarm',
+              style: TextStyle(
+                fontFamily: FigmaTokens.fontFamilyUiSans,
+                fontSize: 12,
+                color: FigmaTokens.textMuted,
+              ),
+            ),
+            const SizedBox(height: 20),
+            _settingsSectionTitle('Calculation Method (Madhab)'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: kMadhabs.keys.map((name) {
+                final active = _svc.madhabName == name;
+                return GestureDetector(
+                  onTap: () {
+                    _svc.setMadhab(name);
+                    if (mounted) setState(() {});
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: active
+                          ? FigmaTokens.brandDeepGreen
+                          : FigmaTokens.surfacePanelMint,
+                      borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
+                      border: Border.all(
+                        color: active
+                            ? FigmaTokens.brandDeepGreen
+                            : FigmaTokens.borderHairline,
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      name,
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyUiSans,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: active
+                            ? FigmaTokens.accentGoldLight
+                            : FigmaTokens.textBody,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+            _settingsSectionTitle('Prayer Reminders'),
+            const SizedBox(height: 10),
+            _settingsTile(
+              icon: Icons.notifications_active_outlined,
+              title: 'Notification settings',
+              subtitle: _svc.notifEnabled
+                  ? 'Enabled · ${_svc.reminderMinutes} min before'
+                  : 'Disabled',
+              onTap: () => _showSheet(NotifSettingsSheet(service: _svc)),
+            ),
+            const SizedBox(height: 12),
+            _settingsTile(
+              icon: Icons.alarm_rounded,
+              title: 'Prayer Alarm',
+              subtitle: 'Manage prayer alarms & azan',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AlarmScreen()),
+              ),
+            ),
+          ],
+        ),
+      ),
+      maxWidth: 420,
+    );
+  }
+
+  Widget _settingsSectionTitle(String text) {
+    return Text(
+      text.toUpperCase(),
+      style: TextStyle(
+        fontFamily: FigmaTokens.fontFamilyUiSans,
+        fontSize: 10,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.6,
+        color: FigmaTokens.textMuted,
+      ),
+    );
+  }
+
+  Widget _settingsTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: FigmaTokens.surfacePanelMint,
+          borderRadius: BorderRadius.circular(FigmaTokens.radiusCardSm),
+          border: Border.all(color: FigmaTokens.borderHairline, width: 1),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: FigmaTokens.brandDeepGreen),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: FigmaTokens.fontFamilyUiSans,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: FigmaTokens.textHeading,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontFamily: FigmaTokens.fontFamilyUiSans,
+                      fontSize: 11,
+                      color: FigmaTokens.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: FigmaTokens.textMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPrayerTimesSheet() {
+    final prayers = _svc.todayPrayers;
+    _showSheet(
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            _sheetHandle(),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(
+                  Icons.access_time_filled_rounded,
+                  color: FigmaTokens.accentGoldAmber,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "Today's Prayer Times",
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: FigmaTokens.textHeading,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              DateFormat('EEEE, MMMM d').format(DateTime.now()),
+              style: TextStyle(
+                fontFamily: FigmaTokens.fontFamilyUiSans,
+                fontSize: 12,
+                color: FigmaTokens.textMuted,
+              ),
+            ),
+            const SizedBox(height: 18),
+            if (_svc.prayerTimes == null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    _svc.isLoading
+                        ? 'Calculating prayer times…'
+                        : 'Unable to load prayer times.\nCheck your location settings.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: FigmaTokens.fontFamilyUiSans,
+                      fontSize: 13,
+                      color: FigmaTokens.textMuted,
+                    ),
+                  ),
+                ),
+              )
+            else ...[
+              if (prayers.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'Prayer times are not available yet.',
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyUiSans,
+                        fontSize: 13,
+                        color: FigmaTokens.textMuted,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                ...prayers.map(
+                  (p) => _prayerRow(p.name, p.timeFormatted, p.isNext),
+                ),
+              const SizedBox(height: 6),
+              _prayerRow('Sunrise', _svc.sunriseFormatted, false,
+                  sunrise: true),
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: FigmaTokens.accentGoldSurface,
+                  borderRadius: BorderRadius.circular(FigmaTokens.radiusCardSm),
+                ),
+                child: Text(
+                  'Method: ${_svc.madhabName} · Next: ${_svc.nextPrayerInfo?.name ?? '—'}',
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyUiSans,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: FigmaTokens.brandDeepGreen,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      maxWidth: 400,
+    );
+  }
+
+  Widget _prayerRow(String name, String time, bool isNext,
+      {bool sunrise = false}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isNext
+            ? FigmaTokens.brandDeepGreen
+            : FigmaTokens.surfacePanelMint,
+        borderRadius: BorderRadius.circular(FigmaTokens.radiusCardSm),
+        border: Border.all(
+          color: isNext
+              ? FigmaTokens.brandDeepGreen
+              : FigmaTokens.borderHairline,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            sunrise ? Icons.wb_sunny_rounded : Icons.mosque_rounded,
+            size: 18,
+            color: isNext
+                ? FigmaTokens.accentGoldAmber
+                : FigmaTokens.textMuted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              name,
+              style: TextStyle(
+                fontFamily: FigmaTokens.fontFamilyUiSans,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: isNext
+                    ? FigmaTokens.accentGoldLight
+                    : FigmaTokens.textHeading,
+              ),
+            ),
+          ),
+          if (isNext) ...[
+            Text(
+              'NEXT',
+              style: TextStyle(
+                fontFamily: FigmaTokens.fontFamilyUiSans,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.4,
+                color: FigmaTokens.accentGoldAmber,
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            time,
+            style: TextStyle(
+              fontFamily: FigmaTokens.fontFamilyUiSans,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: isNext
+                  ? FigmaTokens.accentGoldLight
+                  : FigmaTokens.textHeading,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSunnahDuasSheet() {
+    const duas = [
+      (
+        'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
+        'Bismillah-ir-Rahman-ir-Rahim',
+        'In the name of Allah, the Most Gracious, the Most Merciful.',
+      ),
+      (
+        'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ',
+        'Asbahna wa asbahal-mulku lillah',
+        'We have reached the morning and all sovereignty belongs to Allah.',
+      ),
+      (
+        'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَى وَالتُّقَى وَالْعَفَافَ وَالْغِنَى',
+        "Allahumma inni as'alukal-huda wat-tuqa wal-'afafa wal-ghina",
+        'O Allah, I ask You for guidance, piety, chastity and self-sufficiency.',
+      ),
+      (
+        'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
+        'Subhanallahi wa bihamdih',
+        'Glory be to Allah and all praise is due to Him.',
+      ),
+      (
+        'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً',
+        'Rabbana atina fid-dunya hasanah wa fil-akhirati hasanah',
+        'Our Lord, give us good in this world and good in the Hereafter.',
+      ),
+      (
+        'اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ',
+        "Allahumma a'inni 'ala dhikrika wa shukrika wa husni 'ibadatik",
+        'O Allah, help me to remember You, thank You, and worship You well.',
+      ),
+    ];
+
+    _showSheet(
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            _sheetHandle(),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(
+                  Icons.menu_book_rounded,
+                  color: FigmaTokens.accentGoldAmber,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Sunnah Duas',
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: FigmaTokens.textHeading,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Daily supplications from the Sunnah',
+              style: TextStyle(
+                fontFamily: FigmaTokens.fontFamilyUiSans,
+                fontSize: 12,
+                color: FigmaTokens.textMuted,
+              ),
+            ),
+            const SizedBox(height: 18),
+            ...duas.map(
+              (d) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: FigmaTokens.surfacePanelMint,
+                  borderRadius: BorderRadius.circular(FigmaTokens.radiusCardSm),
+                  border: Border.all(
+                    color: FigmaTokens.borderHairline,
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      d.$1,
+                      textDirection: TextDirection.rtl,
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: FigmaTokens.brandDeepGreen,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      d.$2,
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyUiSans,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: FigmaTokens.textBody,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      d.$3,
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyUiSans,
+                        fontSize: 12,
+                        color: FigmaTokens.textMuted,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      maxWidth: 440,
     );
   }
 

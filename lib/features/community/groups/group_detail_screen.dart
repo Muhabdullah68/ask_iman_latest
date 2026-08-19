@@ -74,10 +74,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
     final alertMap = {
       'type': type, // namaz | tasbeeh | quran
       'title': type == 'namaz'
-          ? 'ðŸ•‹ Namaz Reminder'
+          ? '🕋 Namaz Reminder'
           : type == 'tasbeeh'
-          ? 'ðŸ“¿ Tasbeeh Reminder'
-          : 'ðŸ“– Quran Study Circle',
+          ? '📿 Tasbeeh Reminder'
+          : '📖 Quran Study Circle',
       'message': message,
       'pushedBy': widget.currentUser.name,
     };
@@ -137,7 +137,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
     );
   }
 
-  // â”€â”€ Reminders & Chat Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Reminders & Chat Tab ───────────────────────────────────────────────────
   Widget _buildChatTab() {
     return Column(
       children: [
@@ -160,14 +160,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
               const SizedBox(height: 6),
               Row(
                 children: [
-                  _alertBtn('ðŸ•‹ Namaz', () => _showPushAlertModal('namaz')),
+                  _alertBtn('🕋 Namaz', () => _showPushAlertModal('namaz')),
                   const SizedBox(width: 8),
                   _alertBtn(
-                    'ðŸ“¿ Tasbeeh',
+                    '📿 Tasbeeh',
                     () => _showPushAlertModal('tasbeeh'),
                   ),
                   const SizedBox(width: 8),
-                  _alertBtn('ðŸ“– Quran', () => _showPushAlertModal('quran')),
+                  _alertBtn('📖 Quran', () => _showPushAlertModal('quran')),
                 ],
               ),
             ],
@@ -543,7 +543,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
     );
   }
 
-  // â”€â”€ Streaks Leaderboard Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Streaks Leaderboard Tab ────────────────────────────────────────────────
   Widget _buildStreaksTab() {
     return StreamBuilder<QuerySnapshot>(
       stream: _db
@@ -656,7 +656,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
     );
   }
 
-  // â”€â”€ Settings Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Settings Tab ───────────────────────────────────────────────────────────
   Widget _buildSettingsTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),

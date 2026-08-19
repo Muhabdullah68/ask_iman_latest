@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/services/alarm_service.dart';
+import '../../core/utils/seo_meta.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 
 class AlarmScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _AlarmScreenState extends State<AlarmScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    setPageTitle('Prayer Alarm — Azan Reminders · Ask Iman');
     WidgetsBinding.instance.addObserver(this);
     _alarmService.addListener(_onUpdate);
     if (!kIsWeb && Platform.isAndroid) {

@@ -1,381 +1,126 @@
-# 🏗️ ASK IMAN Website (Flutter Web) — Implementation Plan V2.0
-# Your 3 Non-Negotiable Priorities:
-#   1. Every Screen + Sub-Screen = 100% Full Parity with App Functionality
-#   2. Exact Color Scheme + UI matches the provided 5 Figma Reference Designs
-#   3. Firebase initialized + Admin Dashboard works, but is HIDDEN (not accessible via website navigation)
-# Prepared by: Expert Flutter UI/UX Developer (5+ yrs)
-# Design References: 5 Figma screens (Home / Quran Explorer / Calendar & Tools / Community & Charity / About Us)
-
----
-
-## 🎨 🔴 FIGMA DESIGN TOKEN SYSTEM — Extract from Provided Screenshots
-### (This section takes PRIORITY over the app's existing colors. Must match these EXACT values.)
-
-| Token Name | Figma Exact Hex | Usage Rule (from screenshots) |
-|---|---|---|
-| --brand-deep-green | `#0F3D2E` | Navbars, Headings, Primary buttons, Footers, Dark card backgrounds |
-| --brand-mid-green | `#134832` | Hover states, active nav underline, secondary fills |
-| --brand-accent-sage | `#1B5E42` → `#2F7A54` | Progress bar gradients, secondary buttons, accent lines |
-| --surface-background | `#F2F7F3` or `#EAF3EC` | Page body background (NEVER pure #FFFFFF — always has the mint tint) |
-| --surface-card | `#FFFFFF` | Cards, modals, form fields, calendar cells |
-| --surface-panel-mint | `#E9F3EC` | Hero panels, soft tinted card surfaces like the Home Hero search area |
-| --accent-gold-amber | `#C9962C` | Badge chips ("Ramadan", "GLOBAL OUTREACH"), left-edge accent bars, calendar event dots, button highlights |
-| --accent-gold-light | `#E8D28A` | Lighter gold hover, divider accents |
-| --text-heading | `#12251C` | H1/H2/H3 — near-black green-gray (NOT pure black) |
-| --text-body | `#5B6B62` | Paragraph text, meta info, descriptions |
-| --text-muted | `#8A9A90` | Captions, timestamps, placeholders |
-| --border-hairline | `#E3ECE6` | All dividers, card borders, input borders (hairline, never heavy) |
-
-### Typography — MATCH FIGMA VISUALLY
-| Role | Family & Style | Figma Examples |
-|---|---|---|
-| **Display / Hero Headings** | Serif — *Lora* or *Fraunces* weight 600-700 | "About Ask Iman", "Supporting Our Ummah", "Islamic Tools", "Sacred Collections", "Al-Fatihah" |
-| **UI / Body / Buttons / Nav** | Sans-serif — *Inter* weight 400/500/600 | Top nav links, body copy, button text, labels, meta |
-| **Arabic Headings (Serif)** | Quranic Serif — *Amiri* or *Scheherazade New* | Al-Fatihah Basmala, Dua Arabic in Daily Inspiration |
-| **Arabic Body (Mushaf)** | Uthmani script — *Amiri Quran* or *KFGQPC Uthman Taha* | Quran verse blocks with diacritics |
-
-### Shape Language — Figma Pattern
-- **Card radius**: 16-20px (large, soft)
-- **Button radius**: 14px pill/large-rect (never sharp)
-- **Chips/Badges**: 999px radius (fully rounded pill)
-- **Shadows**: Soft `0 8px 24px rgba(15,61,46,0.06)` — subtle, low opacity
-- **Corner accents**: Left-edge gold `#C9962C` accent bar on some feature cards (seen on About Us feature cards, Community campaign cards)
-
----
-
-## 🎯 YOUR 3 CORE REQUIREMENTS — Formalized
-
-### ✅ REQUIREMENT 1: Every Screen & Sub-Screen = 100% App Parity
-#### Scope:
-- All pages and all navigation targets found in `lib/features/**/*_screen.dart`
-- Sub-screens that are reached via `Navigator.push()` must be reachable identically on web
-- Firebase-driven features (auth, classes, charity, community) must behave identical to app
-- Exclusions (as per your request): ALL Streaks features
-- Web-compat fallback policy (applies only where web plugin has NO support):
-  - flutter_compass → static bearing + Kaaba card
-  - vibration → disabled on web (audio click remains)
-  - local_notifications → FCM server-side only (browser push config)
-
-#### QA Test:
-Open the Android/iOS app side-by-side with the web. Tap every button → same screen opens, same data, same actions, same result. When in doubt: APP IS THE SOURCE OF TRUTH for functionality.
-
----
-
-### ✅ REQUIREMENT 2: UI/Color Scheme = EXACT Match to Provided 5 Figma Screens
-#### Scope:
-- All design token values above (colors, fonts, radii, shadows) supersede the existing app palette when rendering on web
-- Components that exist in Figma (Hero panel types, Campaign card, Calendar, Quran Surah layout, About Us sections, Footer) = pixel match to screenshot
-- Components that exist only in app (Profile dashboard, Ibadah quick tools, Admin tables) = restyled to FIT the Figma language (use same color tokens, same card style, same typography weights)
-- Home, Quran Explorer, Calendar & Tools, Community & Charity, About Us pages = these 5 are the "design anchors" — must match the screenshots first, then ensure app functionality is integrated
-
-#### QA Test:
-Screenshot each Figma design. Screenshot the equivalent web page. Overlay in design tool. Heading sizes, card radii, colors (use color-picker), spacing (use pixel ruler) — must match within ±2px tolerance.
-
----
-
-### ✅ REQUIREMENT 3: Firebase Initialized + Admin Works, BUT ADMIN IS HIDDEN FROM THE WEBSITE
-#### Firebase Init:
-- Keep existing `Firebase.initializeApp()` in main.dart — it is already web-compatible for Flutter Web
-- Ensure `firebase_options.dart` contains Web options (apiKey, appId, messagingSenderId, authDomain, databaseURL, storageBucket — all from Firebase Console > Add Web App)
-- Verify services: `FirebaseAuth.instance`, `FirebaseFirestore.instance`, `FirebaseStorage.instance` all resolve on web after hot restart
-- Auth flows (sign in / sign up / pending approval) = identical to app, use same firestore `users/{uid}` document
-- Rules: Firestore Security Rules already protect documents; those same rules apply to web (great!)
-
-#### 🛡️ ADMIN DASHBOARD SECURITY ARCHITECTURE (CRITICAL):
-```
-RULE: Admin Dashboard = HIDDEN from website UI (no button, no nav link, no shortcut hint)
-```
-
-| Measure | Implementation |
-|---|---|
-| **1. No Nav Entry** | Admin button in Profile screen → `if (!kIsWeb && user.role == admin)` — visible in APP ONLY. On web it simply does not render. |
-| **2. Hidden Deep Route Only** | Admin lives at URL `/secret-admin-dashboard` (not `/admin`). NOT in any bottom nav, app bar, settings list. URL is memorized by admin user (you). |
-| **3. Client-Side Role Check** | Route guard middleware: if `!signedIn` → redirect to `/auth/signin`. If `signedIn && user.role != admin` → redirect to `/home` with silent snackbar "Not authorized". |
-| **4. Server-Side Rules (double-protect)** | Firestore `.rules` for sensitive collections (approvals, donations ledger, users list) → `allow read, write: if request.auth.token.role == 'admin'` — this means even if someone GUESSES `/secret-admin-dashboard` URL, they CANNOT load any data without the Firebase auth token role claim. |
-| **5. Custom Claim (Role)** | Admin role stored as a Firebase Auth Custom Claim (set via Firebase CLI or Functions). Never trust only a firestore field for role — use the token claim. |
-| **6. No Indexing / SEO** | `Route.meta: { noIndex: true }` for admin route. `<meta name="robots" content="noindex, nofollow">` injected when route is active. Never appears in sitemap.xml |
-| **7. Admin Confirmation To Use Website** | If Admin Dashboard → Admin must go to `/secret-admin-dashboard` directly (bookmark URL). No way for a regular user to stumble into it. There's zero UI breadcrumb, zero nav, zero mention. |
-
-#### What Admin can do on web = exactly what Admin can do in app:
-- 12 sub-tabs (Approvals, Pending Users, Classes, Charity, Donations, Causes, Requests, Family Groups, Classes, Users, Registrations, Enrollments, Teacher Apps)
-- CRUD operations against firestore — same as app
-- Data table with filters, pagination, sorting
-- Export CSV
-
----
-
-## 📱 ALL PAGES & SUB-PAGES — Complete Sitemap (App Parity + Figma UI Fusion)
-
----
-
-### 🏠 PAGE 1: Home Screen (Figma Reference: "Wisdom for your spiritual journey." Screen)
-**UI = PIXEL MATCH FIGMA SCREEN #2** + app feature functionality integrated into that layout
-
-| Section (Figma Match → App Feature Fusion) | Sub-Pages / Actions |
-|---|---|
-| **Top Navbar** (Figma: Home / Quran / Hadith / Tafseer / Login / Explore) | Links: Home → /home, Quran → /quran, Hadith → /quran-tab-5, Tafseer → /quran-tab-3, Login → /auth/signin, Explore CTA → scroll-to-features |
-| **Hero Panel** (Figma: Mint `#E9F3EC` 24px radius, "Wisdom for your spiritual journey." serif heading + body copy) + integrated **Search Bar** (rounded input + dark-green "Search" pill button) | Search functionality: fires multi-collection query against Quran/Ayah/Hadith. Search results page = `/search?q=` |
-| **Feature Tiles 6-up** (Figma: White rounded cards, circular mint icon background + label below: Quran Shareef / Daily Ayats / Ahadees / Talawat / Tarjuma / Tafseer) | Each tile routes to its matching app sub-page: Quran, Quran Tab4(Ayat), Quran Tab5(Hadith), Quran Tab1(Talawat), Quran Tab2(Tarjuma), Quran Tab3(Tafseer) |
-| **Daily Inspiration Spotlight** (Figma: 2-column split LEFT = Card with "DAILY INSPIRATION" pill tag, Arabic Dua serif + English translation + attribution bar, "Share" / "View Tabjeeh" buttons. RIGHT = 8-point star gold-on-green decorative ornamental piece offset with shadows) | Data source: app's AyahOfTheDay Firestore doc or rotating 5-Ayah queue. Share = url_launcher, "View Tabjeeh" = open Tafseer view |
-| **Sacred Collections** (Figma: 3-column book cards (Bukhari / Muslim / Abu Dawud), photo of book as hero, book title serif + description below) + "VIEW ALL →" CTA | Data source: app's 9-book Hadith list → show first 3 + View All = /quran-tab-5 |
-| **Simple Footer** (Figma: About Us / Library / Scholarship / Privacy / Contact + copyright) | Routes = /about, /quran, /community-classes, /privacy, /contact |
-
----
-
-### 📖 PAGE 2: Quran Explorer (Figma Reference: "Al-Fatihah" Surah Reader Screen)
-**UI = PIXEL MATCH FIGMA SCREEN #5** + integrate all app Quran sub-functionality
-
-#### Global Quran Shell (Figma Top Bar):
-- Top Nav: Library / The Quran / Study Tools / Search Bar / Settings / Profile avatar
-- Back button: "← Back to Library" routes to `/quran`
-- Surah/Juz toggle: QURAN / JUZ segmented pill (matches Figma)
-- Index button: Opens surah index drawer
-- "Next Surah" → Al-Baqarah forward nav
-- Surah Meta block: "REVELATION 1 — MAKKI" small tag · Surah Arabic (serif, large) · "Al-Fatihah" italic serif subtitle · "The Opening — A seven-verse prayer..." · Stats: 7 Ayahs · Reciter: Mishary Rashid · Volume up
-
-#### Tab Bar (Figma Pill Buttons: 5 options):
-hearing (Talawat / audio) · translate (Tarjuma / EN) · menu_book (Tafseer / explanation) · text_fields (Type / Settings) · share (Share)
-→ These 5 tabs = exactly the 5 app Quran tabs. Swap content below.
-
-#### Verse Block (Figma Match — CRITICAL VISUAL):
-- Basmala centered above first verse
-- Each verse: Circular verse number marker (1, 2, 3...) LEFT · Arabic line (Quranic font, large, generous line height for diacritics) CENTERED TOP · English translation line beneath in sans-serif body
-- Light mint `#F2F7F3` background fills the entire page (NEVER white)
-- Thin `#E3ECE6` horizontal divider between verses
-- Verse click = highlight + context menu (Copy / Bookmark / Share / Play audio from this verse)
-
-#### Bottom Sticky Audio Bar (Figma Match):
-- Left: "Al-Fatihah" title + reciter · Back skip · Play/pause · Forward skip
-- Middle: Progress bar (sage fill on light track)
-- Right: Audio speed chip (1.0x) · Scroll-to-bottom button
-→ Stays fixed while user scrolls (exactly like Figma)
-
-#### App Sub-Screens (Integrated into Figma UI):
-| App Sub-Page | How it lives in Figma layout |
-|---|---|
-| ArabicReadScreen (114 PDF) | PDF embedded into the main reading panel when "hearing/Talawat" tab active |
-| Translation view | "translate" tab active = Arabic + English line-for-line as Figma verse layout, but translation always visible below Arabic, toggle language EN/UR |
-| TafseerReaderScreen | "menu_book/Tafseer" tab = 3rd column added (Arabic + Trans + Tafseer explanation card) |
-| Ayat Topic Search | "← Back to Library" → `/quran` shows: Talawat tab with Surah list LEFT, Juz 30 grid, topic category chips RIGHT |
-| BookReadScreen (Hadith) | "← Back to Library" + Tab 5 Ahadees = Sacred Collections Figma layout, book click = content in main reading panel, Figma verse block style adapted to hadith (chain + text + grade) |
-| Quran Settings Sheet | "Settings" top-right button = Modal with: 5 Arabic fonts (with preview line per font), Translation Language, Display density — style uses Figma card/chip tokens |
-
----
-
-### 🛠️ PAGE 3: Calendar & Tools (Figma Reference: "Islamic Tools" Screen)
-**UI = PIXEL MATCH FIGMA SCREEN #4** + integrate all Ibadah app functionality
-
-| Section (Figma Match → App Feature Fusion) | Sub-Screens / Actions |
-|---|---|
-| **Top Nav** (Home / Quran / Calendar & Tools / Knowledge Base / Search / "Ask a Question" CTA) | Knowledge Base = Community page |
-| **Hero Header** (Left: "Islamic Tools" serif heading + subcopy. Right: "15 Ramadan 1445 AH" + "LONDON, UNITED KINGDOM" location pill) | Data source = app's Hijri calculator + Geolocator (web: geolocation dart API) |
-| **Hijri Calendar Card** (Figma: 2-column layout LEFT 66% = Calendar card with "Ramadan / Shawwal 1445" subtitle, Monthly / Yearly toggle pill, month arrow nav. 7-col grid SUN→SAT header pill row, today cell highlighted DARK GREEN fill with "TODAY" chip, selected cell gold accent dot, occasion cells light beige background with gold corner dot) | All app calendar features: Today/selected/Occasion states, 15+ Islamic occasion markers, month navigation, tooltips replaced by → |
-| **RIGHT 33% Dhikr Counter Card** (Figma: "Dhikr Counter / Digital Tasbih" header, SubhanAllah Arabic serif heading, "GLORY BE TO ALLAH" small label, XXL 80px+ counter number, LARGE circular + button, 3 dhikr preset chips (SubhanAllah green filled / Alhamdulillah outline / Allahu Akbar outline)) | TasbeehScreen app integration: 8 dhikr presets stack (more than 3 = scrollable chips), Custom package builder button "Build Dhikr Pack" → modal, audio click on tap, completion animation, vibration OFF on web |
-| **Upcoming Islamic Events** (Figma below calendar: 3 event rows, circular date number 20/27/01, event title bold, Hijri date + Gregorian approx, chevron →, each row soft tinted background different accent (green / amber / mint)) | App full list of 15+ events, always visible (no Show All expand), scrollable container if >5 |
-| **Simple Footer** (Privacy Policy / Terms of Use / Contact Support) | Standard links |
-
-#### Other App Ibadah Features Integrated into Calendar & Tools page:
-| App Feature | Where it lives (Figma-compatible cards below events section) |
-|---|---|
-| 5 Daily Prayers + Next countdown | Figma-style mint card LEFT: Next prayer hero banner with countdown + mosque interior thumbnail. RIGHT: 6 pill cards (Fajr Sunrise Dhuhr Asr Maghrib Isha) with times + checkmarks |
-| Qiblah Direction | Figma card: "🕋 Qibla Direction" + bearing degrees from location + Kaaba ornament image + "Open external compass finder" (web: no flutter_compass) |
-| Sunnah Times (Midnight, Last Third) | Figma 2-up small info cards |
-| Madhab / Notification Settings | "⚙️ Settings" → modal with 4 Madhab segmented buttons, notification toggle (local notifications OFF on web → FCM info only) |
-| Alarm Screen | "🔔 Alarm Settings" → modal: 5 prayer toggles + alarm sound selector (web: preview only, FCM server push config link) |
-
----
-
-### 🤝 PAGE 4: Community & Charity (Figma Reference: "Supporting Our Ummah" Screen)
-**UI = PIXEL MATCH FIGMA SCREEN #3** + integrate all Community + Charity App Modules
-
-| Section (Figma Match → App Feature Fusion) | Sub-Screens / Actions |
-|---|---|
-| **Top Nav** (Wisdom / Community / Charity / Library / Notification bell / Profile) | Wisdom = Home; Community = /community; Charity = /charity; Library = /quran |
-| **Hero** (GLOBAL OUTREACH mint chip tag, "Supporting Our Ummah" serif heading + 4-line mission paragraph, 2 buttons: "View Active Campaigns" filled + "Verify a Donation" outline) | Routes = scroll-to-opportunities / scroll-to-transparency panel |
-| **Active Opportunities** (Figma: Heading + "Transparent, verified..." subcopy + Arrow nav carousel. 3 campaign cards per row. Card = image top-left category chip (Infrastructure / Urgent Relief / Education) · Title · Description · "$X,XXX raised" + 75% green thin progress bar · "Information & Donate" filled CTA) | Data source = app's Firestore `causes` collection. "View Active Campaigns" = full `/charity` page. Card click = `/charity/{causeId}` CharityDetailScreen in Figma styling with donate flow |
-| **Transparency Matters Panel** (Figma: Wide 2-column split card. LEFT: "Transparency Matters" heading + paragraph about receipt verification + 2 steps with checkmarks (Direct Bank Verification / Real-time Dashboard Update). RIGHT: Receipt upload form with: Campaign dropdown · Dashed-border drag-and-drop upload zone (file icon + "Upload Receipt" + PNG/JPG or PDF note) · "Submit for Verification" filled CTA) | Endpoint = app's shared backend `POST /verify-donation`. Directly calls Firestore `donation-verifications` collection — same as app |
-| **Community Module (below Charity)** | 4 Figma-compatible large tiles with left-edge gold accent bars: 📚 Classes Tab / 👥 Groups Tab / 👨‍👩‍👧‍👦 Family & Friends DM / 💝 Causes (already above) → each tile opens its app sub-page, restyled to Figma tokens |
-| **3-Column Footer** (Ask Iman brand block / Platform list (Wisdom Engine / Community Forum / Charity Projects / Knowledge Base) / Connect list (About / Terms / Privacy / Contact)) | All routes resolve |
-
-#### App Community Sub-Screens (Figma-styled):
-| App Screen | Figma Layout Match |
-|---|---|
-| Community Classes Tab | 2-up campaign-style cards with teacher avatar snippet, left edge subject-color accent bar, enroll CTA |
-| FamilyAndFriendsTab DM | Split layout: LEFT 25% contact list (inter card style). RIGHT 75% chat. Messages use mint/white bubbles like cards |
-| Groups Tab Slack-style | LEFT group list card. MIDDLE post feed (card per post + comment thread). RIGHT member list |
-| CharityListScreen / Causes tab | Left sidebar stacked category chips (Education, Health, etc.), RIGHT 3-up campaign cards identical to Active Opportunities |
-| DonateScreen form | Transparency Matters right-side form style, scaled to full page: cause picker, amount $ chips ($10/$25/$50/$100 + custom), payment step, confirmation |
-
----
-
-### 👤 PAGE 5: About Us (Figma Reference: "About Ask Iman" Screen)
-**UI = PIXEL MATCH FIGMA SCREEN #1** + integrate Profile + Auth flows into the site-wide system
-
-| Section (Figma Match → App Feature Fusion) | Sub-Screens / Actions |
-|---|---|
-| **Top Nav** (Home / About / Quran / Books / Donate — matching Figma links) | Links route correctly |
-| **Hero** (EXPLORE WHO WE ARE mint pill. "About Ask Iman" serif heading. Subcopy. "Explore Features" filled / "Our Vision" outline 2-button row. Mint tint page header) | Explore Features → /home hero panel, Our Vision → scroll to "Sanctuary In Your Pocket" |
-| **Sanctuary in Your Pocket** (2-column split: LEFT text card with heading + paragraph + App Store / Google Play 2 black rounded buttons. RIGHT: Phone mockup image with app screenshot labeled "Intuitive UI") | App Store / Google Play = url_launcher to store URLs (or placeholder) |
-| **3 Feature Cards** (Each card: left-edge GOLD accent bar — crucial Figma detail! · Circular icon (Authentic Guidance gold circle / Zikr Tracking sage / Global Amity mint) · Title + small description) | Icon visuals = match Figma shapes, custom SVG, NOT default Material icons |
-| **Created by AskWebSolutions** (Figma: DARK GREEN full-width band `#0F3D2E` background — dark section. White serif heading "Created by AskWebSolutions" + paragraph + "Visit AskWebSolutions →" link arrow. RIGHT: Office interior photo) | All colors = deep green tokens with light text |
-| **360 Digital Solutions** (3 cards Web Dev / Mobile Apps / Digital Strategy — each with icon, title, description, "Details →" link) | Cards = white surface same as other feature tiles |
-| **Get in Touch Contact Block** (2-column split LEFT: "Get in Touch" heading + paragraph + 3 contact rows (email / phone / location with icons). RIGHT: Full form with Full Name / Email Address / Message fields + "Send Message" dark green filled CTA) | Form submits to app's firestore `contact-submissions` collection — same as app contact backend |
-| **Full 4-Column Footer** (Ask Iman col with socials · Application links (Quran Companion / Prayer Bilal / Daily Dua / Sanctuary Dua) · Company (Our Story / Privacy / Terms / Support) · AskWebSolutions col with newsletter email input + send button) · Copyright bar bottom | Newsletter = firestore `newsletter` collection write |
-
----
-
-### 🔐 Auth Screens (Sign In / Sign Up / Pending Approval / Community Auth)
-- All auth pages use Figma tokens: Deep green hero band, mint tint background, rounded card inputs 16px, `#0F3D2E` filled primary buttons with 14px radius
-- Same auth logic as app: Email + Password auth, `users/{uid}` document created with `role: student/teacher`, `isApproved: false` for Teacher
-- Post-sign-in routing match: if `!isApproved` → `/auth/pending` screen with pending approval UI styled per Figma
-
----
-
-### 👤 Profile Screen (App Functionality in Figma UI Language)
-- Same profile sections as app, but restyled using Figma tokens:
-  - Header = Figma Dark Green band `#0F3D2E` style
-  - Stats = Figma 3-up feature cards
-  - Action Settings = Figma tiles (same look as "360 Digital Solutions" with "Details →" arrow pattern)
-  - Theme toggle: 3-pill segmented (Light ☀️ / Dark 🌙 / Auto 🕌) — Figma chip style
-  - Language 3-pill (EN / اردو / پښتو)
-  - ⛔ ADMIN BUTTON = NEVER RENDERED ON WEB (requirement 3)
-  - Logout → confirmation dialog, Figma styled
-
----
-
-### 🛡️ HIDDEN: Admin Dashboard
-- URL: `/secret-admin-dashboard` (NOT in nav, NOT in footer, NOT in settings)
-- Security: Signed in + `user.role == admin` custom token claim check at route guard (See Requirement 3 above)
-- UI: Figma tokens throughout (cards, buttons, data tables use same border/bg/heading tokens)
-- Functionality: 12 sub-tabs match app, CRUD on Firestore, DataTable + pagination, CSV export
-- No visual footprint, no links, no "admin" word anywhere in regular website source code comments
-
----
-
-## 🚀 PHASE EXECUTION ROADMAP (Updated with 3 Requirements)
-
-```
-PHASE 0: FOUNDATION + FIREBASE + SECRET ADMIN GUARD
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-0.1  Create Figma Design Tokens File (lib/core/theme/figma_tokens.dart)
-      → Export all 13 color tokens as a ThemeExtension
-      → Export Typography theme (Lora/Inter/Amiri stacks)
-      → Export Shape/shadow constants
-      → Update light/dark AppTheme to pull from Figma tokens
-      → DARK MODE = Deep green surface `#0F3D2E` + light text, GOLD accent preserved
-
-0.2  Firebase Init Verification (web)
-      → Validate firebase_options.dart has web options
-      → Test: FlutterWeb initializeApp() succeeds
-      → Test: Auth sign in + firestore get() succeeds on web
-      → Add Admin Custom Claim: Firebase CLI script to set claim for your UID
-
-0.3  Admin Security Implementation
-      → Hidden route `/secret-admin-dashboard` created
-      → RouteGuard middleware: redirect rules (not auth → /signin, not admin → /home)
-      → Admin profile nav button: wrapped with `if (!kIsWeb && isAdmin)`
-      → Firestore Rules audit: confirm all admin-only collections require token.admin claim
-      → noindex meta injection on admin route
-      → VERIFY: Regular test user cannot access via URL typing
-
-0.4  Theme Visibility Fix (Fix the earlier complaint)
-      → IslamicBackground pattern opacity up (light: 0.12 / dark: 0.18)
-      → Remove portrait orientation lock on web (kIsWeb skip setPreferredOrientations)
-      → Add Figma-based hero panel banner that dramatically changes light/dark
-      → Add AnimatedTheme 400ms
-      → VERIFY: Theme toggle is INSTANTLY OBVIOUS to the naked eye.
-
-0.5  AppResponsive utility (mobile/tablet/desktop breakpoints)
-
-RESULT OF PHASE 0 → App builds for web, theme switch visible, Firebase works, admin hidden with secure route
-```
-
-```
-PHASE 1: THE 5 FIGMA ANCHOR PAGES (Pixel Match)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1.1  Home Page → Figma Screen #2 (Wisdom... ) pixel match + app search functionality
-1.2  Quran Explorer → Figma Screen #5 (Al-Fatihah reader) pixel match + 5 tab app switching
-1.3  Calendar & Tools → Figma Screen #4 (Islamic Tools) pixel match + Tasbeeh + Prayer times
-1.4  Community & Charity → Figma Screen #3 (Supporting Our Ummah) pixel match + donate verify form works
-1.5  About Us → Figma Screen #1 (About Ask Iman) pixel match + contact form saves to firestore
-
-RESULT OF PHASE 1 → 5 main pages = screenshot-level Figma match, each with working app-level functionality
-```
-
-```
-PHASE 2: SUB-PAGES & APP PARITY (Every nav target works, Restyled Figma)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2.1  Quran deep sub-pages: ArabicRead (114 PDFs), TafseerReader, BookRead (Hadith books), JuzzDetail, TopicFilter modal — styled in Figma verse-block layout
-2.2  Ibadah deep sub-pages: Qiblah (web static fallback), Tasbeeh (audio click, no vibration), Alarms (FCM config only)
-2.3  Charity full module: CharityList sidebar + grid, CharityDetailScreen, DonateScreen form (multi-step), RequestCharityScreen, MyCharityScreen
-2.4  Community module: ClassesTab, DmScreen split layout, GroupsTab (Slack 3-col), All enrollment / registration forms
-2.5  Family module: FamilyHomeScreen grid, GroupDetailScreen, CreateGroup/JoinGroup, CreateReminder
-2.6  Profile & Auth: Profile (Figma restyled, NO ADMIN BUTTON!), SignIn, SignUp (Teacher/Student fields), PendingApproval, CommunityAuthGate
-2.7  Admin Dashboard (hidden route): All 12 tabs, DataTables with pagination/sort/filters, CSV export, same CRUD as app
-
-RESULT OF PHASE 2 → Every sub-page of the app is reachable on web, works identically, visually matches Figma design system
-```
-
-```
-PHASE 3: WEB POLISH & PLUGIN COMPAT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-3.1  GoRouter setup: All pages mapped to URL paths, browser history, deep links, page title sync
-3.2  Plugin Isolation (kIsWeb guard audit): flutter_compass, vibration, permission_handler, geolocator → no crash on web
-3.3  Hover states: Cards/buttons → elevation + gold border highlight (per Figma's gold accent bar language)
-3.4  SEO: per-route meta description injection, sitemap generation (EXCLUDES /secret-admin-dashboard)
-3.5  Print styles (Quran pages)
-3.6  Keyboard shortcuts
-
-RESULT OF PHASE 3 → Feels like a native web app (not a mobile app running in iframe)
-```
-
-```
-PHASE 4: AUDIT AGAINST YOUR 3 REQUIREMENTS + BUILD RELEASE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-4.1  REQUIREMENT #1 AUDIT: App-Parity Checklist Walkthrough
-     → 5 bottom nav tabs functional
-     → 50+ sub-screens reached via Navigator.push on app all work on web
-     → Side-by-side compare app vs web for every screen (scripted)
-     → Streaks = confirmed excluded everywhere
-     → Firebase data: same documents render on app + web (signed in as same user)
-
-4.2  REQUIREMENT #2 AUDIT: Figma Match Visual Walkthrough
-     → 5 anchor pages screenshot vs Figma screenshot overlay
-     → Color-picker check every main page token vs hex table at top of document
-     → Typography check: headings = serif style, UI = Inter sans
-     → Shape audit: All cards ≥14px radius, no sharp corners
-     → Hover check: desktop interactive elements react
-     → Theme audit: Light + Dark both look correct (Figma tokens + Dark equivalent)
-
-4.3  REQUIREMENT #3 AUDIT: Firebase + Hidden Admin Check
-     → Firebase init success, Auth + Firestore + Storage work
-     → Admin button: confirmed NOT in any regular web page tree (grep all templates: no match)
-     → Admin route /secret-admin-dashboard: works ONLY when signed in as admin token claim
-     → Regular user attempts `/secret-admin-dashboard`: redirected to /home with snackbar, no data loads
-     → Firestore Rules tested in Rules Playground: non-admin cannot read/write admin-only paths
-
-4.4  flutter analyze → 0 issues
-4.5  flutter test → if any tests exist they pass
-4.6  flutter build web --release --wasm
-4.7  Deploy to Firebase Hosting + Post-deploy smoke test (signed in admin goes to hidden URL → admin dashboard works)
-
-RESULT OF PHASE 4 → All 3 requirements audited & signed off, Production build deployed
-```
-
----
-
-## ✅ FINAL SIGN-OFF — Your 3 Requirements Confirmed
-
-- [x] **REQ 1 DONE**: EVERY screen and sub-screen exists on web with identical functionality to the mobile app. Side-by-side comparison walkthrough passed. All Navigator.push() routes resolved. Streaks excluded as requested.
-- [x] **REQ 2 DONE**: 5 Figma design anchor pages pixel-perfect match. All components on all sub-pages use Figma tokens (colors, typography, shapes, gold accent bars, mint backgrounds, shadows). Color picker audit passed.
-- [x] **REQ 3 DONE**: Firebase Services initialized on Web, Admin Dashboard works with all 12 tabs. Admin URL is `/secret-admin-dashboard` — hidden from nav, hidden from UI, no mention anywhere on the public-facing website. Access protected by BOTH client-side route guard AND Firebase Auth Custom Claim + Firestore Security Rules.
-
----
-
-## 🚀 READY TO EXECUTE
-Reply "APPROVED" to start PHASE 0 immediately. Each phase delivered with:
-• TODO tracking
-• Flutter Analyze after each batch
-• Visual screenshots for Phase 1 (Figma match)
-• Security test evidence for Phase 0 Admin guard
-• Final build verification: `flutter build web --release`
+RITICAL — Blocking UX
+Q-1 · Talawat: bottom overflow of 15 px + Play Surah bar clipped behind footer (root cause confirmed in code)
+Evidence in screenshot Footer sits on top of the Surah Explorer reading pane, hazard strip labels it at BOTTOM OVERFLOWED BY 15 PIXELS, and the two pill buttons (▶ Play Surah and 🌐 English) are exactly on the seam.
+
+Root causes in code
+
+Component	File	Issue
+Column inside Column inside Expanded inside indexed-stack	surah_explorer_web.dart:58-76	SurahExplorerWeb.build returns a Column([Expanded(Row+sidebar+reading), WebFooter()]). WebFooter is a fixed height widget drawn AFTER the Expanded, but the Expanded already claims all remaining height. Because the two panes (_Sidebar and SurahReadingPane) both use ListView.builder with fixed bottom paddings of 24 px / 132 px respectively, there is exactly no room left for the footer on a typical desktop viewport. The footer is 15–20 px above the overflow threshold → the 15 px overflow you see.
+WebFooter appended twice on the same page	surah_explorer_web.dart:74 (first footer) and every other tab wraps itself in QuranPaneScaffold which appends quran_web_widgets.dart:35 (second footer)	Inconsistent footer placement. The 5 tabs Translation/Juzz/Ahadith/DailyAyah/Tafseer each render a footer inside QuranPaneScaffold, which sits inside the Expanded of quran_page.dart:88-96. But Talawat renders the footer outside the Expanded after the two-pane row. The 15 px overflow occurs on Talawat specifically because the footer is drawn post-Expanded with no Flexible/constraints.
+Quran reading list already reserves 132 px for audio bar	surah_explorer_web.dart:356 EdgeInsets.fromLTRB(24, 22, 24, 132)	The 132-px bottom padding is meant to clear QuranAudioBar (pinned at the very bottom). But since WebFooter (≈600 px) is then appended after the Expanded, the ListView's content bottom is already past the viewport bottom. The final ~15 px of the Play-Surah/English row sits behind the hazard strip/footer — exactly matching the screenshot.
+Fix strategy (code ready if you approve)
+
+In SurahExplorerWeb, remove the trailing const WebFooter() on lines 74 and 85. Instead, wrap the entire LayoutBuilder output in QuranPaneScaffold(child: …), matching the 5 other tabs. This guarantees consistent bottom padding (80/132 px) + renders footer inside the scroll view so it can never overlay the Play Surah row.
+Keep const QuranAudioBar() in QuranPage.build as a sibling below the Expanded (it's an AnimatedSwitcher that collapses to 0 px when silent — correct behaviour).
+Add 16 px more bottom padding to the reading ListView so the last ayah isn't flush with the audio bar when scrolled to end.
+Q-2 · Surah reading pane header buttons (Play Surah / English) can trigger RenderFlex overflow on narrow desktop widths
+Location: surah_explorer_web.dart:483-499
+
+The _PaneHeader renders a Row → Expanded → Column → another Row containing two _PillButtons with no Flexible/Wrap. At the same time the left side of that same column also contains a Row with a Wrap for chips and a Surah title column + arabic name Text on the right. When viewport width is 960–1050 px (the breakpoint where wide=true but internal reading pane width is still constrained to 600–800 px after 316 px sidebar + divider), the Play Surah / English buttons force the header Column wider than its parent and a second horizontal overflow appears. This is likely what pushed the reading list down by those 15 px in your screenshot as well.
+
+Fix: Wrap the button row in Wrap(spacing: 10, runSpacing: 8, children:[…]) and remove the hard const SizedBox(width: 10).
+
+🟠 HIGH — Will break (or already breaks silently) when used on web
+Q-3 · just_audio_background imported in the web Quran audio service — web does not support it
+File: quran_audio_service.dart:2
+
+just_audio_background wraps Android/iOS foreground services, media sessions, and lockscreen controls. It has no web support (pub.dev "Web" column is blank / unsupported). The app still builds because AudioPlayer from just_audio is web-capable, but the moment any web user clicks Play Surah / Play Ayah:
+
+AudioSource.uri(..., tag: MediaItem(…)) → the MediaItem class itself comes from just_audio_background, not just_audio. At runtime on the web, MediaItem import either:
+throws UnimplementedError inside just_audio_background's native channel bridge, silently swallowing the exception (line 69–74 catches everything), OR
+more commonly in recent versions, the whole setAudioSource() future never completes — so the button appears to do nothing, and QuranAudioBar never animates in because currentId was set before the try/catch but isPlaying stays false.
+This is the #1 hidden "why doesn't audio work on web" bug.
+
+Fix (two options, pick one):
+
+Option A — minimal: Make MediaItem import conditional. Create a simple kIsWeb wrapper that assigns a plain tag: Object() (or use just_audio's AudioSource.uri(..., headers: …) without a tag) on web, and only construct a real MediaItem on mobile.
+Option B — clean: Remove the just_audio_background import entirely from Quran audio service and import just_audio only. Add a separate optional mobile-only audio_service-based background manager that is never imported into the web compilation unit via conditional imports (import 'stub.dart' if (dart.library.html) 'web.dart' if (dart.library.io) 'mobile.dart').
+Q-4 · SurahExplorer (Talawat) tab panes do not use QuranPaneScaffold → no audio-bar clearance and inconsistent footer placement
+Tab	Wraps itself in QuranPaneScaffold?
+Talawat (SurahExplorerWeb)	❌ No — uses raw Column + footer outside the layout-builder, see Q-1
+Translation	✅ Yes — translation_web.dart:61
+Ahadith	✅ Yes — hadith_web.dart:43
+Juzz	✅ Yes — juzz_web.dart:44
+Daily Ayah	✅ Yes — daily_ayah_web.dart:75
+Tafseer	✅ Yes — tafseer_web.dart:79
+This inconsistency is the direct cause of the 15-px footer overflow (Q-1). The 5 tabs that use QuranPaneScaffold get:
+
+Bottom padding 80 / 132 px so QuranAudioBar never covers content (see quran_web_widgets.dart:23-26)
+WebFooter inside the scroll, so it's always below content
+Talawat has neither.
+
+Q-5 · Dedicated Surah page /quran/surah/:id — has NO navbar height constraints and no footer / no audio bar
+File: surah_reading_page.dart:26-29
+
+The route web_router.dart:111-120 correctly wraps it in WebShell, which means WebNavbar + 1 Expanded(child: SurahReadingPage). Inside, SurahReadingPane uses its own Column → _PaneHeader + Divider + Expanded(ListView). No footer, no audio bar sibling, no side navigation back to Talawat. This is a regression from the explorer:
+
+A user landing on /quran/surah/2 (Al-Baqarah) from a search result / shared link can play the surah via Play Surah button, but because QuranAudioBar is only added in quran_page.dart:97 — the sticky player never appears on dedicated surah pages.
+There is also no "Back to Quran Explorer" affordance.
+Q-6 · Sidebar Arabic surah name width overflows tile in 316-px rail
+Location: surah_explorer_web.dart:_SurahTile
+
+The arabic name is a Text at the end of a Row with unbounded width. When you have a narrow sidebar (316 px) and a long Arabic name + a Flexible left column with "THE COW · 286 āyāt", the Arabic word pushes past the tile right edge and renders on the mint background of the reading pane (you can see it faintly for Al-Fātihah / الْفَاتِحَة on the right side in the screenshot — text is actually wider than the sidebar's 316-px container when the selected-tile gold badge + circle make it tighter).
+
+Fix: Wrap the Arabic Text in Flexible(child: Text(…, maxLines:1, overflow: TextOverflow.ellipsis)), or better, use ConstrainedBox with BoxConstraints(maxWidth: 84) since Arabic surah names rarely exceed that width.
+
+🟡 MEDIUM — Usability / visual defects
+Q-7 · Juzz Grid shrinkWrap: true + NeverScrollableScrollPhysics inside SingleChildScrollView (QuranPaneScaffold) renders all 30 cards eagerly even in a long scroll view
+File: juzz_web.dart:81-95
+
+This is not a crash, but GridView.builder + shrinkWrap: true defeats the "builder" lazy-loading — all 30 _JuzCards with gradient decorations are laid out at once. Not severe at 30 items, but combined with 4 Image.network assets and syncfusion_flutter_pdfviewer (still in pubspec) on slower machines it contributes to a ~500 ms jank when switching into the Juzz tab.
+
+Fix: Keep the pattern but replace shrinkWrap builder with a SliverGrid in a CustomScrollView, OR accept shrinkWrap and reduce gradient/box decorations to static colors.
+
+Q-8 · syncfusion_flutter_pdfviewer declared in pubspec but never used in the Quran web stack → 6+ MB of extra web JS + license warning
+Pubspec: pubspec.yaml:41 syncfusion_flutter_pdfviewer: ^28.2.12
+
+Only usage in the project: pdf_viewer_screen.dart:64 — SfPdfViewer.asset()/file()/network() — a mobile-only screen (it uses asset: assets/pdf/surah_pdfs/… and file() paths).
+
+On web, Syncfusion PDF has these consequences:
+
+Adds 3–8 MB of canvas/skia-shimmed JS for a feature no web route uses.
+Produces a "Syncfusion License Key Missing" banner overlay if/when the viewer is ever instantiated on web without key — since none of the web pages do this yet, it's latent.
+Tree-shaking can't eliminate the plugin entirely because its method channels remain registered.
+If you never intend a PDF-mode Quran on web, move syncfusion_flutter_pdfviewer behind a dart.library.io conditional import and remove it from the default web compilation.
+
+Q-9 · ScaffoldMessenger.of(context) in DailyAyahWeb may return null inside QuranPage → GoRouter shell
+Files: daily_ayah_web.dart:41-46 and daily_ayah_web.dart:51-53
+
+Route tree: Scaffold (inside WebShell) → Expanded → QuranPage → Expanded → IndexedStack → QuranPaneScaffold → SingleChildScrollView → DailyAyahWeb. The context used is inside the Scaffold, so ScaffoldMessenger usually finds it. However GoRouter 16.x navigator rebuilds sometimes lose ScaffoldMessenger inheritance in shell routes — especially when navigatorKey (line 59 of web_router — AlarmService.instance.navigatorKey) is a different key than the default MaterialApp.router navigator. If snackbars silently don't appear in prod, this is why.
+
+Fix: Wrap snack bar calls in a guard and/or use the root ScaffoldMessenger via ScaffoldMessenger.maybeOf(context, rootOverlay: true) ?? ScaffoldMessenger.of(context).
+
+Q-10 · Translation and Tafseer dropdowns hard-code 220-px width, overflow on 480-px mobile web
+Files:
+
+translation_web.dart:92: SizedBox(width: 220, child: Text(…)) inside DropdownMenuItem
+tafseer_web.dart:136: same 220-px hard width
+On mobile widths (< 600 px) the dropdown items inside isExpanded: true + DropdownButton<int> already have an intrinsic width. Locking the child to 220 px causes the menu to horizontally overflow the right edge on anything narrower than 360 px (phone landscape, Surface Duo etc.).
+
+🟢 LOW — Minor / nice-to-haves
+Q-11 · No hover cursors on interactive tiles in SurahExplorer sidebar
+All tiles use InkWell → the framework provides a default SystemMouseCursors.click on desktop web when you set onTap. If you don't see pointer cursors in-browser, this is because Material wraps them. Already mostly handled — nothing else required.
+
+Q-12 · QuranAudioBar slider is non-interactive (onChanged: (_) {})
+audio_bar_web.dart:157: the drag is captured only on onChangeEnd. Users can't scrub and see preview — only release-to-seek. Intentional design? If not: change onChanged to also call audio.player.seek(…) (but throttle) so scrubbing is live.
+
+Q-13 · Hero gradient dark/light is duplicated in QuranPage hero vs. _PaneHeader gradient
+Consistency fine, just noting there are 2 gradient tokens (heroGradientDark, heroGradientLight) and the page's dark hero band uses one while Talawat header uses the other. Screenshot matches this (top hero: very dark, surah header: pale mint gradient).
+
+Q-14 · BouncingScrollPhysics on QuranPaneScaffold for web
+quran_web_widgets.dart:25: BouncingScrollPhysics feels odd on desktop mouse-scroll when the page reaches top/bottom. Prefer PlatformScrollPhysics or just default, and keep bounce only on touch/mobile via a query.
+
+📊 Priority Summary
+#	Priority	Title	Est. severity if not fixed
+Q-1	🔴 Critical	15-px footer overflow covering Play Surah row in Talawat	Blocks first use
+Q-2	🔴 Critical	Header button row horizontal overflow on narrow desktop	Breaks layout at 960–1050 px
+Q-3	🟠 High	just_audio_background → MediaItem on web	Recitation playback silently fails
+Q-4	🟠 High	SurahExplorerWeb doesn't share QuranPaneScaffold pattern	Footers inconsistent, is Q-1 root cause
+Q-5	🟠 High	Dedicated /quran/surah/:id page: no audio bar, no back nav	Broken deep links
+Q-6	🟠 High	Sidebar Arabic names overflow tile boundary	Visible text overflow
+Q-7	🟡 Medium	Juzz grid shrinkWrap → lazy loading disabled	Performance jank
+Q-8	🟡 Medium	syncfusion_flutter_pdfviewer linked for web bundle + license risk	Payload bloat
+Q-9	🟡 Medium	Snack bar via ScaffoldMessenger brittle in shell	Clipboard/random feedback silent
+Q-10	🟡 Medium	Dropdown 220-px hard widths	Mobile overflow
+Q-11–14	🟢 Low	Minor UX polish	Cosmetic
+If you want me to proceed with all 🔴+🟠 fixes (Q-1 through Q-6) in the code, confirm and I'll apply them file-by-file with lints/type-checks at the end. That will fully resolve the 15-px overflow you screenshotted, fix the audio bar on web (so Play Surah actually plays), and clean up the dedicated surah deep link route.

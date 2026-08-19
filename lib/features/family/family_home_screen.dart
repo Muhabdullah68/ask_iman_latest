@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
+import '../../core/utils/seo_meta.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
 import '../../core/services/tutorial_service.dart';
 import '../community/streaks/streaks_tab.dart';
@@ -28,6 +29,7 @@ class _FamilyHomeScreenState extends State<FamilyHomeScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    setPageTitle('Family Hub — Learn & Worship Together · Ask Iman');
   }
 
   @override

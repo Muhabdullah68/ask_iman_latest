@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/quran_download_service.dart';
 import 'pdf_viewer_screen.dart';
@@ -50,48 +51,111 @@ class DownloadDialog extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Keep your favorite recitations and PDFs offline.',
-            style: TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 14,
-              color: AppColors.textGrey,
+          if (kIsWeb)
+            _buildWebInfo(context, pdfAssetPath: pdfAssetPath, title: title)
+          else ...[
+            const Text(
+              'Keep your favorite recitations and PDFs offline.',
+              style: TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 14,
+                color: AppColors.textGrey,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          _DownloadTile(
-            id: id,
-            title: 'Audio Recitation',
-            subtitle: 'High quality MP3 audio',
-            icon: Icons.music_note_rounded,
-            isDownloaded: service.isDownloaded(id, DownloadType.audio),
-            onDownload: () {
-              service.download(id: id, url: audioUrl, type: DownloadType.audio);
-              Navigator.pop(context);
-            },
-            onDelete: () => service.deleteFile(id, DownloadType.audio),
-          ),
-          if (pdfAssetPath != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
             _DownloadTile(
               id: id,
-              title: 'Quran PDF',
-              subtitle: 'Clear Mushaf pages',
-              icon: Icons.picture_as_pdf_rounded,
-              isDownloaded: service.isDownloaded(id, DownloadType.pdf),
+              title: 'Audio Recitation',
+              subtitle: 'High quality MP3 audio',
+              icon: Icons.music_note_rounded,
+              isDownloaded: service.isDownloaded(id, DownloadType.audio),
               onDownload: () {
-                service.downloadPdfFromAsset(
-                  id: id,
-                  assetPath: pdfAssetPath!,
-                );
+                service.download(id: id, url: audioUrl, type: DownloadType.audio);
                 Navigator.pop(context);
               },
-              onDelete: () => service.deleteFile(id, DownloadType.pdf),
+              onDelete: () => service.deleteFile(id, DownloadType.audio),
             ),
+            if (pdfAssetPath != null) ...[
+              const SizedBox(height: 12),
+              _DownloadTile(
+                id: id,
+                title: 'Quran PDF',
+                subtitle: 'Clear Mushaf pages',
+                icon: Icons.picture_as_pdf_rounded,
+                isDownloaded: service.isDownloaded(id, DownloadType.pdf),
+                onDownload: () {
+                  service.downloadPdfFromAsset(
+                    id: id,
+                    assetPath: pdfAssetPath!,
+                  );
+                  Navigator.pop(context);
+                },
+                onDelete: () => service.deleteFile(id, DownloadType.pdf),
+              ),
+            ],
           ],
           const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+
+  Widget _buildWebInfo(
+    BuildContext context, {
+    required String? pdfAssetPath,
+    required String title,
+  }) {
+    if (pdfAssetPath == null) {
+      return const Text(
+        'Offline downloads are available in the mobile app. On the web you can '
+        'stream recitation directly from the player.',
+        style: TextStyle(
+          fontFamily: 'Cairo',
+          fontSize: 14,
+          color: AppColors.textGrey,
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Offline downloads are available in the mobile app. On the web you '
+          'can read the Mushaf pages directly.',
+          style: TextStyle(
+            fontFamily: 'Cairo',
+            fontSize: 14,
+            color: AppColors.textGrey,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => PdfViewerScreen(
+                    title: title,
+                    assetPath: pdfAssetPath,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.menu_book_rounded),
+            label: const Text('Read Quran PDF'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryDark,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

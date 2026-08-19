@@ -8,6 +8,7 @@ import '../../features/quran/quran_screen.dart';
 import '../../features/ibadah/ibadah_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../core/services/tutorial_service.dart';
+import '../../core/utils/seo_meta.dart';
 import '../../features/streaks/streaks_screen.dart';
 import '../../features/ibadah/qiblah_screen.dart';
 import '../../features/ibadah/tasbeeh_screen.dart';
@@ -31,6 +32,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _autoStartTutorial();
+      setPageTitle(_titleForTab(0));
     });
     TutorialService.instance.addListener(_onTutorialChanged);
   }
@@ -214,10 +216,28 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     setState(() {
       _currentIndex = index;
     });
+    setPageTitle(_titleForTab(index));
     if (index == 1 && !TutorialService.instance.isActive) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         QuranScreen.screenKey.currentState?.showPreferencesAutomatically();
       });
+    }
+  }
+
+  String _titleForTab(int index) {
+    switch (index) {
+      case 0:
+        return 'Ask Iman — Home · Islamic Learning Companion';
+      case 1:
+        return 'Quran — Read & Listen · Ask Iman';
+      case 2:
+        return 'Ibadah — Prayer Times & Tools · Ask Iman';
+      case 3:
+        return 'Streaks — Daily Worship Tracker · Ask Iman';
+      case 4:
+        return 'Profile — Your Account · Ask Iman';
+      default:
+        return 'Ask Iman';
     }
   }
 

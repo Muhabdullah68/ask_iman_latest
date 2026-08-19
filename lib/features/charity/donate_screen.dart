@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
@@ -24,7 +24,7 @@ class _DonateScreenState extends State<DonateScreen> {
   bool _loading = false;
   String? _selectedCauseId;
   String? _selectedCauseTitle;
-  File? _screenshotFile;
+  Uint8List? _screenshotBytes;
 
   final _presets = [5, 10, 25, 50, 100];
 
@@ -191,10 +191,10 @@ class _DonateScreenState extends State<DonateScreen> {
                   child: Row(
                     children: [
                       Icon(
-                        _screenshotFile != null
+                        _screenshotBytes != null
                             ? Icons.check_circle
                             : Icons.camera_alt_outlined,
-                        color: _screenshotFile != null
+                        color: _screenshotBytes != null
                             ? AppColors.gold
                             : AppColors.textGrey,
                         size: 20,
@@ -202,21 +202,21 @@ class _DonateScreenState extends State<DonateScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          _screenshotFile != null
+                          _screenshotBytes != null
                               ? 'Screenshot selected'
                               : 'Upload payment screenshot (required)',
                           style: TextStyle(
                             fontFamily: 'Cairo',
                             fontSize: 13,
-                            color: _screenshotFile != null
+                            color: _screenshotBytes != null
                                 ? AppColors.gold
                                 : AppColors.textGrey,
                           ),
                         ),
                       ),
-                      if (_screenshotFile != null)
+                      if (_screenshotBytes != null)
                         GestureDetector(
-                          onTap: () => setState(() => _screenshotFile = null),
+                          onTap: () => setState(() => _screenshotBytes = null),
                           child: const Icon(
                             Icons.close,
                             color: AppColors.error,
@@ -378,14 +378,14 @@ class _DonateScreenState extends State<DonateScreen> {
       maxWidth: 1024,
     );
     if (file != null) {
-      setState(() => _screenshotFile = File(file.path));
+      final bytes = await file.readAsBytes();
+      if (mounted) setState(() => _screenshotBytes = bytes);
     }
   }
 
   Future<String> _uploadScreenshot() async {
-    if (_screenshotFile == null) throw Exception('No screenshot selected');
-    final bytes = await _screenshotFile!.readAsBytes();
-    return base64Encode(bytes);
+    if (_screenshotBytes == null) throw Exception('No screenshot selected');
+    return base64Encode(_screenshotBytes!);
   }
 
   Future<void> _submit() async {
@@ -403,7 +403,7 @@ class _DonateScreenState extends State<DonateScreen> {
       ).showSnackBar(const SnackBar(content: Text('Please select a cause')));
       return;
     }
-    if (_screenshotFile == null) {
+    if (_screenshotBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please upload a payment screenshot')),
       );

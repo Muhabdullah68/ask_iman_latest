@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,7 +20,11 @@ import '../auth/sign_in_screen.dart';
 
 // ─── PROFILE SCREEN ──────────────────────────────────────────────────────────
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.embedded = false});
+
+  /// When true the internal app bar is hidden (used by the website shell,
+  /// which provides its own site navigation).
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +46,7 @@ class ProfileScreen extends StatelessWidget {
         if (user == null) {
           return Scaffold(
             backgroundColor: Colors.transparent,
-            appBar: const AskImanAppBar(),
+            appBar: embedded ? null : const AskImanAppBar(),
             body: IslamicBackground(
               child: Center(
                 child: Column(
@@ -82,7 +86,7 @@ class ProfileScreen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: Colors.transparent,
-          appBar: const AskImanAppBar(),
+          appBar: embedded ? null : const AskImanAppBar(),
           body: IslamicBackground(
             child: TooltipOverlay(
               id: 'tut_profile',
@@ -1551,7 +1555,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameCtrl;
   late TextEditingController _bioCtrl;
-  File? _imageFile;
+  Uint8List? _imageBytes;
   bool _loading = false;
 
   @override
@@ -1574,7 +1578,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       source: ImageSource.gallery,
       imageQuality: 70,
     );
-    if (picked != null) setState(() => _imageFile = File(picked.path));
+    if (picked != null) {
+      final bytes = await picked.readAsBytes();
+      if (mounted) {
+        setState(() => _imageBytes = bytes);
+      }
+    }
   }
 
   Future<void> _submit() async {
@@ -1588,9 +1597,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _loading = true);
     try {
       String? photoUrl = widget.user.photoUrl;
-      if (_imageFile != null) {
-        photoUrl = await CommunityService.instance.uploadImage(
-          _imageFile!,
+      if (_imageBytes != null) {
+        photoUrl = await CommunityService.instance.uploadBytes(
+          _imageBytes!,
           'profiles/${widget.user.uid}',
         );
       }
@@ -1658,8 +1667,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: ClipOval(
               child: Container(
                 color: AppColors.primaryMid,
-                child: _imageFile != null
-                    ? Image.file(_imageFile!, fit: BoxFit.cover)
+                child: _imageBytes != null
+                    ? Image.memory(_imageBytes!, fit: BoxFit.cover)
                     : widget.user.photoUrl != null
                     ? Image.network(widget.user.photoUrl!, fit: BoxFit.cover)
                     : const Icon(
