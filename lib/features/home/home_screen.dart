@@ -1,30 +1,17 @@
-﻿import 'dart:math' as math show sin, cos, pi;
 import 'package:flutter/material.dart';
-import '../../core/theme/figma_tokens.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text_styles.dart';
 import '../../core/l10n/app_localizations.dart';
-import '../../core/utils/breakpoints.dart';
 import '../../shared/widgets/ask_iman_app_bar.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
-import '../../shared/widgets/islamic_background.dart';
-import '../../shared/widgets/theme_hero_banner.dart';
 import '../../core/services/tutorial_service.dart';
 import '../ibadah/qiblah_screen.dart';
 import '../ibadah/tasbeeh_screen.dart';
-import '../charity/charity_list_screen.dart';
 import '../../core/data/daily_data.dart';
 import '../../core/services/community_service.dart';
 
-/// Top-level star ornament widget (shared between HomeScreenState and
-/// sibling standalone widgets like _SacredCollectionBook).
-Widget figmaStarOrnament({double size = 36, Color? color}) => SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _StarOrnamentPainter(color ?? FigmaTokens.accentGoldAmber),
-      ),
-    );
-
 class HomeScreen extends StatefulWidget {
+  // Receives tab-switching callback from MainShell
   final void Function(int index)? onNavigateToTab;
 
   const HomeScreen({super.key, this.onNavigateToTab});
@@ -34,18 +21,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int _ayahPageIndex = 0;
   final PageController _ayahController = PageController(viewportFraction: 0.88);
   final ScrollController _scrollController = ScrollController();
 
+  // Global Keys for tutorial scroll targets
   final _sacredKey = GlobalKey();
   final _askAiKey = GlobalKey();
   final _eventsKey = GlobalKey();
   final _dailyInspirationKey = GlobalKey();
-  final _streaksKey = GlobalKey();
-
-  Map<String, double> _soulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
-  late final List<Map<String, String>> _dailyAyahs;
-  late final List<Map<String, String>> _dailyHadiths;
 
   @override
   void initState() {
@@ -53,6 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _dailyAyahs = DailyData.getDailyAyahs(5);
     _dailyHadiths = DailyData.getDailyHadiths(5);
     _loadSoulProgress();
+
+    // Listen to tutorial changes to scroll to relevant widgets
     TutorialService.instance.addListener(_onTutorialUpdate);
   }
 
@@ -67,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onTutorialUpdate() {
     if (!mounted) return;
     final currentStepId = TutorialService.instance.currentStepId;
+    // Schedule scroll for next frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final keyToScrollTo = switch (currentStepId) {
         'tut_home_inspiration' => _dailyInspirationKey,
@@ -74,16 +61,25 @@ class _HomeScreenState extends State<HomeScreen> {
         _ => null,
       };
       if (keyToScrollTo != null && keyToScrollTo.currentContext != null) {
+        // Scroll to the key and wait for animation to complete
         await Scrollable.ensureVisible(
           keyToScrollTo.currentContext!,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          alignment: 0.3,
+          alignment: 0.3, // Align slightly above center
         );
+        // Wait an extra frame for rendering to catch up
         if (mounted) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            // Manually trigger tutorial service to re-sync overlays
+            // (we'll need to add a method to TutorialService for this, or just update our listener)
+            // Wait — TutorialService already notifies listeners; let's just make sure TooltipOverlay syncs after scroll
+            // We can also add a small delay to be safe
             Future.delayed(const Duration(milliseconds: 50), () {
-              if (mounted) TutorialService.instance.forceRefresh();
+              if (mounted) {
+                // Force re-render of tooltip overlays
+                TutorialService.instance.forceRefresh();
+              }
             });
           });
         }
@@ -91,36 +87,69 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Map<String, double> _soulProgress = {'namaz': 0, 'quran': 0, 'zikr': 0};
+
+  // ── Daily Data ──────────────────────────────────────────────────────────────
+  late final List<Map<String, String>> _dailyAyahs;
+  late final List<Map<String, String>> _dailyHadiths;
+
   List<Map<String, dynamic>> _sacredItems(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return [
-      {'image': 'assets/images/Holy Quran.png', 'label': loc.translate('quran'), 'tab': 1, 'icon': Icons.menu_book_rounded},
-      {'image': 'assets/images/Kaaba.png', 'label': loc.translate('qiblah'), 'tab': 2, 'icon': Icons.mosque_rounded},
-      {'image': 'assets/images/mosque interior.png', 'label': loc.translate('prayers'), 'tab': 2, 'icon': Icons.self_improvement},
-      {'image': 'assets/images/AI orb.png', 'label': loc.translate('askAI'), 'tab': 4, 'icon': Icons.auto_awesome},
-      {'image': 'assets/images/tasbih beads.png', 'label': loc.translate('tasbeeh'), 'tab': 2, 'icon': Icons.spa_rounded},
-      {'image': 'assets/images/islamic lanterns.png', 'label': loc.translate('events'), 'tab': 3, 'icon': Icons.event_available_rounded},
+      {
+        'image': 'assets/images/Holy Quran.png',
+        'label': loc.translate('quran'),
+        'tab': 1,
+      },
+      {
+        'image': 'assets/images/Kaaba.png',
+        'label': loc.translate('qiblah'),
+        'tab': 2,
+      },
+      {
+        'image': 'assets/images/mosque interior.png',
+        'label': loc.translate('prayers'),
+        'tab': 2,
+      },
+      {
+        'image': 'assets/images/AI orb.png',
+        'label': loc.translate('askAI'),
+        'tab': 4,
+      },
+      {
+        'image': 'assets/images/tasbih beads.png',
+        'label': loc.translate('tasbeeh'),
+        'tab': 2,
+      },
+      {
+        'image': 'assets/images/islamic lanterns.png',
+        'label': loc.translate('events'),
+        'tab': 3,
+      },
     ];
   }
 
-  List<Map<String, String>> get _sacredCollections => const [
-        {'title': 'Quranic Classics', 'desc': 'Tafsīr & Tajweed', 'cover': 'assets/images/Holy Quran.png'},
-        {'title': 'Hadith Insights', 'desc': 'Sahīh Collections', 'cover': 'assets/images/islamic lanterns.png'},
-        {'title': 'Daily Wisdom', 'desc': 'Supplications & Adhkār', 'cover': 'assets/images/tasbih beads.png'},
-        {'title': 'Stories of Prophets', 'desc': "Lessons from the Qur'ān", 'cover': 'assets/images/mosque interior.png'},
-      ];
-
   Future<void> _loadSoulProgress() async {
+    // First, check if CommunityService has cached data to use immediately!
     if (CommunityService.instance.cachedSoulProgress != null) {
       if (mounted) {
-        setState(() => _soulProgress = CommunityService.instance.cachedSoulProgress!);
+        setState(() {
+          _soulProgress = CommunityService.instance.cachedSoulProgress!;
+        });
       }
     }
+    // Still, load the data in case the cache is not available or needs refresh!
     final progress = await CommunityService.instance.getSoulProgress();
-    if (mounted) setState(() => _soulProgress = progress);
+    if (mounted) {
+      setState(() {
+        _soulProgress = progress;
+      });
+    }
   }
 
+  // ── Helpers ────────────────────────────────────────────────────────────────
   void _navigateTo(int tab) => widget.onNavigateToTab?.call(tab);
+  final _streaksKey = GlobalKey();
 
   void _handleSacredTap(String label, int tab, BuildContext context) {
     final loc = AppLocalizations.of(context);
@@ -130,11 +159,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final eventsLabel = loc.translate('events');
 
     if (label == qiblahLabel) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const QiblahScreen()));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const QiblahScreen()),
+      );
     } else if (label == tasbeehLabel) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const TasbeehScreen()));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TasbeehScreen()),
+      );
     } else if (label == eventsLabel) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const CharityListScreen()));
+      _showComingSoon(label, context);
     } else if (label == askAILabel) {
       _showComingSoon(label, context);
     } else {
@@ -148,386 +183,149 @@ class _HomeScreenState extends State<HomeScreen> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.auto_awesome, color: Color(0xFFC9962C), size: 20),
+            const Icon(Icons.auto_awesome, color: AppColors.gold, size: 20),
             const SizedBox(width: 12),
             Text(
               '$feature ${loc.translate('isComingSoon')}',
-              style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
-        backgroundColor: FigmaTokens.brandDeepGreen,
+        backgroundColor: AppColors.primaryDarkest,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  // ── FIGMA SECTION HEADER ─────────────────────────────────────────────
   Widget _sectionHeader(
     String title, {
-    String? eyebrow,
     String? actionLabel,
     VoidCallback? onAction,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(title, style: AppTextStyles.headlineMedium),
+          const Spacer(),
+          if (actionLabel != null)
+            GestureDetector(
+              onTap: onAction,
+              child: Text(actionLabel, style: AppTextStyles.goldLabel),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bgCream,
+      appBar: const AskImanAppBar(),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            _buildAyahOfDay(context),
+            const SizedBox(height: 28),
+            _buildSacredJourney(context),
+            const SizedBox(height: 28),
+            _buildSoulProgress(context),
+            const SizedBox(height: 28),
+            _buildStreakSection(context),
+            const SizedBox(height: 28),
+            _buildDailyInspiration(context),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // SECTION 1 — Ayah of the Day
+  // ════════════════════════════════════════════════════════════════════════════
+  Widget _buildAyahOfDay(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return TooltipOverlay(
+      id: 'tut_home_ayah',
+      title: loc.translate('tutHomeTitle'),
+      description: loc.translate('tutHomeDesc'),
+      arrowDirection: TooltipArrowDirection.up,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (eyebrow != null)
-            Text(
-              eyebrow.toUpperCase(),
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: FigmaTokens.accentGoldAmber,
-                letterSpacing: 2.0,
+          _sectionHeader(loc.translate('ayahOfTheDay')),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 310,
+            child: PageView(
+              controller: _ayahController,
+              onPageChanged: (i) => setState(() => _ayahPageIndex = i),
+              children: _dailyAyahs
+                  .map((ayah) => _AyahCard(ayah: ayah))
+                  .toList(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Dot indicators — centred
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              5,
+              (i) => AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: i == _ayahPageIndex ? 20 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: i == _ayahPageIndex
+                      ? AppColors.gold
+                      : AppColors.textLightGrey,
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
-          if (eyebrow != null) const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: FigmaTokens.brandDeepGreen,
-                  height: 1.15,
-                ),
-              ),
-              const Spacer(),
-              if (actionLabel != null)
-                GestureDetector(
-                  onTap: onAction,
-                  child: Text(
-                    actionLabel,
-                    style: TextStyle(
-                      fontFamily: 'Cairo',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: FigmaTokens.brandMidGreen,
-                    ),
-                  ),
-                ),
-            ],
           ),
         ],
       ),
     );
   }
 
-  // ── FIGMA GOLD ACCENT BAR (left vertical on cards) ─────────────────
-  Widget _goldAccentBar() => Container(
-        width: 4,
-        height: 48,
-        decoration: BoxDecoration(
-          color: FigmaTokens.accentGoldAmber,
-          borderRadius: BorderRadius.circular(4),
-        ),
-      );
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: const AskImanAppBar(),
-      body: IslamicBackground(
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          physics: const BouncingScrollPhysics(),
-          child: ContentContainer(
-            maxWidth: 1200,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 12),
-                const ThemeHeroBanner(),
-                const SizedBox(height: 24),
-                _buildFigmaHero(context),
-                const SizedBox(height: 48),
-                _buildSacredJourney(context),
-                const SizedBox(height: 56),
-                _buildDailyInspiration(context),
-                const SizedBox(height: 56),
-                _buildSoulProgress(context),
-                const SizedBox(height: 56),
-                _buildSacredCollections(context),
-                const SizedBox(height: 56),
-                _buildDailyDuaSection(context),
-                const SizedBox(height: 72),
-                _buildFigmaFooter(context),
-                const SizedBox(height: 40),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ────────────────────────────────────────────────────────────────────
-  // HERO — Figma 2-col Mint Panel with Bismillah
-  // ────────────────────────────────────────────────────────────────────
-  Widget _buildFigmaHero(BuildContext context) {
-    final loc = AppLocalizations.of(context);
-    final isWide = context.isDesktop || context.isTablet;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: FigmaTokens.surfacePanelMint,
-          borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-          boxShadow: [
-            BoxShadow(
-              color: FigmaTokens.brandDeepGreen.withValues(alpha: 0.08),
-              blurRadius: 32,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-          child: Stack(
-            children: [
-              // Background image overlay — reduced opacity (changes.txt §0.4 / §1.1)
-              Positioned.fill(
-                child: Image.asset(
-                  'assets/images/mosque interior.png',
-                  fit: BoxFit.cover,
-                  opacity: const AlwaysStoppedAnimation(0.08),
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.fromLTRB(isWide ? 56 : 24, isWide ? 64 : 36, isWide ? 40 : 24, isWide ? 64 : 36),
-                child: isWide
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(flex: 6, child: _heroLeft(context, loc)),
-                          Expanded(flex: 5, child: _heroBismillah(context)),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          _heroLeft(context, loc),
-                          const SizedBox(height: 28),
-                          _heroBismillah(context),
-                        ],
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _heroLeft(BuildContext context, AppLocalizations loc) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'ASK YOUR WAY TO INNER LIGHT',
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: context.isDesktop ? 44 : 32,
-            fontWeight: FontWeight.w900,
-            color: FigmaTokens.brandDeepGreen,
-            height: 1.15,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 20),
-        _goldAccentBar(),
-        const SizedBox(height: 20),
-        Text(
-          "Your trusted companion for Qur'ān, Salāh, Dhikr, and the path of Ahl al-Sunnah wa al-Jamā'ah.",
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: FigmaTokens.brandMidGreen,
-            height: 1.55,
-          ),
-        ),
-        const SizedBox(height: 32),
-        Row(
-          children: [
-            SizedBox(
-              height: 54,
-              child: ElevatedButton(
-                onPressed: () => _navigateTo(1),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: FigmaTokens.brandDeepGreen,
-                  foregroundColor: FigmaTokens.textOnDark,
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  elevation: 4,
-                  shadowColor: FigmaTokens.brandDeepGreen.withValues(alpha: 0.25),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      loc.translate('startJourney'),
-                      style: const TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Icon(Icons.arrow_forward, size: 18),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            SizedBox(
-              height: 54,
-              child: OutlinedButton(
-                onPressed: () => _navigateTo(5),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: FigmaTokens.accentGoldAmber, width: 1.3),
-                  foregroundColor: FigmaTokens.brandDeepGreen,
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  loc.translate('ourVision'),
-                  style: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 32),
-        Row(
-          children: [
-            _statPill('1.2B+', 'Muslims Worldwide'),
-            const SizedBox(width: 16),
-            _statPill('99', 'Ninety-Nine Names'),
-            const SizedBox(width: 16),
-            _statPill('114', 'Surahs'),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _statPill(String value, String label) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-        decoration: BoxDecoration(
-          color: FigmaTokens.surfaceCard,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: FigmaTokens.borderHairline),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: FigmaTokens.accentGoldAmber,
-              ),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: FigmaTokens.textMuted,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      );
-
-  Widget _heroBismillah(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        figmaStarOrnament(size: 44),
-        const SizedBox(height: 24),
-        Text(
-          'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
-          textAlign: TextAlign.center,
-          textDirection: TextDirection.rtl,
-          style: TextStyle(
-            fontFamily: 'Amiri',
-            fontSize: context.isDesktop ? 44 : 32,
-            color: FigmaTokens.brandDeepGreen,
-            height: 1.6,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'In the Name of Allah —\nThe Most Gracious, The Most Merciful.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: FigmaTokens.brandMidGreen,
-            height: 1.5,
-            fontStyle: FontStyle.italic,
-          ),
-        ),
-        const SizedBox(height: 24),
-        figmaStarOrnament(size: 32),
-      ],
-    );
-  }
-
-  // ────────────────────────────────────────────────────────────────────
-  // SACRED JOURNEY — Figma 6-up feature tiles
-  // ────────────────────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════════
+  // SECTION 2 — Sacred Journey Grid
+  // ════════════════════════════════════════════════════════════════════════════
   Widget _buildSacredJourney(BuildContext context) {
     final items = _sacredItems(context);
     final loc = AppLocalizations.of(context);
-    final isDesktop = context.isDesktop;
     return KeyedSubtree(
       key: _sacredKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionHeader(
-            loc.translate('sacredJourney'),
-            eyebrow: 'Explore Your Deen',
-          ),
-          const SizedBox(height: 28),
+          _sectionHeader(loc.translate('sacredJourney')),
+          const SizedBox(height: 14),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: isDesktop ? 3 : 2,
-                crossAxisSpacing: 18,
-                mainAxisSpacing: 18,
-                childAspectRatio: isDesktop ? 1.15 : 1.0,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.0,
               ),
               itemCount: items.length,
               itemBuilder: (_, i) {
@@ -537,7 +335,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     key: _askAiKey,
                     image: items[i]['image'] as String,
                     label: items[i]['label'] as String,
-                    icon: items[i]['icon'] as IconData,
                     onTap: () => _handleSacredTap(
                       items[i]['label'] as String,
                       items[i]['tab'] as int,
@@ -549,7 +346,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     key: _eventsKey,
                     image: items[i]['image'] as String,
                     label: items[i]['label'] as String,
-                    icon: items[i]['icon'] as IconData,
                     onTap: () => _handleSacredTap(
                       items[i]['label'] as String,
                       items[i]['tab'] as int,
@@ -560,7 +356,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   tile = _SacredJourneyTile(
                     image: items[i]['image'] as String,
                     label: items[i]['label'] as String,
-                    icon: items[i]['icon'] as IconData,
                     onTap: () => _handleSacredTap(
                       items[i]['label'] as String,
                       items[i]['tab'] as int,
@@ -568,6 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 }
+
                 if (i == 0) {
                   return TooltipOverlay(
                     id: 'tut_home_sacred_journey',
@@ -604,72 +400,160 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ────────────────────────────────────────────────────────────────────
-  // SOUL PROGRESS — Figma 3 cards side-by-side
-  // ────────────────────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════════
+  // SECTION 3 — Soul Progress
+  // ════════════════════════════════════════════════════════════════════════════
   Widget _buildSoulProgress(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    final progressCards = [
-      _SoulProgressCard(
-        label: loc.translate('namaz'),
-        sub: loc.translate('weekly'),
-        value: _soulProgress['namaz']!,
-        display: '${(_soulProgress['namaz']! * 100).toInt()}%',
-      ),
-      _SoulProgressCard(
-        label: loc.translate('quran'),
-        sub: loc.translate('weekly'),
-        value: _soulProgress['quran']!,
-        display: '${(_soulProgress['quran']! * 100).toInt()}%',
-      ),
-      _SoulProgressCard(
-        label: loc.translate('zikr'),
-        sub: loc.translate('weekly'),
-        value: _soulProgress['zikr']!,
-        display: '${(_soulProgress['zikr']! * 100).toInt()}%',
-      ),
-    ];
-    final isWide = context.isTablet || context.isDesktop;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionHeader(loc.translate('soulProgress'), eyebrow: 'Weekly Ibadah'),
-        const SizedBox(height: 24),
+        _sectionHeader(loc.translate('soulProgress')),
+        const SizedBox(height: 14),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: isWide
-              ? Row(
-                  children: [
-                    Expanded(child: progressCards[0]),
-                    const SizedBox(width: 16),
-                    Expanded(child: progressCards[1]),
-                    const SizedBox(width: 16),
-                    Expanded(child: progressCards[2]),
-                  ],
-                )
-              : Column(
-                  children: [
-                    progressCards[0],
-                    const SizedBox(height: 12),
-                    progressCards[1],
-                    const SizedBox(height: 12),
-                    progressCards[2],
-                  ],
-                ),
+          child: Column(
+            children: [
+              _SoulProgressCard(
+                label: loc.translate('namaz'),
+                sub: loc.translate('weekly'),
+                value: _soulProgress['namaz']!,
+                display: '${(_soulProgress['namaz']! * 100).toInt()}%',
+              ),
+              const SizedBox(height: 10),
+              _SoulProgressCard(
+                label: loc.translate('quran'),
+                sub: loc.translate('weekly'),
+                value: _soulProgress['quran']!,
+                display: '${(_soulProgress['quran']! * 100).toInt()}%',
+              ),
+              const SizedBox(height: 10),
+              _SoulProgressCard(
+                label: loc.translate('zikr'),
+                sub: loc.translate('weekly'),
+                value: _soulProgress['zikr']!,
+                display: '${(_soulProgress['zikr']! * 100).toInt()}%',
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  // ────────────────────────────────────────────────────────────────────
-  // DAILY INSPIRATION — Figma 2-col split panel with star ornament
-  // ────────────────────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════════════════
+  // SECTION 3.5 — Streak Section
+  // ════════════════════════════════════════════════════════════════════════════
+  Widget _buildStreakSection(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return KeyedSubtree(
+      key: _streaksKey,
+      child: TooltipOverlay(
+        id: 'tut_home_streaks',
+        title: loc.translate('tutHomeStreaksTitle'),
+        description: loc.translate('tutHomeStreaksDesc'),
+        arrowDirection: TooltipArrowDirection.up,
+        child: StreamBuilder<AppUser?>(
+          stream: CommunityService.instance.watchCurrentUser(),
+          builder: (context, snapshot) {
+            final streak = snapshot.data?.streakCount ?? 0;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primaryDark, AppColors.primaryMid],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryDark.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.gold.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.local_fire_department_rounded,
+                        color: AppColors.gold,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            loc.translate('currentStreak'),
+                            style: const TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textGreenMuted,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          Text(
+                            '$streak ${loc.translate('days')}',
+                            style: const TextStyle(
+                              fontFamily: 'Cairo',
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textWhite,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Text(
+                        loc.translate('keepItUp'),
+                        style: const TextStyle(
+                          fontFamily: 'Cairo',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.gold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // SECTION 4 — Daily Inspiration
+  // ════════════════════════════════════════════════════════════════════════════
   Widget _buildDailyInspiration(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    final isWide = context.isDesktop || context.isTablet;
-    final firstAyah = _dailyAyahs.first;
-    final firstHadith = _dailyHadiths.first;
-
     return KeyedSubtree(
       key: _dailyInspirationKey,
       child: TooltipOverlay(
@@ -680,94 +564,85 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _sectionHeader(
-              loc.translate('dailyInspiration'),
-              eyebrow: 'Reflect · Ponder · Apply',
-              actionLabel: 'See More →',
-            ),
-            const SizedBox(height: 28),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: isWide
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(flex: 5, child: _inspirationLeftCard(firstAyah)),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          flex: 6,
-                          child: Column(
-                            children: [
-                              _inspirationRightColumn(loc, firstAyah),
-                              const SizedBox(height: 20),
-                              _inspirationHadithCard(firstHadith),
-                            ],
-                          ),
-                        ),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        _inspirationLeftCard(firstAyah),
-                        const SizedBox(height: 20),
-                        _inspirationRightColumn(loc, firstAyah),
-                        const SizedBox(height: 20),
-                        _inspirationHadithCard(firstHadith),
-                      ],
-                    ),
+            _sectionHeader(loc.translate('dailyInspiration')),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 310, // Match Ayah card height
+              child: PageView(
+                physics: const BouncingScrollPhysics(),
+                children: _dailyHadiths
+                    .map((hadith) => _AyahCard(ayah: hadith))
+                    .toList(),
+              ),
             ),
             const SizedBox(height: 20),
-            Center(child: figmaStarOrnament(size: 40)),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _inspirationLeftCard(Map<String, String> ayah) {
+// ══════════════════════════════════════════════════════════════════════════════
+// WIDGET — Ayah Card (arched Islamic arch shape)
+// ══════════════════════════════════════════════════════════════════════════════
+class _AyahCard extends StatelessWidget {
+  final Map<String, String> ayah;
+
+  const _AyahCard({required this.ayah});
+
+  @override
+  Widget build(BuildContext context) {
     return ClipPath(
       clipper: _MosqueDomeClipper(),
       child: Container(
-        height: 320,
-        decoration: BoxDecoration(
-          color: FigmaTokens.brandDeepGreen,
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: const BoxDecoration(
+          color: AppColors.primaryDark,
           image: DecorationImage(
-            image: const AssetImage('assets/images/mosque interior.png'),
+            image: AssetImage('assets/images/mosque interior.png'),
             fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              FigmaTokens.brandDeepGreen.withValues(alpha: 0.72),
-              BlendMode.srcATop,
-            ),
+            opacity: 0.15,
           ),
         ),
-        padding: const EdgeInsets.fromLTRB(24, 56, 24, 32),
+        padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            figmaStarOrnament(size: 28, color: FigmaTokens.accentGoldAmber),
-            const SizedBox(height: 16),
             Text(
               ayah['arabic'] ?? '',
+              textAlign: TextAlign.center,
               textDirection: TextDirection.rtl,
-              textAlign: TextAlign.right,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Amiri',
-                fontSize: 28,
-                color: FigmaTokens.textOnDark,
-                height: 1.55,
-                fontWeight: FontWeight.w600,
+                fontSize: 22,
+                color: AppColors.gold,
+                height: 1.5,
               ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              ayah['translation'] ?? ayah['text'] ?? '',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 14,
+                color: Colors.white,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 12),
             Text(
-              ayah['reference'] ?? '',
-              style: TextStyle(
+              ayah['reference'] ?? ayah['book'] ?? '',
+              style: const TextStyle(
                 fontFamily: 'Cairo',
                 fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: FigmaTokens.accentGoldAmber,
-                letterSpacing: 1.0,
+                color: AppColors.gold,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
               ),
             ),
           ],
@@ -775,659 +650,86 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  Widget _inspirationRightColumn(AppLocalizations loc, Map<String, String> ayah) {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
-        borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-        border: Border.all(color: FigmaTokens.borderHairline),
-        boxShadow: [
-          BoxShadow(
-            color: FigmaTokens.brandDeepGreen.withValues(alpha: 0.05),
-            blurRadius: 24,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _goldAccentBar(),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  loc.translate('ayahOfTheDay'),
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    color: FigmaTokens.accentGoldAmber,
-                    letterSpacing: 2.0,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'A Light for Every Step',
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: FigmaTokens.brandDeepGreen,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  ayah['translation'] ?? ayah['text'] ?? '',
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: FigmaTokens.textBody,
-                    height: 1.55,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _navigateTo(1),
-                    icon: const Icon(Icons.menu_book_rounded, size: 18),
-                    label: Text(
-                      loc.translate('exploreQuran'),
-                      style: const TextStyle(
-                        fontFamily: 'Cairo',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: FigmaTokens.brandDeepGreen,
-                      foregroundColor: FigmaTokens.textOnDark,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _inspirationHadithCard(Map<String, String> hadith) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: FigmaTokens.surfacePanelMint,
-        borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-        border: Border.all(color: FigmaTokens.accentGoldLight),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: FigmaTokens.brandDeepGreen.withValues(alpha: 0.08),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.mic_external_on_rounded,
-              color: FigmaTokens.brandDeepGreen,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  hadith['arabic'] ?? '',
-                  textDirection: TextDirection.rtl,
-                  style: TextStyle(
-                    fontFamily: 'Amiri',
-                    fontSize: 20,
-                    color: FigmaTokens.brandDeepGreen,
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  hadith['translation'] ?? hadith['text'] ?? '',
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: FigmaTokens.textBody,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  hadith['reference'] ?? hadith['book'] ?? '',
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: FigmaTokens.accentGoldAmber,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ────────────────────────────────────────────────────────────────────
-  // SACRED COLLECTIONS — Figma book covers grid
-  // ────────────────────────────────────────────────────────────────────
-  Widget _buildSacredCollections(BuildContext context) {
-    final isWide = context.isDesktop || context.isTablet;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionHeader(
-          'Sacred Collections',
-          eyebrow: 'Curated Knowledge',
-          actionLabel: 'Browse All →',
-        ),
-        const SizedBox(height: 28),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isWide ? 4 : 2,
-              crossAxisSpacing: 20,
-              mainAxisSpacing: 20,
-              childAspectRatio: isWide ? 0.72 : 0.85,
-            ),
-            itemCount: _sacredCollections.length,
-            itemBuilder: (_, i) => _SacredCollectionBook(
-              title: _sacredCollections[i]['title']!,
-              description: _sacredCollections[i]['desc']!,
-              cover: _sacredCollections[i]['cover']!,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ────────────────────────────────────────────────────────────────────
-  // DAILY DUA — Figma gradient card
-  // ────────────────────────────────────────────────────────────────────
-  Widget _buildDailyDuaSection(BuildContext context) {
-    final loc = AppLocalizations.of(context);
-    final dua = DailyData.getDailyDua();
-    final isWide = context.isDesktop || context.isTablet;
-    return KeyedSubtree(
-      key: _streaksKey,
-      child: TooltipOverlay(
-        id: 'tut_home_streaks',
-        title: loc.translate('tutHomeDuaTitle'),
-        description: loc.translate('tutHomeDuaDesc'),
-        arrowDirection: TooltipArrowDirection.up,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [FigmaTokens.brandDeepGreen, FigmaTokens.brandMidGreen],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: FigmaTokens.brandDeepGreen.withValues(alpha: 0.3),
-                  blurRadius: 32,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: isWide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(flex: 2, child: _buildDuaDetails(loc, dua, center: false)),
-                      Container(
-                        width: 1,
-                        height: 150,
-                        color: Colors.white.withValues(alpha: 0.15),
-                      ),
-                      const SizedBox(width: 32),
-                      Expanded(flex: 3, child: _buildDuaArabic(loc, dua)),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildDuaDetails(loc, dua, center: true),
-                      const SizedBox(height: 24),
-                      _buildDuaArabic(loc, dua),
-                    ],
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDuaDetails(
-    AppLocalizations loc,
-    Map<String, String> dua, {
-    required bool center,
-  }) {
-    final align = center ? TextAlign.center : TextAlign.start;
-    return Column(
-      crossAxisAlignment: center ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.4)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.volunteer_activism_rounded, color: FigmaTokens.accentGoldAmber, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                loc.translate('dailyDua'),
-                style: TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  color: FigmaTokens.accentGoldAmber,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-        Text(
-          dua['translation'] ?? '',
-          textAlign: align,
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: FigmaTokens.textOnDark,
-            height: 1.6,
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          dua['reference'] ?? '',
-          textAlign: align,
-          style: TextStyle(
-            fontFamily: 'Cairo',
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: FigmaTokens.accentGoldAmber,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDuaArabic(AppLocalizations loc, Map<String, String> dua) {
-    return Text(
-      dua['arabic'] ?? '',
-      textAlign: TextAlign.center,
-      textDirection: TextDirection.rtl,
-      style: TextStyle(
-        fontFamily: 'Amiri',
-        fontSize: 28,
-        color: FigmaTokens.accentGoldAmber,
-        height: 1.7,
-      ),
-    );
-  }
-
-  // ────────────────────────────────────────────────────────────────────
-  // FOOTER — Figma 4-column + gold copyright band
-  // ────────────────────────────────────────────────────────────────────
-  Widget _buildFigmaFooter(BuildContext context) {
-    final isWide = context.isDesktop;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: FigmaTokens.brandDeepGreen,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(40, 48, 40, 32),
-            child: isWide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 4, child: _footerBrand()),
-                      const SizedBox(width: 32),
-                      Expanded(flex: 2, child: _footerCol('Explore', ['Quran', 'Prayer', 'Dhikr', 'Events'])),
-                      const SizedBox(width: 24),
-                      Expanded(flex: 2, child: _footerCol('Community', ['Classes', 'Charity', 'Family', 'About Us'])),
-                      const SizedBox(width: 24),
-                      Expanded(flex: 3, child: _footerContact()),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _footerBrand(),
-                      const SizedBox(height: 32),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _footerCol('Explore', ['Quran', 'Prayer', 'Dhikr', 'Events'])),
-                          Expanded(child: _footerCol('Community', ['Classes', 'Charity', 'Family', 'About Us'])),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                      _footerContact(),
-                    ],
-                  ),
-          ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-            decoration: BoxDecoration(
-              color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.12),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  '© ${DateTime.now().year} ASK IMAN — All rights reserved.',
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: FigmaTokens.accentGoldLight,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  'Built with 🤲 for the Ummah',
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: FigmaTokens.textOnDark.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _footerBrand() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'ASK',
-                style: TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                  color: FigmaTokens.accentGoldAmber,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'ایمان',
-                style: const TextStyle(
-                  fontFamily: 'NotoNastaliq',
-                  fontSize: 28,
-                  color: Colors.white,
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Guiding hearts to the light of Islām — one āyah, one sujūd, one day at a time.',
-            style: TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.white.withValues(alpha: 0.75),
-              height: 1.55,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              _footerSocial(Icons.facebook_outlined),
-              const SizedBox(width: 10),
-              _footerSocial(Icons.alternate_email_rounded),
-              const SizedBox(width: 10),
-              _footerSocial(Icons.ondemand_video_rounded),
-              const SizedBox(width: 10),
-              _footerSocial(Icons.share_location_rounded),
-            ],
-          ),
-        ],
-      );
-
-  Widget _footerSocial(IconData icon) => Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-        ),
-        child: Icon(icon, color: FigmaTokens.accentGoldAmber, size: 18),
-      );
-
-  Widget _footerCol(String heading, List<String> items) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            heading.toUpperCase(),
-            style: TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: FigmaTokens.accentGoldAmber,
-              letterSpacing: 2.0,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...items.map(
-            (i) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Text(
-                i,
-                style: TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.82),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-
-  Widget _footerContact() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'STAY CONNECTED',
-            style: TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              color: FigmaTokens.accentGoldAmber,
-              letterSpacing: 2.0,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _contactRow(Icons.email_outlined, 'hello@askiman.app'),
-          const SizedBox(height: 12),
-          _contactRow(Icons.location_on_outlined, 'Serving the Global Ummah'),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    style: const TextStyle(
-                      fontFamily: 'Cairo',
-                      color: Colors.white,
-                      fontSize: 13,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Your email address',
-                      hintStyle: TextStyle(
-                        fontFamily: 'Cairo',
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 13,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: FigmaTokens.accentGoldAmber,
-                    foregroundColor: FigmaTokens.brandDeepGreen,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                  ),
-                  child: const Text(
-                    'Join',
-                    style: TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-
-  Widget _contactRow(IconData icon, String text) => Row(
-        children: [
-          Icon(icon, color: FigmaTokens.accentGoldAmber, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontFamily: 'Cairo',
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.78),
-              ),
-            ),
-          ),
-        ],
-      );
 }
 
-// ──────────────────────────────────────────────────────────────────────
-// STAR ORNAMENT PAINTER — Figma 8-point Islamic star
-// ──────────────────────────────────────────────────────────────────────
-class _StarOrnamentPainter extends CustomPainter {
-  final Color color;
-  _StarOrnamentPainter(this.color);
+// Pointed Islamic arch — wider arch opening, deeper point at top centre
+// lib/features/home/home_screen.dart
+// Replace the _ArchClipper class with this mosque dome (khobat) clipper
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color..style = PaintingStyle.fill;
-    final c = Offset(size.width / 2, size.height / 2);
-    final rOuter = size.width / 2;
-    final rInner = rOuter * 0.42;
-    final path = Path();
-    for (int i = 0; i < 16; i++) {
-      final angle = (i * math.pi) / 8 - math.pi / 2;
-      final r = i.isEven ? rOuter : rInner;
-      final x = c.dx + r * math.cos(angle);
-      final y = c.dy + r * math.sin(angle);
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _StarOrnamentPainter oldDelegate) => oldDelegate.color != color;
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// MOSQUE DOME CLIPPER
-// ──────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// MOSQUE DOME (KHOBAT) CLIPPER — Proper mosque dome shape with minaret tips
+// ══════════════════════════════════════════════════════════════════════════════
 class _MosqueDomeClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final w = size.width;
     final h = size.height;
-    final domeHeight = h * 0.28;
-    final domeBaseY = domeHeight;
-    final peakX = w / 2;
-    final peakY = h * 0.02;
+
+    // Dome parameters - classic mosque dome proportions
+    final domeHeight = h * 0.28; // Dome rises 28% of card height
+    final domeBaseY = domeHeight; // Where dome meets straight walls
+    final peakX = w / 2; // Center peak
+    final peakY = h * 0.02; // Peak near top with small margin
+
+    // Minaret (small spire) at the very top
     final spireHeight = h * 0.04;
     final spireTipY = 0.0;
+
     final path = Path();
+
+    // Start from bottom-left
     path.moveTo(0, h);
+
+    // Left straight wall up to dome base
     path.lineTo(0, domeBaseY);
-    path.cubicTo(0, domeBaseY * 0.7, w * 0.20, domeBaseY * 0.3, w * 0.35, peakY + spireHeight);
-    path.cubicTo(w * 0.42, peakY + spireHeight * 0.5, w * 0.48, peakY + spireHeight * 0.2, peakX, spireTipY);
-    path.cubicTo(w * 0.52, peakY + spireHeight * 0.2, w * 0.58, peakY + spireHeight * 0.5, w * 0.65, peakY + spireHeight);
-    path.cubicTo(w * 0.80, domeBaseY * 0.3, w, domeBaseY * 0.7, w, domeBaseY);
+
+    // Left dome curve - elegant Islamic arch shape
+    // Control points create the characteristic pointed dome
+    path.cubicTo(
+      0,
+      domeBaseY * 0.7, // control point 1
+      w * 0.20,
+      domeBaseY * 0.3, // control point 2
+      w * 0.35,
+      peakY + spireHeight, // end point - left of center
+    );
+
+    // Curve to the peak (with minaret spire)
+    path.cubicTo(
+      w * 0.42,
+      peakY + spireHeight * 0.5, // control point 1
+      w * 0.48,
+      peakY + spireHeight * 0.2, // control point 2
+      peakX,
+      spireTipY, // end point - top spire
+    );
+
+    // Right side of spire down
+    path.cubicTo(
+      w * 0.52,
+      peakY + spireHeight * 0.2, // control point 1
+      w * 0.58,
+      peakY + spireHeight * 0.5, // control point 2
+      w * 0.65,
+      peakY + spireHeight, // end point - right of center
+    );
+
+    // Right dome curve down to base
+    path.cubicTo(
+      w * 0.80,
+      domeBaseY * 0.3, // control point 1
+      w,
+      domeBaseY * 0.7, // control point 2
+      w,
+      domeBaseY, // end point - right base
+    );
+
+    // Right straight wall down
     path.lineTo(w, h);
+
+    // Close path
     path.close();
+
     return path;
   }
 
@@ -1435,20 +737,22 @@ class _MosqueDomeClipper extends CustomClipper<Path> {
   bool shouldReclip(_MosqueDomeClipper old) => false;
 }
 
-// ──────────────────────────────────────────────────────────────────────
-// SACRED JOURNEY TILE — Figma card-style
-// ──────────────────────────────────────────────────────────────────────
+// Update _AyahCard build method to use the new clipper:
+// Replace ClipPath(clipper: _ArchClipper()) with:
+// ClipPath(clipper: _MosqueDomeClipper())
+
+// ══════════════════════════════════════════════════════════════════════════════
+// WIDGET — Sacred Journey Tile
+// ══════════════════════════════════════════════════════════════════════════════
 class _SacredJourneyTile extends StatelessWidget {
   final String image;
   final String label;
-  final IconData icon;
   final VoidCallback onTap;
 
   const _SacredJourneyTile({
     super.key,
     required this.image,
     required this.label,
-    required this.icon,
     required this.onTap,
   });
 
@@ -1458,93 +762,50 @@ class _SacredJourneyTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: FigmaTokens.surfaceCard,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: FigmaTokens.borderHairline),
-            boxShadow: [
-              BoxShadow(
-                color: FigmaTokens.brandDeepGreen.withValues(alpha: 0.06),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
+        borderRadius: BorderRadius.circular(16),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Photo — fills tile completely, no overflow
+              Image.asset(
+                image,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) =>
+                    Container(color: AppColors.primaryMid),
+              ),
+
+              // Gradient overlay — dark at bottom for text readability
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0x00000000), Color(0xD5000000)],
+                    stops: [0.35, 1.0],
+                  ),
+                ),
+              ),
+
+              // Label — positioned at bottom, never overflows
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 12,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textWhite,
+                    shadows: [Shadow(color: Colors.black87, blurRadius: 6)],
+                  ),
+                ),
               ),
             ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Image.asset(
-                    image,
-                    fit: BoxFit.cover,
-                    opacity: const AlwaysStoppedAnimation(0.18),
-                    errorBuilder: (_, _, _) =>
-                        Container(color: FigmaTokens.surfacePanelMint),
-                  ),
-                ),
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          FigmaTokens.surfaceCard.withValues(alpha: 0.55),
-                          FigmaTokens.surfaceCard.withValues(alpha: 0.88),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: FigmaTokens.brandDeepGreen,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: FigmaTokens.brandDeepGreen.withValues(alpha: 0.22),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(icon, color: FigmaTokens.accentGoldAmber, size: 24),
-                      ),
-                      const Spacer(),
-                      Text(
-                        label,
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: FigmaTokens.brandDeepGreen,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tap to explore →',
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: FigmaTokens.accentGoldAmber,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
@@ -1552,123 +813,9 @@ class _SacredJourneyTile extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────
-// SACRED COLLECTION BOOK CARD
-// ──────────────────────────────────────────────────────────────────────
-class _SacredCollectionBook extends StatelessWidget {
-  final String title;
-  final String description;
-  final String cover;
-
-  const _SacredCollectionBook({
-    required this.title,
-    required this.description,
-    required this.cover,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {},
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: FigmaTokens.brandDeepGreen.withValues(alpha: 0.18),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(cover, fit: BoxFit.cover, errorBuilder: (_, _, _) => Container(color: FigmaTokens.brandMidGreen)),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        FigmaTokens.brandDeepGreen.withValues(alpha: 0.15),
-                        FigmaTokens.brandDeepGreen.withValues(alpha: 0.88),
-                      ],
-                      stops: const [0.30, 1.0],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  top: 16,
-                  child: Center(child: figmaStarOrnament(size: 26, color: FigmaTokens.accentGoldAmber)),
-                ),
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 18,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.20),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'COLLECTION',
-                          style: TextStyle(
-                            fontFamily: 'Cairo',
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                            color: FigmaTokens.accentGoldAmber,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          height: 1.15,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        description,
-                        style: TextStyle(
-                          fontFamily: 'Cairo',
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withValues(alpha: 0.70),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// SOUL PROGRESS CARD
-// ──────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// WIDGET — Soul Progress Card
+// ══════════════════════════════════════════════════════════════════════════════
 class _SoulProgressCard extends StatelessWidget {
   final String label;
   final String sub;
@@ -1685,70 +832,68 @@ class _SoulProgressCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
-        borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-        border: Border.all(color: FigmaTokens.borderHairline),
-        boxShadow: [
-          BoxShadow(
-            color: FigmaTokens.brandDeepGreen.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: AppColors.primaryDark,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: FigmaTokens.brandDeepGreen,
-                  ),
+          // Left: label + sub
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textWhite,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  sub.toUpperCase(),
-                  style: TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: FigmaTokens.textMuted,
-                    letterSpacing: 1.0,
-                  ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                sub,
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 10,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.textGreenMuted,
+                  letterSpacing: 0.8,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+
+          const Spacer(),
+
+          // Right: circular progress with % text inside
           SizedBox(
-            width: 54,
-            height: 54,
+            width: 48,
+            height: 48,
             child: Stack(
               fit: StackFit.expand,
               children: [
                 CircularProgressIndicator(
                   value: value,
-                  strokeWidth: 5,
-                  backgroundColor: FigmaTokens.borderHairline,
-                  valueColor: AlwaysStoppedAnimation<Color>(FigmaTokens.brandAccentSageStart),
+                  strokeWidth: 4,
+                  backgroundColor: AppColors.primaryMid,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.gold,
+                  ),
                   strokeCap: StrokeCap.round,
                 ),
                 Center(
                   child: Text(
                     display,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Cairo',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: FigmaTokens.brandDeepGreen,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.gold,
                     ),
                   ),
                 ),

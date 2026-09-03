@@ -12,20 +12,25 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/services/quran_audio_service.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../features/quran/data/quran_api_service.dart';
 import '../../../features/quran/data/surahs_data.dart';
-import '../../widgets/web_footer.dart';
+import '../../widgets/web_animations.dart';
 import 'quran_web_widgets.dart';
 
 class SurahExplorerWeb extends StatefulWidget {
   final bool juzMode;
   final VoidCallback onToggleJuz;
+  final bool drawerOpen;
+  final VoidCallback onToggleDrawer;
   const SurahExplorerWeb({
     super.key,
     this.juzMode = false,
     required this.onToggleJuz,
+    this.drawerOpen = false,
+    required this.onToggleDrawer,
   });
 
   @override
@@ -35,7 +40,6 @@ class SurahExplorerWeb extends StatefulWidget {
 class _SurahExplorerWebState extends State<SurahExplorerWeb> {
   int _selected = 1;
   String _query = '';
-  bool _drawerOpen = false;
 
   List<Map<String, dynamic>> get _filtered {
     final all = SurahsData.surahs;
@@ -51,14 +55,13 @@ class _SurahExplorerWebState extends State<SurahExplorerWeb> {
   }
 
   void _selectSurah(int n) {
-    setState(() {
-      _selected = n;
-      _drawerOpen = false;
-    });
+    setState(() => _selected = n);
+    if (widget.drawerOpen) widget.onToggleDrawer();
   }
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 960;
@@ -86,67 +89,28 @@ class _SurahExplorerWebState extends State<SurahExplorerWeb> {
         );
 
         if (wide) {
-          return Stack(
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Column(
-                children: [
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(width: 316, child: sidebarContent),
-                        const VerticalDivider(
-                          width: 1,
-                          thickness: 1,
-                          color: FigmaTokens.borderHairline,
-                        ),
-                        Expanded(child: reading),
-                      ],
-                    ),
-                  ),
-                  const WebFooter(),
-                ],
+              SizedBox(width: 316, child: sidebarContent),
+              VerticalDivider(
+                width: 1,
+                thickness: 1,
+                color: figma.borderHairline,
               ),
-              if (_drawerOpen)
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _drawerOpen = false),
-                    child: Container(
-                      color: Colors.black45,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: GestureDetector(
-                          onTap: () {},
-                          child: SizedBox(
-                            width: 340,
-                            height: double.infinity,
-                            child: Material(
-                              elevation: 8,
-                              child: sidebarContent,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              Expanded(child: reading),
             ],
           );
         }
 
-        // Narrow layout: always stacked, sidebar as drawer when toggled
+        // Narrow layout: sidebar as drawer when toggled
         return Stack(
           children: [
-            Column(
-              children: [
-                Expanded(child: reading),
-                const WebFooter(),
-              ],
-            ),
-            if (_drawerOpen)
+            reading,
+            if (widget.drawerOpen)
               Positioned.fill(
                 child: GestureDetector(
-                  onTap: () => setState(() => _drawerOpen = false),
+                  onTap: widget.onToggleDrawer,
                   child: Container(
                     color: Colors.black45,
                     child: Align(
@@ -181,20 +145,21 @@ class _JuzSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
-      color: FigmaTokens.surfaceCard,
+      color: figma.surfaceCard,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
             child: Text(
               'Read by Juz',
               style: TextStyle(
                 fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
-                color: FigmaTokens.textHeading,
+                color: figma.textHeading,
               ),
             ),
           ),
@@ -209,7 +174,7 @@ class _JuzSidebar extends StatelessWidget {
                 childAspectRatio: 1.0,
               ),
               itemBuilder: (context, i) => Material(
-                color: FigmaTokens.surfacePanelMint,
+                color: figma.surfacePanelMint,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
                 ),
@@ -234,22 +199,22 @@ class _JuzSidebar extends StatelessWidget {
                           ),
                           child: Text(
                             '${i + 1}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                               fontSize: 14,
                               fontWeight: FontWeight.w900,
-                              color: FigmaTokens.accentGoldLight,
+                              color: figma.accentGoldLight,
                             ),
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Juz ${i + 1}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: FigmaTokens.fontFamilyUiSans,
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: FigmaTokens.textBody,
+                            color: figma.textBody,
                           ),
                         ),
                       ],
@@ -292,8 +257,9 @@ class _Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
-      color: FigmaTokens.surfaceCard,
+      color: figma.surfaceCard,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -301,25 +267,25 @@ class _Sidebar extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
             child: TextField(
               onChanged: onQueryChanged,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: FigmaTokens.fontFamilyUiSans,
                 fontSize: 14,
-                color: FigmaTokens.textHeading,
+                color: figma.textHeading,
               ),
               decoration: InputDecoration(
                 hintText: 'Search surah\u2026',
                 hintStyle: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyUiSans,
                   fontSize: 14,
-                  color: FigmaTokens.textMuted.withValues(alpha: 0.8),
+                  color: figma.textMuted.withValues(alpha: 0.8),
                 ),
-                prefixIcon: const Icon(
+                prefixIcon: Icon(
                   Icons.search_rounded,
                   size: 20,
-                  color: FigmaTokens.textMuted,
+                  color: figma.textMuted,
                 ),
                 filled: true,
-                fillColor: FigmaTokens.surfaceBackground,
+                fillColor: figma.surfaceBackground,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 border: OutlineInputBorder(
@@ -331,13 +297,13 @@ class _Sidebar extends StatelessWidget {
           ),
           Expanded(
             child: surahs.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No surahs match your search',
                       style: TextStyle(
                         fontFamily: FigmaTokens.fontFamilyUiSans,
                         fontSize: 13,
-                        color: FigmaTokens.textMuted,
+                        color: figma.textMuted,
                       ),
                     ),
                   )
@@ -348,11 +314,16 @@ class _Sidebar extends StatelessWidget {
                       final s = surahs[i];
                       final n = s['num'] as int;
                       final isSel = n == selected;
-                      return _SurahTile(
+                      final tile = _SurahTile(
                         surah: s,
                         selected: isSel,
                         onTap: () => onSelect(n),
                       );
+                      if (i >= 30) return tile;
+                      return tile
+                          .animate(delay: Duration(milliseconds: i * 30))
+                          .fadeIn(duration: 300.ms, curve: Curves.easeOut)
+                          .slideX(begin: -0.05, duration: 300.ms, curve: Curves.easeOut);
                     },
                   ),
           ),
@@ -374,13 +345,14 @@ class _SurahTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Material(
       color: selected ? FigmaTokens.brandMidGreen : Colors.transparent,
       child: InkWell(
         onTap: onTap,
         hoverColor: selected
             ? FigmaTokens.brandMidGreen
-            : FigmaTokens.surfacePanelMint,
+            : figma.surfacePanelMint,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
@@ -392,8 +364,8 @@ class _SurahTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: selected
-                      ? FigmaTokens.accentGoldAmber
-                      : FigmaTokens.accentGoldSurface,
+                      ? figma.accentGoldAmber
+                      : figma.accentGoldSurface,
                 ),
                 child: Text(
                   '${surah['num']}',
@@ -403,7 +375,7 @@ class _SurahTile extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                     color: selected
                         ? FigmaTokens.textOnDark
-                        : FigmaTokens.accentGoldAmber,
+                        : figma.accentGoldAmber,
                   ),
                 ),
               ),
@@ -422,7 +394,7 @@ class _SurahTile extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: selected
                             ? FigmaTokens.textOnDark
-                            : FigmaTokens.textHeading,
+                            : figma.textHeading,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -434,21 +406,26 @@ class _SurahTile extends StatelessWidget {
                         fontFamily: FigmaTokens.fontFamilyUiSans,
                         fontSize: 11,
                         color: selected
-                            ? FigmaTokens.accentGoldLight.withValues(alpha: 0.9)
-                            : FigmaTokens.textMuted,
+                            ? figma.accentGoldLight.withValues(alpha: 0.9)
+                            : figma.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
-              Text(
-                '${surah['arabic']}',
-                style: TextStyle(
-                  fontFamily: FigmaTokens.fontFamilyArabicSerif,
-                  fontSize: 16,
-                  color: selected
-                      ? FigmaTokens.textOnDark
-                      : FigmaTokens.brandDeepGreen,
+              Flexible(
+                child: Text(
+                  '${surah['arabic']}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyArabicSerif,
+                    fontSize: 16,
+                    color: selected
+                        ? FigmaTokens.textOnDark
+                        : FigmaTokens.brandDeepGreen,
+                  ),
                 ),
               ),
             ],
@@ -514,13 +491,14 @@ class _SurahReadingPaneState extends State<SurahReadingPane> {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     final meta = _meta;
     final name = meta['name'] as String;
     final audio = QuranAudioService();
     final nextSurah = widget.surahNum < 114 ? widget.surahNum + 1 : -1;
 
     return Container(
-      color: FigmaTokens.surfaceBackground,
+      color: figma.surfaceBackground,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -537,7 +515,7 @@ class _SurahReadingPaneState extends State<SurahReadingPane> {
             nextSurah: nextSurah,
             onNextSurah: widget.onNextSurah,
           ),
-          const Divider(height: 1, thickness: 1, color: FigmaTokens.borderHairline),
+          Divider(height: 1, thickness: 1, color: figma.borderHairline),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
@@ -603,6 +581,7 @@ class _PaneHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
       decoration: const BoxDecoration(
@@ -619,12 +598,12 @@ class _PaneHeader extends StatelessWidget {
                   children: [
                     Text(
                       'REVELATION \u2014 ${type.toUpperCase()}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: FigmaTokens.fontFamilyUiSans,
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.4,
-                        color: FigmaTokens.accentGoldAmber,
+                        color: figma.accentGoldAmber,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -648,22 +627,22 @@ class _PaneHeader extends StatelessWidget {
                         children: [
                           Text(
                             name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                               fontSize: 26,
                               fontWeight: FontWeight.w900,
-                              color: FigmaTokens.textHeading,
+                              color: figma.textHeading,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             meaning,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: FigmaTokens.fontFamilyUiSans,
                               fontSize: 12.5,
                               fontStyle: FontStyle.italic,
                               letterSpacing: 0.8,
-                              color: FigmaTokens.textBody,
+                              color: figma.textBody,
                             ),
                           ),
                         ],
@@ -681,7 +660,9 @@ class _PaneHeader extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Row(
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
                   children: [
                     _PillButton(
                       icon: Icons.play_arrow_rounded,
@@ -689,7 +670,6 @@ class _PaneHeader extends StatelessWidget {
                       filled: true,
                       onTap: onPlaySurah,
                     ),
-                    const SizedBox(width: 10),
                     _PillButton(
                       icon: urdu
                           ? Icons.language_rounded
@@ -698,7 +678,6 @@ class _PaneHeader extends StatelessWidget {
                       filled: false,
                       onTap: onUrduToggle,
                     ),
-                    const SizedBox(width: 10),
                     if (nextSurah > 0 && onNextSurah != null)
                       _PillButton(
                         icon: Icons.arrow_forward_rounded,
@@ -723,19 +702,20 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard.withValues(alpha: 0.7),
+        color: figma.surfaceCard.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: FigmaTokens.fontFamilyUiSans,
           fontSize: 10.5,
           fontWeight: FontWeight.w700,
-          color: FigmaTokens.textBody,
+          color: figma.textBody,
         ),
       ),
     );
@@ -805,25 +785,26 @@ class _ErrorRetry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_rounded,
               size: 44,
-              color: FigmaTokens.textMuted,
+              color: figma.textMuted,
             ),
             const SizedBox(height: 14),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: FigmaTokens.fontFamilyUiSans,
                 fontSize: 13.5,
-                color: FigmaTokens.textBody,
+                color: figma.textBody,
               ),
             ),
             const SizedBox(height: 16),

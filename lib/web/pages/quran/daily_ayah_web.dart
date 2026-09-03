@@ -38,7 +38,7 @@ class _DailyAyahWebState extends State<DailyAyahWeb> {
       _random = ayah;
     });
     if (ayah == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(
           content: Text('Could not fetch a random ayah. Try again shortly.'),
         ),
@@ -48,7 +48,7 @@ class _DailyAyahWebState extends State<DailyAyahWeb> {
 
   void _copy(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       const SnackBar(content: Text('Ayah copied to clipboard.')),
     );
   }
@@ -64,6 +64,7 @@ class _DailyAyahWebState extends State<DailyAyahWeb> {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     final daily = _daily;
     final featuredArabic = _random?.arabic ?? daily['arabic'] ?? '';
     final featuredTranslation =
@@ -76,22 +77,22 @@ class _DailyAyahWebState extends State<DailyAyahWeb> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Daily Ayah',
             style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyDisplaySerif,
               fontSize: 30,
               fontWeight: FontWeight.w900,
-              color: FigmaTokens.textHeading,
+              color: figma.textHeading,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'A fresh verse each day, with recitation and a share of reflection.',
             style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 14.5,
-              color: FigmaTokens.textBody,
+              color: figma.textBody,
             ),
           ),
           const SizedBox(height: 24),
@@ -105,13 +106,13 @@ class _DailyAyahWebState extends State<DailyAyahWeb> {
             onRandom: _randomize,
           ),
           const SizedBox(height: 34),
-          const Text(
+          Text(
             'More Āyāt to Reflect On',
             style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyDisplaySerif,
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: FigmaTokens.textHeading,
+              color: figma.textHeading,
             ),
           ),
           const SizedBox(height: 14),
@@ -153,6 +154,7 @@ class _FeaturedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -162,7 +164,7 @@ class _FeaturedCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [FigmaTokens.brandDeepGreen, FigmaTokens.brandMidGreen],
         ),
-        boxShadow: FigmaTokens.cardShadow,
+        boxShadow: figma.cardShadows,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -175,7 +177,7 @@ class _FeaturedCard extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: FigmaTokens.accentGoldAmber,
+                  color: figma.accentGoldAmber,
                   borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
                 ),
                 child: const Text(
@@ -192,25 +194,28 @@ class _FeaturedCard extends StatelessWidget {
               const Spacer(),
               Text(
                 reference,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyUiSans,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: FigmaTokens.accentGoldLight,
+                  color: figma.accentGoldLight,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 22),
-          Text(
-            loading ? '…' : arabic,
+          Directionality(
             textDirection: TextDirection.rtl,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: FigmaTokens.fontFamilyArabicMushaf,
-              fontSize: 28,
-              height: 1.9,
-              color: FigmaTokens.textOnDark,
+            child: Text(
+              loading ? '…' : arabic,
+              textAlign: TextAlign.center,
+              softWrap: true,
+              style: const TextStyle(
+                fontFamily: FigmaTokens.fontFamilyArabicMushaf,
+                fontSize: 28,
+                height: 1.9,
+                color: FigmaTokens.textOnDark,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -219,7 +224,7 @@ class _FeaturedCard extends StatelessWidget {
               width: 72,
               height: 3,
               decoration: BoxDecoration(
-                color: FigmaTokens.accentGoldAmber,
+                color: figma.accentGoldAmber,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -246,7 +251,7 @@ class _FeaturedCard extends StatelessWidget {
                 icon: const Icon(Icons.play_arrow_rounded),
                 label: const Text('Play'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: FigmaTokens.accentGoldAmber,
+                  backgroundColor: figma.accentGoldAmber,
                   foregroundColor: FigmaTokens.textOnDark,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
@@ -297,12 +302,13 @@ class _MoreAyahCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCardSm),
-        border: Border.all(color: FigmaTokens.borderHairline),
+        border: Border.all(color: figma.borderHairline),
       ),
       child: Row(
         children: [
@@ -310,35 +316,38 @@ class _MoreAyahCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  ayah['arabic'] ?? '',
+                Directionality(
                   textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontFamily: FigmaTokens.fontFamilyArabicMushaf,
-                    fontSize: 19,
-                    height: 1.8,
-                    color: FigmaTokens.textHeading,
+                  child: Text(
+                    ayah['arabic'] ?? '',
+                    textAlign: TextAlign.right,
+                    softWrap: true,
+                    style: TextStyle(
+                      fontFamily: FigmaTokens.fontFamilyArabicMushaf,
+                      fontSize: 19,
+                      height: 1.8,
+                      color: figma.textHeading,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   ayah['translation'] ?? '',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 13.5,
                     height: 1.55,
-                    color: FigmaTokens.textBody,
+                    color: figma.textBody,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   ayah['reference'] ?? '',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: FigmaTokens.accentGoldAmber,
+                    color: figma.accentGoldAmber,
                   ),
                 ),
               ],

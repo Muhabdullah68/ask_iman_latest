@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/seo_meta.dart';
 import '../data/asmaul_husna_data.dart';
@@ -109,8 +110,8 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
 
   void _flashUnsupported() {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
       ..showSnackBar(
         const SnackBar(
           content: Text(
@@ -123,6 +124,7 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     setPageTitle('99 Names of Allah — Asmaul Husna · Ask Iman');
     final names = _filtered;
     final reciting = (_playing && _playingIndex != null)
@@ -183,7 +185,7 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
                       isPulsing: isPulsing,
                       onSpeak: () => _speakName(name),
                     ),
-                  );
+                  ).animate(delay: Duration(milliseconds: (i.clamp(0, 30)) * 30)).fadeIn(duration: 350.ms).slideY(begin: 0.08);
                 },
               );
             },
@@ -196,6 +198,7 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
   }
 
   Widget _buildHeader() {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -208,16 +211,16 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: FigmaTokens.accentGoldSurface,
+              color: figma.accentGoldSurface,
               shape: BoxShape.circle,
               border: Border.all(
-                color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.5),
+                color: figma.accentGoldAmber.withValues(alpha: 0.5),
               ),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.stars_rounded,
               size: 32,
-              color: FigmaTokens.accentGoldAmber,
+              color: figma.accentGoldAmber,
             ),
           ),
           const SizedBox(width: 20),
@@ -227,32 +230,32 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
               children: [
                 Text(
                   'Asmaul Husna — 99 Names of Allah',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
-                    color: FigmaTokens.textHeading,
+                    color: figma.textHeading,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  '“Allah has ninety-nine names — whoever memorises them will enter Paradise.”',
+                Text(
+                  '"Allah has ninety-nine names — whoever memorises them will enter Paradise."',
                   style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 13.5,
                     height: 1.5,
                     fontStyle: FontStyle.italic,
-                    color: FigmaTokens.textBody,
+                    color: figma.textBody,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '— Prophet Muhammad ﷺ (Sahih al-Bukhari 6410)',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: FigmaTokens.accentGoldAmber,
+                    color: figma.accentGoldAmber,
                   ),
                 ),
               ],
@@ -264,12 +267,13 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
   }
 
   Widget _buildSearch() {
+    final figma = context.figma;
     return Container(
       height: 50,
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusInput),
-        border: Border.all(color: FigmaTokens.borderHairline),
+        border: Border.all(color: figma.borderHairline),
       ),
       child: TextField(
         onChanged: (v) => setState(() => _query = v),
@@ -278,19 +282,19 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
           hintStyle: TextStyle(
             fontFamily: FigmaTokens.fontFamilyUiSans,
             fontSize: 14,
-            color: FigmaTokens.textMuted,
+            color: figma.textMuted,
           ),
-          prefixIcon: Icon(Icons.search_rounded, color: FigmaTokens.textMuted),
+          prefixIcon: Icon(Icons.search_rounded, color: figma.textMuted),
           suffixIcon: Padding(
             padding: const EdgeInsets.only(right: 14),
             child: Center(
               child: Text(
                 '${_filtered.length} / 99',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyUiSans,
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: FigmaTokens.accentGoldAmber,
+                  color: figma.accentGoldAmber,
                 ),
               ),
             ),
@@ -298,21 +302,22 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(vertical: 14),
         ),
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: FigmaTokens.fontFamilyUiSans,
           fontSize: 14.5,
-          color: FigmaTokens.textHeading,
+          color: figma.textHeading,
         ),
       ),
     );
   }
 
   Widget _buildPlayAllButton() {
+    final figma = context.figma;
     return ElevatedButton.icon(
       onPressed: _togglePlayAll,
       style: ElevatedButton.styleFrom(
         backgroundColor: _playing
-            ? FigmaTokens.accentGoldAmber
+            ? figma.accentGoldAmber
             : FigmaTokens.brandDeepGreen,
         foregroundColor: FigmaTokens.textOnDark,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -332,10 +337,11 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
           fontWeight: FontWeight.w800,
         ),
       ),
-    );
+    ).animate().scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), duration: 300.ms, curve: Curves.easeOut);
   }
 
   Widget _buildRecitingBar(AsmaulHusnaName name) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       decoration: BoxDecoration(
@@ -344,12 +350,12 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
       ),
       child: Row(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 16,
             height: 16,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: FigmaTokens.accentGoldLight,
+              color: figma.accentGoldLight,
             ),
           ),
           const SizedBox(width: 14),
@@ -375,9 +381,9 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
                 _pulseIndex = null;
               });
             },
-            icon: const Icon(
+            icon: Icon(
               Icons.stop_circle_outlined,
-              color: FigmaTokens.accentGoldLight,
+              color: figma.accentGoldLight,
             ),
           ),
         ],
@@ -386,6 +392,7 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
   }
 
   Widget _buildDetail(AsmaulHusnaName name) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(26),
       decoration: BoxDecoration(
@@ -411,11 +418,11 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
                 const SizedBox(height: 12),
                 Text(
                   name.transliteration,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: FigmaTokens.accentGoldLight,
+                    color: figma.accentGoldLight,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -431,9 +438,9 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
                 OutlinedButton.icon(
                   onPressed: () => _speakName(name),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: FigmaTokens.accentGoldLight,
+                    foregroundColor: figma.accentGoldLight,
                     side: BorderSide(
-                      color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.6),
+                      color: figma.accentGoldAmber.withValues(alpha: 0.6),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -459,7 +466,7 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
               fontFamily: FigmaTokens.fontFamilyDisplaySerif,
               fontSize: 40,
               fontWeight: FontWeight.w900,
-              color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.85),
+              color: figma.accentGoldAmber.withValues(alpha: 0.85),
             ),
           ),
         ],
@@ -485,21 +492,22 @@ class _NameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isPulsing
-            ? FigmaTokens.accentGoldSurface
-            : FigmaTokens.surfaceCard,
+            ? figma.accentGoldSurface
+            : figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
         border: Border.all(
           color: isReciting || isSelected
-              ? FigmaTokens.accentGoldAmber
-              : FigmaTokens.borderHairline,
+              ? figma.accentGoldAmber
+              : figma.borderHairline,
           width: (isReciting || isSelected) ? 2 : 1,
         ),
-        boxShadow: isReciting ? FigmaTokens.cardShadowSm : null,
+        boxShadow: isReciting ? figma.cardShadows : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -509,11 +517,11 @@ class _NameCard extends StatelessWidget {
             children: [
               Text(
                 '${name.number}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyUiSans,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
-                  color: FigmaTokens.accentGoldAmber,
+                  color: figma.accentGoldAmber,
                 ),
               ),
               Material(
@@ -529,8 +537,8 @@ class _NameCard extends StatelessWidget {
                           : Icons.volume_up_rounded,
                       size: 14,
                       color: isReciting
-                          ? FigmaTokens.accentGoldAmber
-                          : FigmaTokens.textMuted,
+                          ? figma.accentGoldAmber
+                          : figma.textMuted,
                     ),
                   ),
                 ),
@@ -553,11 +561,11 @@ class _NameCard extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: FigmaTokens.textHeading,
+              color: figma.textHeading,
             ),
           ),
           const SizedBox(height: 2),
@@ -566,10 +574,10 @@ class _NameCard extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 11,
-              color: FigmaTokens.textMuted,
+              color: figma.textMuted,
             ),
           ),
         ],

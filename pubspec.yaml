@@ -1,7 +1,7 @@
 name: ask_iman
 description: ASK Iman - Islamic lifestyle app
 publish_to: 'none'
-version: 1.0.9+9
+version: 1.0.12+12
 
 environment:
   sdk: '>=3.11.4 <4.0.0'
@@ -38,6 +38,7 @@ dependencies:
   provider: ^6.1.5+1
   shared_preferences: ^2.5.5
   shimmer: ^3.0.0
+  flutter_animate: ^4.5.0
   syncfusion_flutter_pdfviewer: ^28.2.12
   timezone: ^0.9.4
   url_launcher: ^6.3.2

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/l10n/app_localizations.dart';
 import '../../shared/widgets/tooltip_overlay.dart';
@@ -8,7 +9,6 @@ import '../../features/quran/quran_screen.dart';
 import '../../features/ibadah/ibadah_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../core/services/tutorial_service.dart';
-import '../../core/utils/seo_meta.dart';
 import '../../features/streaks/streaks_screen.dart';
 import '../../features/ibadah/qiblah_screen.dart';
 import '../../features/ibadah/tasbeeh_screen.dart';
@@ -22,17 +22,17 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   int _currentIndex = 0;
+  final List<int> _history = [0];
+  final GlobalKey<NavigatorState> _shellNavigatorKey =
+      GlobalKey<NavigatorState>();
   AnimationController? _celebrationController;
   Animation<double>? _celebrationAnimation;
-  bool _celebrationShowing = false;
-  int _lastHandledStep = -1;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _autoStartTutorial();
-      setPageTitle(_titleForTab(0));
     });
     TutorialService.instance.addListener(_onTutorialChanged);
   }
@@ -62,11 +62,6 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
 
     final step = svc.currentStep;
     if (step == null) return;
-
-    // Only act once per step — prevents re-pushing routes or re-navigating
-    // on every notifyListeners (e.g. forceRefresh after scroll/tab changes).
-    if (svc.currentStepIndex == _lastHandledStep) return;
-    _lastHandledStep = svc.currentStepIndex;
 
     // First, ensure we go to Home for reset
     if (svc.currentStepIndex == 0 && _currentIndex != 0) {
@@ -99,8 +94,6 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
   }
 
   void _showCelebration() {
-    if (_celebrationShowing) return;
-    _celebrationShowing = true;
     _celebrationController = AnimationController(
       duration: const Duration(seconds: 1),
       vsync: this,
@@ -207,7 +200,6 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     ).then((_) {
       _celebrationController?.dispose();
       _celebrationController = null;
-      _celebrationShowing = false;
     });
   }
 
@@ -215,8 +207,8 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     if (_currentIndex == index) return;
     setState(() {
       _currentIndex = index;
+      _history.add(index);
     });
-    setPageTitle(_titleForTab(index));
     if (index == 1 && !TutorialService.instance.isActive) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         QuranScreen.screenKey.currentState?.showPreferencesAutomatically();
@@ -224,27 +216,15 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
     }
   }
 
-  String _titleForTab(int index) {
-    switch (index) {
-      case 0:
-        return 'Ask Iman — Home · Islamic Learning Companion';
-      case 1:
-        return 'Quran — Read & Listen · Ask Iman';
-      case 2:
-        return 'Ibadah — Prayer Times & Tools · Ask Iman';
-      case 3:
-        return 'Streaks — Daily Worship Tracker · Ask Iman';
-      case 4:
-        return 'Profile — Your Account · Ask Iman';
-      default:
-        return 'Ask Iman';
-    }
-  }
-
   Future<bool> _onWillPop() async {
-    if (_currentIndex != 0) {
+    if (_shellNavigatorKey.currentState?.canPop() ?? false) {
+      _shellNavigatorKey.currentState?.pop();
+      return false;
+    }
+    if (_history.length > 1) {
       setState(() {
-        _currentIndex = 0;
+        _history.removeLast();
+        _currentIndex = _history.last;
       });
       return false;
     }
@@ -258,7 +238,7 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
       QuranScreen(key: QuranScreen.screenKey, onNavigateToTab: _changeTab),
       const IbadahScreen(),
       const StreaksScreen(),
-      const ProfileScreen(),
+      const ProfileScreen(hideCommunity: true),
     ];
 
     return PopScope(
@@ -271,7 +251,12 @@ class _MainShellState extends State<MainShell> with TickerProviderStateMixin {
         }
       },
       child: Scaffold(
-        body: IndexedStack(index: _currentIndex, children: screens),
+        body: Column(
+          children: [
+            Expanded(child: IndexedStack(index: _currentIndex, children: screens)),
+            const _PoweredByFooter(),
+          ],
+        ),
         bottomNavigationBar: TooltipOverlay(
           id: 'tut_nav',
           title: AppLocalizations.of(context).translate('tutNavTitle'),
@@ -392,4 +377,60 @@ class _NavItem {
     required this.activeIcon,
     required this.label,
   });
+}
+
+class _PoweredByFooter extends StatelessWidget {
+  const _PoweredByFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.bgCream,
+      child: InkWell(
+        onTap: () async {
+          final uri = Uri.https('www.askwebsolutions.com', '/');
+          try {
+            await launchUrl(
+              uri,
+              mode: LaunchMode.externalApplication,
+              webOnlyWindowName: '_blank',
+            );
+          } catch (e) {
+            final webUri = Uri.parse('https://www.askwebsolutions.com/');
+            await launchUrl(
+              webUri,
+              mode: LaunchMode.platformDefault,
+              webOnlyWindowName: '_blank',
+            );
+          }
+        },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Powered by ',
+                style: TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 12,
+                  color: AppColors.textDark.withValues(alpha: 0.55),
+                ),
+              ),
+              Text(
+                'ASK Websolutions',
+                style: const TextStyle(
+                  fontFamily: 'Cairo',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primaryDark,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

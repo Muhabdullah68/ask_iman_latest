@@ -9,7 +9,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/figma_tokens.dart';
+import 'web_animations.dart';
 import '../web_router.dart' show WebRoutes;
 
 class WebFooter extends StatelessWidget {
@@ -52,18 +54,61 @@ class WebFooter extends StatelessWidget {
                           ),
                         ),
                       );
+                      final askWebLink = InkWell(
+                        onTap: () async {
+                          final uri = Uri.https('www.askwebsolutions.com', '/');
+                          try {
+                            await launchUrl(
+                              uri,
+                              mode: LaunchMode.platformDefault,
+                              webOnlyWindowName: '_blank',
+                            );
+                          } catch (_) {
+                            await launchUrl(
+                              Uri.parse('https://www.askwebsolutions.com/'),
+                              webOnlyWindowName: '_blank',
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '© ${DateTime.now().year} Ask Iman — BarakAllahu feekum. ',
+                                style: TextStyle(
+                                  fontFamily: FigmaTokens.fontFamilyUiSans,
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.55),
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'Powered by ',
+                                style: TextStyle(
+                                  fontFamily: FigmaTokens.fontFamilyUiSans,
+                                  fontSize: 12,
+                                  color: Colors.white.withValues(alpha: 0.55),
+                                ),
+                              ),
+                              TextSpan(
+                                text: 'ASK Websolutions',
+                                style: TextStyle(
+                                  fontFamily: FigmaTokens.fontFamilyUiSans,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: FigmaTokens.accentGoldLight,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
                       if (constraints.maxWidth < 560) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '© ${DateTime.now().year} Ask Iman — BarakAllahu feekum.',
-                              style: TextStyle(
-                                fontFamily: FigmaTokens.fontFamilyUiSans,
-                                fontSize: 12,
-                                color: Colors.white.withValues(alpha: 0.55),
-                              ),
-                            ),
+                            askWebLink,
                             const SizedBox(height: 10),
                             bismillah,
                           ],
@@ -71,16 +116,7 @@ class WebFooter extends StatelessWidget {
                       }
                       return Row(
                         children: [
-                          Expanded(
-                            child: Text(
-                              '© ${DateTime.now().year} Ask Iman — BarakAllahu feekum.',
-                              style: TextStyle(
-                                fontFamily: FigmaTokens.fontFamilyUiSans,
-                                fontSize: 12,
-                                color: Colors.white.withValues(alpha: 0.55),
-                              ),
-                            ),
-                          ),
+                          Expanded(child: askWebLink),
                           const SizedBox(width: 16),
                           bismillah,
                         ],
@@ -100,13 +136,13 @@ class WebFooter extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 5, child: _brandBlock(context)),
+        Expanded(flex: 5, child: ScrollReveal(delay: Duration.zero, child: _brandBlock(context))),
         const SizedBox(width: 32),
-        Expanded(flex: 4, child: _linkColumn('Explore', _exploreLinks, context)),
+        Expanded(flex: 4, child: ScrollReveal(delay: const Duration(milliseconds: 80), child: _linkColumn('Explore', _exploreLinks, context))),
         const SizedBox(width: 32),
-        Expanded(flex: 4, child: _linkColumn('Community', _communityLinks, context)),
+        Expanded(flex: 4, child: ScrollReveal(delay: const Duration(milliseconds: 160), child: _linkColumn('Community', _communityLinks, context))),
         const SizedBox(width: 32),
-        Expanded(flex: 5, child: _contactBlock(context)),
+        Expanded(flex: 5, child: ScrollReveal(delay: const Duration(milliseconds: 240), child: _contactBlock(context))),
       ],
     );
   }
@@ -309,7 +345,7 @@ class WebFooter extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                     const SnackBar(
                       content: Text('Thanks for subscribing — BarakAllahu feekum!'),
                       behavior: SnackBarBehavior.floating,

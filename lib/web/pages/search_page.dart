@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/seo_meta.dart';
@@ -43,6 +44,7 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     setPageTitle('Search · Ask Iman');
     final q = _query;
 
@@ -74,40 +76,40 @@ class _SearchPageState extends State<SearchPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 24),
-          _buildSearchBar(),
+          _buildSearchBar(context),
           const SizedBox(height: 28),
           if (q.isEmpty)
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 60),
+                padding: const EdgeInsets.symmetric(vertical: 60),
                 child: Text(
                   'Type above to search the Quran, hadith and tools.',
                   style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 14,
-                    color: FigmaTokens.textMuted,
+                    color: figma.textMuted,
                   ),
                 ),
               ),
             )
           else ...[
             Text(
-              'Results for “${_controller.text.trim()}”',
-              style: const TextStyle(
+              'Results for "${_controller.text.trim()}"',
+              style: TextStyle(
                 fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
-                color: FigmaTokens.textHeading,
+                color: figma.textHeading,
               ),
             ),
             const SizedBox(height: 20),
             if (surahMatches.isEmpty &&
                 hadithBooks.isEmpty &&
                 toolMatches.isEmpty)
-              _buildNoResults()
+              _buildNoResults(context)
             else ...[
               if (surahMatches.isNotEmpty) ...[
-                _SectionLabel('Surahs'),
+                const _SectionLabel('Surahs'),
                 const SizedBox(height: 10),
                 for (final s in surahMatches.take(8))
                   _ResultRow(
@@ -116,11 +118,11 @@ class _SearchPageState extends State<SearchPage> {
                     subtitle:
                         '${s['meaning']} · ${s['ayahs']} Ayahs · ${s['type']}',
                     onTap: () => context.go(WebRoutes.quran),
-                  ),
+                  ).animate(delay: Duration(milliseconds: surahMatches.indexOf(s) * 50)).fadeIn(duration: 300.ms).slideY(begin: 0.08),
                 const SizedBox(height: 16),
               ],
               if (hadithBooks.isNotEmpty) ...[
-                _SectionLabel('Hadith Books'),
+                const _SectionLabel('Hadith Books'),
                 const SizedBox(height: 10),
                 for (final b in hadithBooks.take(8))
                   _ResultRow(
@@ -128,11 +130,11 @@ class _SearchPageState extends State<SearchPage> {
                     title: b,
                     subtitle: 'Browse hadith from this authentic collection',
                     onTap: () => context.go('${WebRoutes.quran}/hadith'),
-                  ),
+                  ).animate(delay: Duration(milliseconds: hadithBooks.indexOf(b) * 50 + surahMatches.length * 50)).fadeIn(duration: 300.ms).slideY(begin: 0.08),
                 const SizedBox(height: 16),
               ],
               if (toolMatches.isNotEmpty) ...[
-                _SectionLabel('Tools'),
+                const _SectionLabel('Tools'),
                 const SizedBox(height: 10),
                 for (final t in toolMatches.take(8))
                   _ResultRow(
@@ -140,7 +142,7 @@ class _SearchPageState extends State<SearchPage> {
                     title: t.$1,
                     subtitle: t.$2,
                     onTap: () => context.go(t.$3),
-                  ),
+                  ).animate(delay: Duration(milliseconds: toolMatches.indexOf(t) * 50 + (surahMatches.length + hadithBooks.length) * 50)).fadeIn(duration: 300.ms).slideY(begin: 0.08),
               ],
             ],
           ],
@@ -151,41 +153,42 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(BuildContext context) {
+    final figma = context.figma;
     return Row(
       children: [
         Expanded(
           child: Container(
             height: 54,
             decoration: BoxDecoration(
-              color: FigmaTokens.surfaceCard,
+              color: figma.surfaceCard,
               borderRadius: BorderRadius.circular(FigmaTokens.radiusInput),
-              border: Border.all(color: FigmaTokens.borderHairline),
-              boxShadow: FigmaTokens.cardShadowSm,
+              border: Border.all(color: figma.borderHairline),
+              boxShadow: figma.cardShadows,
             ),
             child: TextField(
               controller: _controller,
               autofocus: true,
               onChanged: (_) => setState(() {}),
               onSubmitted: (_) => setState(() {}),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Search Quran, surah, hadith or topic…',
                 hintStyle: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyUiSans,
                   fontSize: 14,
-                  color: FigmaTokens.textMuted,
+                  color: figma.textMuted,
                 ),
                 prefixIcon: Icon(Icons.search_rounded,
-                    color: FigmaTokens.textMuted),
+                    color: figma.textMuted),
                 suffixIcon: Icon(Icons.shortcut_rounded,
-                    color: FigmaTokens.textMuted),
+                    color: figma.textMuted),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 16),
+                contentPadding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: FigmaTokens.fontFamilyUiSans,
                 fontSize: 14.5,
-                color: FigmaTokens.textHeading,
+                color: figma.textHeading,
               ),
             ),
           ),
@@ -194,25 +197,26 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildNoResults() {
+  Widget _buildNoResults(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 40),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-        border: Border.all(color: FigmaTokens.borderHairline),
+        border: Border.all(color: figma.borderHairline),
       ),
-      child: const Column(
+      child: Column(
         children: [
           Icon(Icons.search_off_rounded,
-              size: 40, color: FigmaTokens.textMuted),
-          SizedBox(height: 12),
+              size: 40, color: figma.textMuted),
+          const SizedBox(height: 12),
           Text(
             'No results found. Try a different keyword.',
             style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 14,
-              color: FigmaTokens.textBody,
+              color: figma.textBody,
             ),
           ),
         ],
@@ -227,14 +231,15 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Text(
       label.toUpperCase(),
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: FigmaTokens.fontFamilyUiSans,
         fontSize: 11.5,
         fontWeight: FontWeight.w800,
         letterSpacing: 1.4,
-        color: FigmaTokens.accentGoldAmber,
+        color: figma.accentGoldAmber,
       ),
     );
   }
@@ -254,15 +259,16 @@ class _ResultRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return HoverLift(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
-          color: FigmaTokens.surfaceCard,
+          color: figma.surfaceCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: FigmaTokens.borderHairline),
+          border: Border.all(color: figma.borderHairline),
         ),
         child: Row(
           children: [
@@ -274,29 +280,29 @@ class _ResultRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                       fontSize: 14.5,
                       fontWeight: FontWeight.w800,
-                      color: FigmaTokens.textHeading,
+                      color: figma.textHeading,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyUiSans,
                       fontSize: 12,
-                      color: FigmaTokens.textMuted,
+                      color: figma.textMuted,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios_rounded,
               size: 14,
-              color: FigmaTokens.accentGoldAmber,
+              color: figma.accentGoldAmber,
             ),
           ],
         ),

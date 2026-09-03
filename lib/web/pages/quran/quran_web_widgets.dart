@@ -8,15 +8,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../widgets/web_animations.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../core/services/quran_audio_service.dart';
 import '../../widgets/web_footer.dart';
 
-/// Bounded scrollable wrapper for tab panes. Leaves bottom padding so the
-/// sticky [QuranAudioBar] never covers content, and always ends with the
-/// site footer. Never nests an unbounded scrollable (web blank-page rule).
+/// Bounded scrollable wrapper for standalone tab panes (e.g. Hadith, Juzz,
+/// Daily Ayah) that are rendered outside the main Quran page. Always ends
+/// with a full-width site footer and leaves bottom padding so the sticky
+/// [QuranAudioBar] never covers content. Never nests an unbounded scrollable
+/// (web blank-page rule).
 class QuranPaneScaffold extends StatelessWidget {
   final Widget child;
   const QuranPaneScaffold({super.key, required this.child});
@@ -25,19 +29,43 @@ class QuranPaneScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.sizeOf(context).width < 600 ? 80.0 : 132.0;
     return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.fromLTRB(24, 28, 24, bottomPad),
+      physics: webScrollPhysics,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(24, 28, 24, 0),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1180),
+                child: child,
+              ),
+            ),
+          ),
+          const SizedBox(height: 44),
+          const WebFooter(),
+          SizedBox(height: bottomPad),
+        ],
+      ),
+    );
+  }
+}
+
+/// Non-scrolling, footer-less content wrapper used for the five tab panes
+/// *inside* the main [QuranPage]. The QuranPage provides the unified outer
+/// scroll and the single shared [WebFooter] at the very bottom of the page.
+class QuranPaneContent extends StatelessWidget {
+  final Widget child;
+  const QuranPaneContent({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1180),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              child,
-              const SizedBox(height: 44),
-              const WebFooter(),
-            ],
-          ),
+          child: child,
         ),
       ),
     );
@@ -53,14 +81,16 @@ class BasmalaWidget extends StatelessWidget {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 18),
       child: Center(
-        child: Text(
-          'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ',
+        child: Directionality(
           textDirection: TextDirection.rtl,
-          style: TextStyle(
-            fontFamily: FigmaTokens.fontFamilyArabicSerif,
-            fontSize: 30,
-            height: 1.6,
-            color: FigmaTokens.brandDeepGreen,
+          child: Text(
+            'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ',
+            style: TextStyle(
+              fontFamily: FigmaTokens.fontFamilyArabicSerif,
+              fontSize: 30,
+              height: 1.6,
+              color: FigmaTokens.brandDeepGreen,
+            ),
           ),
         ),
       ),
@@ -74,12 +104,13 @@ class VerseDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 22),
+    final figma = context.figma;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 22),
       child: Divider(
         height: 1,
         thickness: 0.8,
-        color: FigmaTokens.borderHairline,
+        color: figma.borderHairline,
       ),
     );
   }
@@ -121,14 +152,15 @@ class AyahCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return GestureDetector(
       onTap: () => _showContextMenu(context),
       child: Container(
         padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
         decoration: BoxDecoration(
-          color: FigmaTokens.surfaceBackground,
+          color: figma.surfaceBackground,
           borderRadius: BorderRadius.circular(FigmaTokens.radiusCardSm),
-          border: Border.all(color: FigmaTokens.borderHairline),
+          border: Border.all(color: figma.borderHairline),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,25 +169,28 @@ class AyahCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    arabic,
+                  Directionality(
                     textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      fontFamily: FigmaTokens.fontFamilyArabicMushaf,
-                      fontSize: 24,
-                      height: 1.95,
-                      color: FigmaTokens.textHeading,
+                    child: Text(
+                      arabic,
+                      textAlign: TextAlign.right,
+                      softWrap: true,
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyArabicMushaf,
+                        fontSize: 24,
+                        height: 1.95,
+                        color: figma.textHeading,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Text(
                     translation,
                     style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyUiSans,
                       fontSize: 14.5,
                       height: 1.6,
-                      color: FigmaTokens.textBody.withValues(alpha: 0.92),
+                      color: figma.textBody.withValues(alpha: 0.92),
                     ),
                   ),
                 ],
@@ -168,17 +203,17 @@ class AyahCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: FigmaTokens.accentGoldSurface,
+                    color: figma.accentGoldSurface,
                   ),
                   child: Text(
                     '$ayahNum',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
-                      color: FigmaTokens.accentGoldAmber,
+                      color: figma.accentGoldAmber,
                     ),
                   ),
                 ),
@@ -186,7 +221,7 @@ class AyahCard extends StatelessWidget {
                 _PlayAyahButton(
                   surahNum: surahNum,
                   ayahNum: ayahNum,
-                ),
+                ).animate().fadeIn(duration: 200.ms, curve: Curves.easeOut),
               ],
             ),
           ],
@@ -211,21 +246,22 @@ class _VerseContextMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-        boxShadow: FigmaTokens.cardShadow,
+        boxShadow: figma.cardShadows,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: FigmaTokens.surfacePanelMint,
-              borderRadius: BorderRadius.vertical(
+            decoration: BoxDecoration(
+              color: figma.surfacePanelMint,
+              borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(FigmaTokens.radiusCard),
               ),
             ),
@@ -235,17 +271,17 @@ class _VerseContextMenu extends StatelessWidget {
                   width: 32,
                   height: 32,
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: FigmaTokens.accentGoldSurface,
+                    color: figma.accentGoldSurface,
                   ),
                   child: Text(
                     '$ayahNum',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: FigmaTokens.accentGoldAmber,
+                      color: figma.accentGoldAmber,
                     ),
                   ),
                 ),
@@ -253,11 +289,11 @@ class _VerseContextMenu extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Verse $ayahNum · Surah $surahNum',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyUiSans,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: FigmaTokens.textHeading,
+                      color: figma.textHeading,
                     ),
                   ),
                 ),
@@ -270,7 +306,7 @@ class _VerseContextMenu extends StatelessWidget {
             onTap: () {
               Clipboard.setData(ClipboardData(text: arabic));
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                 const SnackBar(content: Text('Arabic text copied.')),
               );
             },
@@ -281,7 +317,7 @@ class _VerseContextMenu extends StatelessWidget {
             onTap: () {
               Clipboard.setData(ClipboardData(text: translation));
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                 const SnackBar(content: Text('Translation copied.')),
               );
             },
@@ -302,7 +338,7 @@ class _VerseContextMenu extends StatelessWidget {
             label: 'Bookmark',
             onTap: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                 const SnackBar(content: Text('Verse bookmarked.')),
               );
             },
@@ -334,6 +370,7 @@ class _ContextAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -346,11 +383,11 @@ class _ContextAction extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyUiSans,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: FigmaTokens.textHeading,
+                  color: figma.textHeading,
                 ),
               ),
             ],

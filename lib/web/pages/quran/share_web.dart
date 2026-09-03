@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/figma_tokens.dart';
 import 'quran_web_widgets.dart';
 
@@ -16,26 +16,27 @@ class QuranShareWeb extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return QuranPaneScaffold(
+    final figma = context.figma;
+    return QuranPaneContent(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Share',
             style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyDisplaySerif,
               fontSize: 30,
               fontWeight: FontWeight.w900,
-              color: FigmaTokens.textHeading,
+              color: figma.textHeading,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Share the Qur\'ān with family and friends.',
             style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 14.5,
-              color: FigmaTokens.textBody,
+              color: figma.textBody,
             ),
           ),
           const SizedBox(height: 28),
@@ -79,12 +80,13 @@ class _ShareCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-        border: Border.all(color: FigmaTokens.borderHairline),
+        border: Border.all(color: figma.borderHairline),
       ),
       child: Row(
         children: [
@@ -94,7 +96,7 @@ class _ShareCard extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: FigmaTokens.surfacePanelMint,
+              color: figma.surfacePanelMint,
             ),
             child: Icon(icon, size: 22, color: FigmaTokens.brandMidGreen),
           ),
@@ -105,20 +107,20 @@ class _ShareCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: FigmaTokens.textHeading,
+                    color: figma.textHeading,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 13,
-                    color: FigmaTokens.textBody,
+                    color: figma.textBody,
                   ),
                 ),
               ],
@@ -131,10 +133,15 @@ class _ShareCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
             ),
             child: InkWell(
-              onTap: () => launchUrl(
-                Uri.parse(url),
-                mode: LaunchMode.platformDefault,
-              ),
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: url));
+                ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                  SnackBar(
+                    content: Text('Link copied: $url'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
               borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 9),

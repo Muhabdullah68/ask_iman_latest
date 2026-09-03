@@ -8,6 +8,7 @@
 
 import 'package:flutter/material.dart';
 import '../../core/theme/figma_tokens.dart';
+import '../widgets/web_animations.dart';
 import '../../core/utils/seo_meta.dart';
 import '../../features/community/community_screen.dart';
 import '../../features/charity/charity_list_screen.dart';
@@ -36,12 +37,13 @@ class CharityPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     setPageTitle('Charity — Support the Community · Ask Iman');
     return Column(
       children: [
         Expanded(
           child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: webScrollPhysics,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -51,9 +53,9 @@ class CharityPage extends StatelessWidget {
                     vertical: 26,
                   ),
                   decoration: BoxDecoration(
-                    gradient: FigmaTokens.heroGradientLight,
+                    gradient: figma.heroGradient,
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -62,16 +64,16 @@ class CharityPage extends StatelessWidget {
                           fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                           fontSize: 30,
                           fontWeight: FontWeight.w900,
-                          color: FigmaTokens.textHeading,
+                          color: figma.textHeading,
                         ),
                       ),
-                      SizedBox(height: 6),
+                      const SizedBox(height: 6),
                       Text(
                         'Support active campaigns, mosques and relief projects.',
                         style: TextStyle(
                           fontFamily: FigmaTokens.fontFamilyUiSans,
                           fontSize: 14,
-                          color: FigmaTokens.textBody,
+                          color: figma.textBody,
                         ),
                       ),
                     ],

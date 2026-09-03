@@ -74,6 +74,7 @@ class _BarState extends State<_Bar> {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     final audio = widget.audio;
     final player = audio.player;
     return Container(
@@ -99,9 +100,9 @@ class _BarState extends State<_Bar> {
                 // Back skip
                 IconButton(
                   onPressed: () => audio.previous(),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.skip_previous_rounded,
-                    color: FigmaTokens.accentGoldLight,
+                    color: figma.accentGoldLight,
                     size: 28,
                   ),
                   tooltip: 'Previous',
@@ -116,7 +117,7 @@ class _BarState extends State<_Bar> {
                       audio.isPlaying
                           ? Icons.pause_circle_filled_rounded
                           : Icons.play_circle_filled_rounded,
-                      color: FigmaTokens.accentGoldLight,
+                      color: figma.accentGoldLight,
                       size: 38,
                     ),
                     tooltip: audio.isPlaying ? 'Pause' : 'Play',
@@ -126,9 +127,9 @@ class _BarState extends State<_Bar> {
                 // Forward skip
                 IconButton(
                   onPressed: () => audio.next(),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.skip_next_rounded,
-                    color: FigmaTokens.accentGoldLight,
+                    color: figma.accentGoldLight,
                     size: 28,
                   ),
                   tooltip: 'Next',
@@ -153,13 +154,13 @@ class _BarState extends State<_Bar> {
                         ),
                       ),
                       Text(
-                        'Recitation \u2014 Mishary Rashid',
+                        'Recitation \u2014 Abdul Basit',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: FigmaTokens.fontFamilyUiSans,
                           fontSize: 12,
-                          color: FigmaTokens.accentGoldLight.withValues(
+                          color: figma.accentGoldLight.withValues(
                             alpha: 0.7,
                           ),
                         ),
@@ -182,12 +183,12 @@ class _BarState extends State<_Bar> {
                           return SliderTheme(
                             data: SliderThemeData(
                               trackHeight: 4,
-                              activeTrackColor: FigmaTokens.accentGoldAmber,
+                              activeTrackColor: figma.accentGoldAmber,
                               inactiveTrackColor:
                                   Colors.white.withValues(alpha: 0.16),
-                              thumbColor: FigmaTokens.accentGoldLight,
+                              thumbColor: figma.accentGoldLight,
                               overlayColor:
-                                  FigmaTokens.accentGoldAmber.withValues(alpha: 0.16),
+                                  figma.accentGoldAmber.withValues(alpha: 0.16),
                               thumbShape: const RoundSliderThumbShape(
                                 enabledThumbRadius: 7,
                               ),
@@ -263,6 +264,16 @@ class _BarState extends State<_Bar> {
                     size: 20,
                   ),
                   tooltip: 'Scroll to bottom',
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () => audio.stop(),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: FigmaTokens.textOnDark,
+                    size: 20,
+                  ),
+                  tooltip: 'Close player',
                 ),
               ],
             ),

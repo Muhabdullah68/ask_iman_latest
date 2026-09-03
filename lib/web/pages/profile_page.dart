@@ -8,6 +8,7 @@
 
 import 'package:flutter/material.dart';
 import '../../core/utils/seo_meta.dart';
+import '../widgets/web_animations.dart';
 import '../../features/profile/profile_screen.dart';
 import '../widgets/web_footer.dart';
 
@@ -21,7 +22,7 @@ class ProfilePage extends StatelessWidget {
       children: [
         Expanded(
           child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
+            physics: webScrollPhysics,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

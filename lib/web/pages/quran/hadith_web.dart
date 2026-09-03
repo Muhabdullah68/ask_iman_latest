@@ -40,6 +40,7 @@ class _HadithWebState extends State<HadithWeb> {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return QuranPaneScaffold(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -51,13 +52,13 @@ class _HadithWebState extends State<HadithWeb> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Ahadith Library',
                       style: TextStyle(
                         fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                         fontSize: 30,
                         fontWeight: FontWeight.w900,
-                        color: FigmaTokens.textHeading,
+                        color: figma.textHeading,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -65,10 +66,10 @@ class _HadithWebState extends State<HadithWeb> {
                       _book == null
                           ? 'Explore the six authentic collections, or filter the hadith of the day by topic.'
                           : 'Reading: ${_bookTitle(_book!)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: FigmaTokens.fontFamilyUiSans,
                         fontSize: 14.5,
-                        color: FigmaTokens.textBody,
+                        color: figma.textBody,
                       ),
                     ),
                   ],
@@ -144,24 +145,25 @@ class _HadithIntro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Row(
       children: [
         Container(
           width: 4,
           height: 22,
           decoration: BoxDecoration(
-            color: FigmaTokens.accentGoldAmber,
+            color: figma.accentGoldAmber,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
         const SizedBox(width: 10),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: FigmaTokens.fontFamilyDisplaySerif,
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: FigmaTokens.textHeading,
+            color: figma.textHeading,
           ),
         ),
       ],
@@ -181,18 +183,19 @@ class _TopicChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? FigmaTokens.brandMidGreen : FigmaTokens.surfaceCard,
+          color: selected ? FigmaTokens.brandMidGreen : figma.surfaceCard,
           borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
           border: Border.all(
             color: selected
                 ? FigmaTokens.brandMidGreen
-                : FigmaTokens.borderHairline,
+                : figma.borderHairline,
           ),
         ),
         child: Text(
@@ -203,7 +206,7 @@ class _TopicChip extends StatelessWidget {
             fontWeight: FontWeight.w700,
             color: selected
                 ? FigmaTokens.textOnDark
-                : FigmaTokens.textBody,
+                : figma.textBody,
           ),
         ),
       ),
@@ -252,6 +255,7 @@ class _BookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     final icon = switch (slug) {
       'bukhari' => Icons.menu_book_rounded,
       'muslim' => Icons.book_rounded,
@@ -261,17 +265,17 @@ class _BookCard extends StatelessWidget {
       _ => Icons.import_contacts_rounded,
     };
     return Material(
-      color: FigmaTokens.surfaceCard,
+      color: figma.surfaceCard,
       borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
       child: InkWell(
         onTap: onTap,
-        hoverColor: FigmaTokens.surfacePanelMint,
+        hoverColor: figma.surfacePanelMint,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-            border: Border.all(color: FigmaTokens.borderHairline),
+            border: Border.all(color: figma.borderHairline),
           ),
           child: Row(
             children: [
@@ -280,10 +284,10 @@ class _BookCard extends StatelessWidget {
                 height: 48,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: FigmaTokens.accentGoldSurface,
+                  color: figma.accentGoldSurface,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon, color: FigmaTokens.accentGoldAmber, size: 24),
+                child: Icon(icon, color: figma.accentGoldAmber, size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -295,28 +299,28 @@ class _BookCard extends StatelessWidget {
                       name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: FigmaTokens.textHeading,
+                        color: figma.textHeading,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '100 hadiths · Arabic + English',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: FigmaTokens.fontFamilyUiSans,
                         fontSize: 11.5,
-                        color: FigmaTokens.textMuted,
+                        color: figma.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: FigmaTokens.accentGoldAmber,
+                color: figma.accentGoldAmber,
               ),
             ],
           ),
@@ -332,6 +336,7 @@ class _HadithCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     final arabic = hadith['arabic'];
     final text = hadith['id'] ?? hadith['text'] ?? '';
     final number = hadith['number'];
@@ -341,9 +346,9 @@ class _HadithCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCardSm),
-        border: Border.all(color: FigmaTokens.borderHairline),
+        border: Border.all(color: figma.borderHairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,22 +358,22 @@ class _HadithCard extends StatelessWidget {
               arabic,
               textDirection: TextDirection.rtl,
               textAlign: TextAlign.right,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: FigmaTokens.fontFamilyArabicSerif,
                 fontSize: 20,
                 height: 1.8,
-                color: FigmaTokens.textHeading,
+                color: figma.textHeading,
               ),
             ),
             const SizedBox(height: 12),
           ],
           Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 14.5,
               height: 1.65,
-              color: FigmaTokens.textBody,
+              color: figma.textBody,
             ),
           ),
           const SizedBox(height: 14),
@@ -377,11 +382,11 @@ class _HadithCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               if (number != null)
-                _MetaChip(text: 'No. $number', color: FigmaTokens.accentGoldAmber),
+                _MetaChip(text: 'No. $number', color: figma.accentGoldAmber),
               if (narrator != null)
                 _MetaChip(text: narrator, color: FigmaTokens.brandMidGreen),
               if (grade != null)
-                _MetaChip(text: grade, color: FigmaTokens.textMuted),
+                _MetaChip(text: grade, color: figma.textMuted),
             ],
           ),
         ],

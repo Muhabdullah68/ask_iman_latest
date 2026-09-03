@@ -10,11 +10,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/data/daily_data.dart';
 import '../../../core/services/quran_audio_service.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../features/quran/data/quran_api_service.dart';
 import '../../../features/quran/data/surahs_data.dart';
+import '../../widgets/web_animations.dart';
 import 'quran_web_widgets.dart';
 
 class TranslationWeb extends StatefulWidget {
@@ -59,19 +61,20 @@ class _TranslationWebState extends State<TranslationWeb> {
 
   void _copy(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       const SnackBar(content: Text('Copied to clipboard.')),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     final meta = SurahsData.surahs[_selected - 1];
     final name = meta['name'] as String;
     final audio = QuranAudioService();
     final daily = DailyData.getDailyAyahs(5).first;
 
-    return QuranPaneScaffold(
+    return QuranPaneContent(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -102,10 +105,10 @@ class _TranslationWebState extends State<TranslationWeb> {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: FigmaTokens.surfaceCard,
+              color: figma.surfaceCard,
               borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-              border: Border.all(color: FigmaTokens.borderHairline),
-              boxShadow: FigmaTokens.cardShadowSm,
+              border: Border.all(color: figma.borderHairline),
+              boxShadow: figma.cardShadows,
             ),
             child: Row(
               children: [
@@ -117,30 +120,27 @@ class _TranslationWebState extends State<TranslationWeb> {
                     isExpanded: true,
                     items: [
                       for (final s in SurahsData.surahs)
-                        DropdownMenuItem(
-                          value: s['num'] as int,
-                          child: SizedBox(
-                            width: 220,
+                          DropdownMenuItem(
+                            value: s['num'] as int,
                             child: Text(
                               '${s['num']}. ${s['name']}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: FigmaTokens.fontFamilyUiSans,
                                 fontSize: 14,
-                                color: FigmaTokens.textHeading,
+                                color: figma.textHeading,
                               ),
                             ),
                           ),
-                        ),
                     ],
                     onChanged: (v) {
                       if (v != null) _select(v);
                     },
                   ),
                 ),
-                const Text(
+                Text(
                   '\u00b7',
                   style: TextStyle(
-                    color: FigmaTokens.accentGoldAmber,
+                    color: figma.accentGoldAmber,
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                   ),
@@ -181,45 +181,66 @@ class _TranslationWebState extends State<TranslationWeb> {
           else if (_ayahs == null)
             _NoData(message: 'Could not load Surah $name. Please retry.')
           else if (_lineForLine)
-            for (final a in _ayahs!) ...[
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  a['a'] ?? '',
-                  textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontFamily: FigmaTokens.fontFamilyArabicMushaf,
-                    fontSize: 22,
-                    height: 1.85,
-                    color: FigmaTokens.textHeading,
+            for (var idx = 0; idx < _ayahs!.length; idx++) ...[
+              ScrollReveal(
+                duration: const Duration(milliseconds: 400),
+                slideOffset: const Offset(0, 12),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: Text(
+                      _ayahs![idx]['a'] ?? '',
+                      textAlign: TextAlign.right,
+                      softWrap: true,
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyArabicMushaf,
+                        fontSize: 22,
+                        height: 1.85,
+                        color: figma.textHeading,
+                      ),
+                    ),
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  _urdu ? (a['tu'] ?? a['t'] ?? '') : (a['t'] ?? ''),
-                  style: TextStyle(
-                    fontFamily: FigmaTokens.fontFamilyUiSans,
-                    fontSize: 13.5,
-                    height: 1.5,
-                    color: FigmaTokens.textBody.withValues(alpha: 0.9),
+              ScrollReveal(
+                delay: Duration(milliseconds: (idx * 40).clamp(0, 400)),
+                duration: const Duration(milliseconds: 400),
+                slideOffset: const Offset(0, 8),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    _urdu
+                        ? (_ayahs![idx]['tu'] ?? _ayahs![idx]['t'] ?? '')
+                        : (_ayahs![idx]['t'] ?? ''),
+                    style: TextStyle(
+                      fontFamily: FigmaTokens.fontFamilyUiSans,
+                      fontSize: 13.5,
+                      height: 1.5,
+                      color: figma.textBody.withValues(alpha: 0.9),
+                    ),
                   ),
                 ),
               ),
               const VerseDivider(),
             ]
           else
-            for (final a in _ayahs!) ...[
+            for (var idx = 0; idx < _ayahs!.length; idx++) ...[
               Padding(
                 padding: const EdgeInsets.only(bottom: 14),
-                child: AyahCard(
-                  surahNum: _selected,
-                  ayahNum: int.parse(a['num']!),
-                  arabic: a['a']!,
-                  translation: _urdu ? (a['tu'] ?? a['t']!) : a['t']!,
-                  urdu: _urdu,
+                child: ScrollReveal(
+                  delay: Duration(milliseconds: (idx * 40).clamp(0, 400)),
+                  duration: const Duration(milliseconds: 400),
+                  slideOffset: const Offset(0, 15),
+                  child: AyahCard(
+                    surahNum: _selected,
+                    ayahNum: int.parse(_ayahs![idx]['num']!),
+                    arabic: _ayahs![idx]['a']!,
+                    translation: _urdu
+                        ? (_ayahs![idx]['tu'] ?? _ayahs![idx]['t']!)
+                        : _ayahs![idx]['t']!,
+                    urdu: _urdu,
+                  ),
                 ),
               ),
             ],
@@ -245,6 +266,7 @@ class _DailyInspirationBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -254,7 +276,7 @@ class _DailyInspirationBanner extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [FigmaTokens.brandDeepGreen, FigmaTokens.brandMidGreen],
         ),
-        boxShadow: FigmaTokens.cardShadow,
+        boxShadow: figma.cardShadows,
       ),
       child: Row(
         children: [
@@ -268,7 +290,7 @@ class _DailyInspirationBanner extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: FigmaTokens.accentGoldAmber,
+                    color: figma.accentGoldAmber,
                     borderRadius:
                         BorderRadius.circular(FigmaTokens.radiusPill),
                   ),
@@ -284,15 +306,18 @@ class _DailyInspirationBanner extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                Text(
-                  arabic,
+                Directionality(
                   textDirection: TextDirection.rtl,
-                  textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontFamily: FigmaTokens.fontFamilyArabicMushaf,
-                    fontSize: 22,
-                    height: 1.85,
-                    color: FigmaTokens.textOnDark,
+                  child: Text(
+                    arabic,
+                    textAlign: TextAlign.right,
+                    softWrap: true,
+                    style: const TextStyle(
+                      fontFamily: FigmaTokens.fontFamilyArabicMushaf,
+                      fontSize: 22,
+                      height: 1.85,
+                      color: FigmaTokens.textOnDark,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -308,11 +333,11 @@ class _DailyInspirationBanner extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   reference,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: FigmaTokens.accentGoldLight,
+                    color: figma.accentGoldLight,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -357,8 +382,9 @@ class _BannerBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Material(
-      color: filled ? FigmaTokens.accentGoldAmber : Colors.transparent,
+      color: filled ? figma.accentGoldAmber : Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
         side: filled
@@ -399,25 +425,26 @@ class _TabIntro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: FigmaTokens.fontFamilyDisplaySerif,
             fontSize: 30,
             fontWeight: FontWeight.w900,
-            color: FigmaTokens.textHeading,
+            color: figma.textHeading,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: FigmaTokens.fontFamilyUiSans,
             fontSize: 14.5,
-            color: FigmaTokens.textBody,
+            color: figma.textBody,
           ),
         ),
       ],
@@ -478,6 +505,7 @@ class _ModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Tooltip(
       message: lineForLine ? 'Block mode' : 'Line-for-line mode',
       child: InkWell(
@@ -487,8 +515,8 @@ class _ModeToggle extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
             color: lineForLine
-                ? FigmaTokens.accentGoldAmber
-                : FigmaTokens.surfacePanelMint,
+                ? figma.accentGoldAmber
+                : figma.surfacePanelMint,
             borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
           ),
           child: Icon(
@@ -508,24 +536,25 @@ class _NoData extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
       ),
       child: Column(
         children: [
-          const Icon(Icons.cloud_off_rounded,
-              size: 40, color: FigmaTokens.textMuted),
+          Icon(Icons.cloud_off_rounded,
+              size: 40, color: figma.textMuted),
           const SizedBox(height: 12),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 14,
-              color: FigmaTokens.textBody,
+              color: figma.textBody,
             ),
           ),
         ],

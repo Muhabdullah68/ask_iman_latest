@@ -54,7 +54,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             ndk {
-                debugSymbolLevel = "NONE"
+                debugSymbolLevel = "SYMBOL_TABLE"
             }
             packaging {
                 jniLibs {

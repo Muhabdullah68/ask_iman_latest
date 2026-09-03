@@ -5,10 +5,12 @@
 // Small building blocks shared across the website pages: mint page background,
 // section headers with eyebrow chips, feature tiles, pill stats, primary /
 // outline buttons, hover-lift cards and a scroll-to-top CTA.
+// All colors use context.figma (ThemeExtension) for proper dark/light mode.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
 import '../../core/theme/figma_tokens.dart';
+import 'web_animations.dart';
 
 // ── Mint page background ──────────────────────────────────────────────────
 class WebPageScaffold extends StatelessWidget {
@@ -26,10 +28,10 @@ class WebPageScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
+      color: context.figma.surfaceBackground,
       alignment: Alignment.topCenter,
       child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+        physics: webScrollPhysics,
         child: Column(
           children: [
             ?top,
@@ -68,23 +70,24 @@ class WebSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: FigmaTokens.accentGoldSurface,
+            color: figma.accentGoldSurface,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             eyebrow.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.6,
-              color: FigmaTokens.accentGoldAmber,
+              color: figma.accentGoldAmber,
             ),
           ),
         ),
@@ -95,12 +98,12 @@ class WebSectionHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                   fontSize: 30,
                   fontWeight: FontWeight.w800,
                   height: 1.2,
-                  color: FigmaTokens.textHeading,
+                  color: figma.textHeading,
                 ),
               ),
             ),
@@ -116,17 +119,17 @@ class WebSectionHeader extends StatelessWidget {
                     children: [
                       Text(
                         actionLabel!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: FigmaTokens.fontFamilyUiSans,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: FigmaTokens.accentGoldAmber,
+                          color: figma.accentGoldAmber,
                         ),
                       ),
-                      const Icon(
+                      Icon(
                         Icons.arrow_forward_rounded,
                         size: 16,
-                        color: FigmaTokens.accentGoldAmber,
+                        color: figma.accentGoldAmber,
                       ),
                     ],
                   ),
@@ -139,14 +142,16 @@ class WebSectionHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             subtitle!,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 14.5,
               height: 1.55,
-              color: FigmaTokens.textBody,
+              color: figma.textBody,
             ),
           ),
         ],
+        const SizedBox(height: 12),
+        GoldReveal(width: 56, height: 3, delay: const Duration(milliseconds: 200)),
       ],
     );
   }
@@ -171,15 +176,16 @@ class WebFeatureTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return HoverLift(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: FigmaTokens.surfaceCard,
+          color: figma.surfaceCard,
           borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-          border: Border.all(color: FigmaTokens.borderHairline),
-          boxShadow: FigmaTokens.cardShadowSm,
+          border: Border.all(color: figma.borderHairline),
+          boxShadow: figma.cardShadows,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -188,7 +194,7 @@ class WebFeatureTile extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: (iconColor ?? FigmaTokens.surfacePanelMint),
+                color: iconColor ?? figma.surfacePanelMint,
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Icon(
@@ -201,11 +207,11 @@ class WebFeatureTile extends StatelessWidget {
             Text(
               label,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: FigmaTokens.textHeading,
+                color: figma.textHeading,
               ),
             ),
             if (subtitle != null) ...[
@@ -213,10 +219,10 @@ class WebFeatureTile extends StatelessWidget {
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyUiSans,
                   fontSize: 11.5,
-                  color: FigmaTokens.textMuted,
+                  color: figma.textMuted,
                 ),
               ),
             ],
@@ -248,6 +254,8 @@ class WebButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
+
     if (loading) {
       return ElevatedButton(
         onPressed: null,
@@ -272,9 +280,8 @@ class WebButton extends StatelessWidget {
 
     final child = Row(
       mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
-      mainAxisAlignment: fullWidth
-          ? MainAxisAlignment.center
-          : MainAxisAlignment.start,
+      mainAxisAlignment:
+          fullWidth ? MainAxisAlignment.center : MainAxisAlignment.start,
       children: [
         if (icon != null) ...[
           Icon(icon, size: 17),
@@ -295,12 +302,13 @@ class WebButton extends StatelessWidget {
       return OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          foregroundColor: FigmaTokens.brandDeepGreen,
-          side: const BorderSide(color: FigmaTokens.brandMidGreen, width: 1.4),
+          foregroundColor: figma.brandDeepGreen,
+          side: BorderSide(color: figma.brandMidGreen, width: 1.4),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 13),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
           ),
+          overlayColor: FigmaTokens.accentGoldAmber.withOpacity(0.1),
         ),
         child: child,
       );
@@ -314,6 +322,7 @@ class WebButton extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
         ),
+        overlayColor: Colors.white.withOpacity(0.12),
       ),
       child: child,
     );
@@ -329,32 +338,33 @@ class WebStatPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: FigmaTokens.cardShadowSm,
+        boxShadow: figma.cardShadows,
       ),
       child: Column(
         children: [
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyDisplaySerif,
               fontSize: 20,
               fontWeight: FontWeight.w900,
-              color: FigmaTokens.brandDeepGreen,
+              color: figma.brandDeepGreen,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: FigmaTokens.textMuted,
+              color: figma.textMuted,
             ),
           ),
         ],
@@ -385,18 +395,21 @@ class _HoverLiftState extends State<HoverLift> {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: AnimatedScale(
         scale: _hovered ? widget.lift : 1.0,
-        duration: const Duration(milliseconds: 160),
+        duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 160),
         curve: Curves.easeOut,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: widget.onTap,
             borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
+            splashColor: FigmaTokens.accentGoldAmber.withOpacity(0.08),
+            highlightColor: FigmaTokens.accentGoldAmber.withOpacity(0.03),
             child: widget.child,
           ),
         ),

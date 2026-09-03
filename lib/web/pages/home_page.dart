@@ -14,12 +14,14 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/figma_tokens.dart';
 import '../../core/data/daily_data.dart';
 import '../../features/quran/data/ahadees_data.dart';
 import '../widgets/web_widgets.dart';
 import '../widgets/web_footer.dart';
+import '../widgets/web_animations.dart';
 import '../web_router.dart' show WebRoutes;
 
 class HomePage extends StatelessWidget {
@@ -34,11 +36,25 @@ class HomePage extends StatelessWidget {
           const SizedBox(height: 24),
           const _AyatSlider(),
           const SizedBox(height: 72),
-          const _FeatureTiles(),
+          const ScrollReveal(
+            duration: Duration(milliseconds: 600),
+            slideOffset: Offset(0, 30),
+            child: _FeatureTiles(),
+          ),
           const SizedBox(height: 72),
-          const _DailyInspiration(),
+          const ScrollReveal(
+            delay: Duration(milliseconds: 100),
+            duration: Duration(milliseconds: 600),
+            slideOffset: Offset(0, 30),
+            child: _DailyInspiration(),
+          ),
           const SizedBox(height: 72),
-          const _SacredCollections(),
+          const ScrollReveal(
+            delay: Duration(milliseconds: 200),
+            duration: Duration(milliseconds: 600),
+            slideOffset: Offset(0, 30),
+            child: _SacredCollections(),
+          ),
           const SizedBox(height: 72),
           const WebFooter(),
         ],
@@ -157,6 +173,7 @@ class _AyatSliderState extends State<_AyatSlider> {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     final slide = _slides[_index];
 
     return MouseRegion(
@@ -216,10 +233,10 @@ class _AyatSliderState extends State<_AyatSlider> {
                                   shape: BoxShape.circle,
                                   gradient: RadialGradient(
                                     colors: [
-                                      FigmaTokens.accentGoldLight.withValues(
+                                      figma.accentGoldLight.withValues(
                                         alpha: 0.22,
                                       ),
-                                      FigmaTokens.accentGoldLight.withValues(
+                                      figma.accentGoldLight.withValues(
                                         alpha: 0.0,
                                       ),
                                     ],
@@ -248,7 +265,7 @@ class _AyatSliderState extends State<_AyatSlider> {
                               child: IgnorePointer(
                                 child: CustomPaint(
                                   painter: _OrnamentPainter(
-                                    color: FigmaTokens.accentGoldLight
+                                    color: figma.accentGoldLight
                                         .withValues(alpha: 0.08),
                                   ),
                                 ),
@@ -288,7 +305,7 @@ class _AyatSliderState extends State<_AyatSlider> {
                                   vertical: 7,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: FigmaTokens.accentGoldAmber,
+                                  color: figma.accentGoldAmber,
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: const Text(
@@ -305,11 +322,11 @@ class _AyatSliderState extends State<_AyatSlider> {
                               const SizedBox(width: 12),
                               Text(
                                 slide.reference,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: FigmaTokens.fontFamilyUiSans,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: FigmaTokens.accentGoldLight,
+                                  color: figma.accentGoldLight,
                                 ),
                               ),
                             ],
@@ -336,7 +353,7 @@ class _AyatSliderState extends State<_AyatSlider> {
                             width: 72,
                             height: 3,
                             decoration: BoxDecoration(
-                              color: FigmaTokens.accentGoldAmber,
+                              color: figma.accentGoldAmber,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -386,9 +403,9 @@ class _AyatSliderState extends State<_AyatSlider> {
                                           alpha: 0.6,
                                         ),
                                       ),
-                                      prefixIcon: const Icon(
+                                      prefixIcon: Icon(
                                         Icons.search_rounded,
-                                        color: FigmaTokens.accentGoldLight,
+                                        color: figma.accentGoldLight,
                                       ),
                                       border: InputBorder.none,
                                       contentPadding:
@@ -407,7 +424,7 @@ class _AyatSliderState extends State<_AyatSlider> {
                                     onPressed: _submitSearch,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor:
-                                          FigmaTokens.accentGoldAmber,
+                                          figma.accentGoldAmber,
                                       foregroundColor: FigmaTokens.textOnDark,
                                       shape: RoundedRectangleBorder(
                                         borderRadius:
@@ -445,7 +462,7 @@ class _AyatSliderState extends State<_AyatSlider> {
                                   height: 8,
                                   decoration: BoxDecoration(
                                     color: i == _index
-                                        ? FigmaTokens.accentGoldAmber
+                                        ? figma.accentGoldAmber
                                         : Colors.white.withValues(alpha: 0.35),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
@@ -484,6 +501,7 @@ class _SliderArrow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Material(
       color: Colors.white.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(999),
@@ -497,7 +515,7 @@ class _SliderArrow extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
           ),
-          child: Icon(icon, color: FigmaTokens.accentGoldLight, size: 22),
+          child: Icon(icon, color: figma.accentGoldLight, size: 22),
         ),
       ),
     );
@@ -590,7 +608,15 @@ class _FeatureTiles extends StatelessWidget {
                   subtitle: t.subtitle,
                   image: t.image,
                   onTap: () => context.go(t.route),
-                );
+                )
+                    .animate(delay: Duration(milliseconds: 100 + i * 80))
+                    .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
+                    .slideY(
+                      begin: 0.15,
+                      end: 0,
+                      duration: 400.ms,
+                      curve: Curves.easeOutCubic,
+                    );
               },
             );
           },
@@ -617,16 +643,17 @@ class _ImageFeatureTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return HoverLift(
       onTap: onTap,
       lift: 1.03,
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: FigmaTokens.surfaceCard,
+          color: figma.surfaceCard,
           borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-          border: Border.all(color: FigmaTokens.borderHairline),
-          boxShadow: FigmaTokens.cardShadowSm,
+          border: Border.all(color: figma.borderHairline),
+          boxShadow: figma.cardShadows,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -639,7 +666,7 @@ class _ImageFeatureTile extends StatelessWidget {
                     image,
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => Container(
-                      color: FigmaTokens.surfacePanelMint,
+                      color: figma.surfacePanelMint,
                       child: Icon(icon,
                           size: 40, color: FigmaTokens.brandMidGreen),
                     ),
@@ -663,9 +690,9 @@ class _ImageFeatureTile extends StatelessWidget {
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
-                        color: FigmaTokens.surfaceCard,
+                        color: figma.surfaceCard,
                         borderRadius: BorderRadius.circular(13),
-                        boxShadow: FigmaTokens.cardShadowSm,
+                        boxShadow: figma.cardShadows,
                       ),
                       child: Icon(icon,
                           color: FigmaTokens.brandDeepGreen, size: 21),
@@ -686,11 +713,11 @@ class _ImageFeatureTile extends StatelessWidget {
                           label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                             fontSize: 14.5,
                             fontWeight: FontWeight.w800,
-                            color: FigmaTokens.textHeading,
+                            color: figma.textHeading,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -698,19 +725,19 @@ class _ImageFeatureTile extends StatelessWidget {
                           subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontFamily: FigmaTokens.fontFamilyUiSans,
                             fontSize: 11.5,
-                            color: FigmaTokens.textMuted,
+                            color: figma.textMuted,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 13,
-                    color: FigmaTokens.accentGoldAmber,
+                    color: figma.accentGoldAmber,
                   ),
                 ],
               ),
@@ -730,6 +757,7 @@ class _DailyInspiration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     final ayahs = DailyData.getDailyAyahs(5);
     final dua = DailyData.getDailyDua();
     final ayah = ayahs.isNotEmpty ? ayahs.first : null;
@@ -738,7 +766,7 @@ class _DailyInspiration extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-        boxShadow: FigmaTokens.cardShadowSm,
+        boxShadow: figma.cardShadows,
       ),
       child: Stack(
         children: [
@@ -747,7 +775,7 @@ class _DailyInspiration extends StatelessWidget {
               'assets/images/mosque interior.png',
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => Container(
-                color: FigmaTokens.surfacePanelMint,
+                color: figma.surfacePanelMint,
               ),
             ),
           ),
@@ -758,8 +786,8 @@ class _DailyInspiration extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    FigmaTokens.surfaceCard.withValues(alpha: 0.96),
-                    FigmaTokens.surfacePanelMint.withValues(alpha: 0.92),
+                    figma.surfaceCard.withValues(alpha: 0.96),
+                    figma.surfacePanelMint.withValues(alpha: 0.92),
                   ],
                 ),
               ),
@@ -776,7 +804,7 @@ class _DailyInspiration extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: FigmaTokens.accentGoldAmber,
+                    color: figma.accentGoldAmber,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Text(
@@ -805,35 +833,35 @@ class _DailyInspiration extends StatelessWidget {
                   const SizedBox(height: 14),
                   Text(
                     ayah['translation'] ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyUiSans,
                       fontSize: 15,
                       height: 1.6,
-                      color: FigmaTokens.textBody,
+                      color: figma.textBody,
                     ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     ayah['reference'] ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyUiSans,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: FigmaTokens.accentGoldAmber,
+                      color: figma.accentGoldAmber,
                     ),
                   ),
                 ],
                 const SizedBox(height: 20),
                 if (dua['arabic'] != null) ...[
-                  Divider(color: FigmaTokens.borderHairline),
+                  Divider(color: figma.borderHairline),
                   const SizedBox(height: 14),
                   Text(
-                    'Today’s Dua',
-                    style: const TextStyle(
+                    'Today\u2019s Dua',
+                    style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyUiSans,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: FigmaTokens.textMuted,
+                      color: figma.textMuted,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -850,11 +878,11 @@ class _DailyInspiration extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     dua['translation'] ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyUiSans,
                       fontSize: 13,
                       height: 1.55,
-                      color: FigmaTokens.textBody,
+                      color: figma.textBody,
                     ),
                   ),
                 ],
@@ -886,7 +914,19 @@ class _DailyInspiration extends StatelessWidget {
       child: SizedBox(
         width: 180,
         height: 180,
-        child: CustomPaint(painter: _StarOrnamentPainter()),
+        child: CustomPaint(
+          painter: _StarOrnamentPainter(
+            accentGoldAmber: figma.accentGoldAmber,
+            surfaceCardColor: figma.surfaceCard,
+          ),
+        ),
+      ).animate(
+        onPlay: (controller) => controller.repeat(reverse: false),
+      ).rotate(
+        begin: 0,
+        end: 1,
+        duration: const Duration(seconds: 60),
+        curve: Curves.linear,
       ),
     );
 
@@ -927,6 +967,7 @@ class _SacredCollections extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     final books = AhadeesData.books.take(3).toList();
 
     return Column(
@@ -944,7 +985,7 @@ class _SacredCollections extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-            boxShadow: FigmaTokens.cardShadowSm,
+            boxShadow: figma.cardShadows,
           ),
           child: Stack(
             children: [
@@ -953,7 +994,7 @@ class _SacredCollections extends StatelessWidget {
                   'assets/images/bgcolor.png',
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => Container(
-                    color: FigmaTokens.surfacePanelMint,
+                    color: figma.surfacePanelMint,
                   ),
                 ),
               ),
@@ -978,9 +1019,9 @@ class _SacredCollections extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.collections_bookmark_rounded,
-                          color: FigmaTokens.accentGoldAmber,
+                          color: figma.accentGoldAmber,
                           size: 22,
                         ),
                         const SizedBox(width: 10),
@@ -999,17 +1040,17 @@ class _SacredCollections extends StatelessWidget {
                           width: 46,
                           height: 46,
                           decoration: BoxDecoration(
-                            color: FigmaTokens.accentGoldAmber
+                            color: figma.accentGoldAmber
                                 .withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: FigmaTokens.accentGoldAmber
+                              color: figma.accentGoldAmber
                                   .withValues(alpha: 0.4),
                             ),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.auto_stories_rounded,
-                            color: FigmaTokens.accentGoldLight,
+                            color: figma.accentGoldLight,
                             size: 22,
                           ),
                         ),
@@ -1068,6 +1109,7 @@ class _BookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     final cover = _covers[index % _covers.length];
     return HoverLift(
       onTap: () => context.go('${WebRoutes.quran}/hadith'),
@@ -1093,7 +1135,7 @@ class _BookCard extends StatelessWidget {
                   colors: cover,
                 ),
                 border: Border.all(
-                  color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.55),
+                  color: figma.accentGoldAmber.withValues(alpha: 0.55),
                 ),
                 boxShadow: const [
                   BoxShadow(
@@ -1109,19 +1151,19 @@ class _BookCard extends StatelessWidget {
                   Container(
                     width: 30,
                     height: 2,
-                    color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.8),
+                    color: figma.accentGoldAmber.withValues(alpha: 0.8),
                   ),
                   const SizedBox(height: 6),
-                  const Icon(
+                  Icon(
                     Icons.menu_book_rounded,
-                    color: FigmaTokens.accentGoldLight,
+                    color: figma.accentGoldLight,
                     size: 18,
                   ),
                   const SizedBox(height: 6),
                   Container(
                     width: 30,
                     height: 2,
-                    color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.8),
+                    color: figma.accentGoldAmber.withValues(alpha: 0.8),
                   ),
                 ],
               ),
@@ -1152,9 +1194,9 @@ class _BookCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_rounded,
-                    color: FigmaTokens.accentGoldAmber,
+                    color: figma.accentGoldAmber,
                     size: 18,
                   ),
                 ],
@@ -1169,13 +1211,20 @@ class _BookCard extends StatelessWidget {
 
 // ── 8-point star ornament ─────────────────────────────────────────────────
 class _StarOrnamentPainter extends CustomPainter {
+  final Color accentGoldAmber;
+  final Color surfaceCardColor;
+  _StarOrnamentPainter({
+    required this.accentGoldAmber,
+    required this.surfaceCardColor,
+  });
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 6;
     final outer = Paint()
-      ..color = FigmaTokens.accentGoldAmber.withValues(alpha: 0.9);
-    final inner = Paint()..color = FigmaTokens.surfaceCard;
+      ..color = accentGoldAmber.withValues(alpha: 0.9);
+    final inner = Paint()..color = surfaceCardColor;
 
     Path starPath(int points, double rOuter, double rInner, double angleOffset) {
       final path = Path();
@@ -1208,7 +1257,9 @@ class _StarOrnamentPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _StarOrnamentPainter oldDelegate) =>
+      oldDelegate.accentGoldAmber != accentGoldAmber ||
+      oldDelegate.surfaceCardColor != surfaceCardColor;
 }
 
 // ── Subtle gold ornamental lattice (stars + dots) ────────────────────────────

@@ -47,25 +47,26 @@ class _JuzzWebState extends State<JuzzWeb> {
   }
 
   Widget _buildGrid(BuildContext context) {
+    final figma = context.figma;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Read by Juz',
           style: TextStyle(
             fontFamily: FigmaTokens.fontFamilyDisplaySerif,
             fontSize: 24,
             fontWeight: FontWeight.w900,
-            color: FigmaTokens.textHeading,
+            color: figma.textHeading,
           ),
         ),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'The Qur\u0101n is divided into 30 ajz\u0101\u2019. Pick a juz to read its surahs continuously.',
           style: TextStyle(
             fontFamily: FigmaTokens.fontFamilyUiSans,
             fontSize: 14,
-            color: FigmaTokens.textBody,
+            color: figma.textBody,
           ),
         ),
         const SizedBox(height: 20),
@@ -100,6 +101,7 @@ class _JuzzWebState extends State<JuzzWeb> {
   }
 
   Widget _buildReader(BuildContext context) {
+    final figma = context.figma;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -127,11 +129,11 @@ class _JuzzWebState extends State<JuzzWeb> {
             Expanded(
               child: Text(
                 'Juz $_selected',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: FigmaTokens.textHeading,
+                  color: figma.textHeading,
                 ),
               ),
             ),
@@ -194,7 +196,7 @@ class _JuzzWebState extends State<JuzzWeb> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: FigmaTokens.surfacePanelMint,
+                      color: figma.surfacePanelMint,
                       borderRadius: BorderRadius.circular(
                         FigmaTokens.radiusCardSm,
                       ),
@@ -204,11 +206,11 @@ class _JuzzWebState extends State<JuzzWeb> {
                         Expanded(
                           child: Text(
                             '${group.surahNum}. ${group.surahName}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: FigmaTokens.textHeading,
+                              color: figma.textHeading,
                             ),
                           ),
                         ),
@@ -251,17 +253,18 @@ class _JuzCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Material(
-      color: FigmaTokens.surfaceCard,
+      color: figma.surfaceCard,
       borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
       child: InkWell(
         onTap: onTap,
-        hoverColor: FigmaTokens.surfacePanelMint,
+        hoverColor: figma.surfacePanelMint,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-            border: Border.all(color: FigmaTokens.borderHairline),
+            border: Border.all(color: figma.borderHairline),
           ),
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -277,22 +280,22 @@ class _JuzCard extends StatelessWidget {
                 ),
                 child: Text(
                   '$juz',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
-                    color: FigmaTokens.accentGoldLight,
+                    color: figma.accentGoldLight,
                   ),
                 ),
               ),
               const SizedBox(height: 10),
               Text(
                 'Juz $juz',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyUiSans,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: FigmaTokens.textHeading,
+                  color: figma.textHeading,
                 ),
               ),
             ],
@@ -350,23 +353,24 @@ class _JuzzError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Icons.cloud_off_rounded, size: 40, color: FigmaTokens.textMuted),
-          SizedBox(height: 12),
+          Icon(Icons.cloud_off_rounded, size: 40, color: figma.textMuted),
+          const SizedBox(height: 12),
           Text(
             'Could not load this juz. Check your connection and try again.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 14,
-              color: FigmaTokens.textBody,
+              color: figma.textBody,
             ),
           ),
         ],

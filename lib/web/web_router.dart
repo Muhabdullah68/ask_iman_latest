@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // ASK IMAN WEBSITE — ROUTES
 //
-// GoRouter setup for the website. Real URLs:
+// GoRouter setup for the website with smooth page transitions.
 //   /                          Home
 //   /quran                     Quran Explorer (tabs)
 //   /quran/talawat             Quran → Talawat tab
@@ -25,6 +25,7 @@
 //   /secret-admin-dashboard    Hidden admin (guard)
 // ─────────────────────────────────────────────────────────────────────────────
 
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/services/alarm_service.dart';
 import 'pages/about_page.dart';
@@ -55,6 +56,35 @@ class WebRoutes {
   static const adminDashboard = '/secret-admin-dashboard';
 }
 
+Widget _slideFadeTransition(Widget child, Animation<double> animation) {
+  final curved = CurvedAnimation(
+    parent: animation,
+    curve: Curves.easeOutCubic,
+    reverseCurve: Curves.easeInCubic,
+  );
+  return FadeTransition(
+    opacity: Tween<double>(begin: 0.0, end: 1.0).animate(curved),
+    child: SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(0, 0.03),
+        end: Offset.zero,
+      ).animate(curved),
+      child: child,
+    ),
+  );
+}
+
+CustomTransitionPage<void> _buildPage(Widget child, GoRouterState state) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 250),
+    reverseTransitionDuration: const Duration(milliseconds: 200),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+        _slideFadeTransition(child, animation),
+  );
+}
+
 final router = GoRouter(
   navigatorKey: AlarmService.instance.navigatorKey,
   initialLocation: WebRoutes.home,
@@ -63,79 +93,80 @@ final router = GoRouter(
     GoRoute(
       path: WebRoutes.home,
       name: 'home',
-      builder: (context, state) => const WebShell(child: HomePage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: HomePage()), state),
     ),
 
     // ── Quran Explorer ────────────────────────────────────────────────────
     GoRoute(
       path: '/quran',
       name: 'quran',
-      builder: (context, state) => const WebShell(child: QuranPage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: QuranPage()), state),
       routes: [
         GoRoute(
           path: 'talawat',
           name: 'quranTalawat',
-          builder: (context, state) =>
-              WebShell(child: const QuranPage(tab: 0)),
+          pageBuilder: (context, state) =>
+              _buildPage(WebShell(child: const QuranPage(tab: 0)), state),
         ),
         GoRoute(
           path: 'tarjuma',
           name: 'quranTarjuma',
-          builder: (context, state) =>
-              WebShell(child: const QuranPage(tab: 1)),
+          pageBuilder: (context, state) =>
+              _buildPage(WebShell(child: const QuranPage(tab: 1)), state),
         ),
         GoRoute(
           path: 'tafseer',
           name: 'quranTafseer',
-          builder: (context, state) =>
-              WebShell(child: const QuranPage(tab: 2)),
+          pageBuilder: (context, state) =>
+              _buildPage(WebShell(child: const QuranPage(tab: 2)), state),
         ),
         GoRoute(
           path: 'settings',
           name: 'quranSettings',
-          builder: (context, state) =>
-              WebShell(child: const QuranPage(tab: 3)),
+          pageBuilder: (context, state) =>
+              _buildPage(WebShell(child: const QuranPage(tab: 3)), state),
         ),
         GoRoute(
           path: 'share',
           name: 'quranShare',
-          builder: (context, state) =>
-              WebShell(child: const QuranPage(tab: 4)),
+          pageBuilder: (context, state) =>
+              _buildPage(WebShell(child: const QuranPage(tab: 4)), state),
         ),
         GoRoute(
           path: 'surah/:id',
           name: 'quranSurah',
-          builder: (context, state) => WebShell(
-            child: SurahReadingPage(
-              surahNum:
-                  int.tryParse(state.pathParameters['id'] ?? '') ?? 1,
+          pageBuilder: (context, state) => _buildPage(
+            WebShell(
+              child: SurahReadingPage(
+                surahNum:
+                    int.tryParse(state.pathParameters['id'] ?? '') ?? 1,
+              ),
             ),
+            state,
           ),
         ),
         // Legacy route redirects
         GoRoute(
           path: 'translation',
           name: 'quranTranslationLegacy',
-          builder: (context, state) =>
-              WebShell(child: const QuranPage(tab: 1)),
+          redirect: (_, _) => '/quran/tarjuma',
         ),
         GoRoute(
           path: 'hadith',
           name: 'quranHadithLegacy',
-          builder: (context, state) =>
-              WebShell(child: const QuranPage(tab: 1)),
+          redirect: (_, _) => '/quran/tarjuma',
         ),
         GoRoute(
           path: 'juzz',
           name: 'quranJuzzLegacy',
-          builder: (context, state) =>
-              WebShell(child: const QuranPage(tab: 0)),
+          redirect: (_, _) => '/quran/talawat',
         ),
         GoRoute(
           path: 'ayah',
           name: 'quranAyahLegacy',
-          builder: (context, state) =>
-              WebShell(child: const QuranPage(tab: 1)),
+          redirect: (_, _) => '/quran/tarjuma',
         ),
       ],
     ),
@@ -144,19 +175,20 @@ final router = GoRouter(
     GoRoute(
       path: WebRoutes.calendarTools,
       name: 'calendarTools',
-      builder: (context, state) =>
-          const WebShell(child: CalendarToolsPage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: CalendarToolsPage()), state),
       routes: [
         GoRoute(
           path: '99-names',
           name: 'namesOfAllah',
-          builder: (context, state) =>
-              const WebShell(child: NamesOfAllahPage()),
+          pageBuilder: (context, state) =>
+              _buildPage(const WebShell(child: NamesOfAllahPage()), state),
         ),
         GoRoute(
           path: 'tasbeeh',
           name: 'tasbeeh',
-          builder: (context, state) => const WebShell(child: TasbeehPage()),
+          pageBuilder: (context, state) =>
+              _buildPage(const WebShell(child: TasbeehPage()), state),
         ),
       ],
     ),
@@ -165,49 +197,56 @@ final router = GoRouter(
     GoRoute(
       path: WebRoutes.community,
       name: 'community',
-      builder: (context, state) => const WebShell(child: CommunityPage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: CommunityPage()), state),
       routes: [
         GoRoute(
           path: 'family',
           name: 'communityFamily',
-          builder: (context, state) =>
-              const WebShell(child: CommunityPage()),
+          pageBuilder: (context, state) =>
+              _buildPage(const WebShell(child: CommunityPage()), state),
         ),
       ],
     ),
     GoRoute(
       path: WebRoutes.charity,
       name: 'charity',
-      builder: (context, state) => const WebShell(child: CharityPage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: CharityPage()), state),
     ),
 
     // ── About Us ──────────────────────────────────────────────────────────
     GoRoute(
       path: WebRoutes.about,
       name: 'about',
-      builder: (context, state) => const WebShell(child: AboutPage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: AboutPage()), state),
     ),
 
     // ── Profile & Auth ────────────────────────────────────────────────────
     GoRoute(
       path: WebRoutes.profile,
       name: 'profile',
-      builder: (context, state) => const WebShell(child: ProfilePage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: ProfilePage()), state),
     ),
     GoRoute(
       path: WebRoutes.signIn,
       name: 'signIn',
-      builder: (context, state) => const WebShell(child: SignInPage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: SignInPage()), state),
     ),
     GoRoute(
       path: '/sign-up',
       name: 'signUp',
-      builder: (context, state) => const WebShell(child: SignUpPage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: SignUpPage()), state),
       routes: [
         GoRoute(
           path: ':role',
           name: 'signUpRole',
-          builder: (context, state) => const WebShell(child: SignUpPage()),
+          pageBuilder: (context, state) =>
+              _buildPage(const WebShell(child: SignUpPage()), state),
         ),
       ],
     ),
@@ -216,9 +255,9 @@ final router = GoRouter(
     GoRoute(
       path: WebRoutes.search,
       name: 'search',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final q = state.uri.queryParameters['q'] ?? '';
-        return WebShell(child: SearchPage(initialQuery: q));
+        return _buildPage(WebShell(child: SearchPage(initialQuery: q)), state);
       },
     ),
 
@@ -226,15 +265,16 @@ final router = GoRouter(
     GoRoute(
       path: WebRoutes.comingSoon,
       name: 'comingSoon',
-      builder: (context, state) => const WebShell(child: ComingSoonPage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: ComingSoonPage()), state),
     ),
 
     // ── Hidden admin dashboard (guard) ────────────────────────────────────
     GoRoute(
       path: WebRoutes.adminDashboard,
       name: 'adminDashboard',
-      builder: (context, state) =>
-          const WebShell(child: ProfilePage()),
+      pageBuilder: (context, state) =>
+          _buildPage(const WebShell(child: ProfilePage()), state),
     ),
   ],
   errorBuilder: (context, state) => WebShell(

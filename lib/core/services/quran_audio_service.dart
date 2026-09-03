@@ -1,7 +1,8 @@
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
+import 'audio/mobile_audio_tag.dart'
+    if (dart.library.html) 'audio/web_audio_tag.dart';
 import 'quran_download_service.dart';
 
 class QuranAudioService extends ChangeNotifier with WidgetsBindingObserver {

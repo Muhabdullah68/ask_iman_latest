@@ -7,9 +7,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/seo_meta.dart';
+import '../widgets/web_animations.dart';
 import '../widgets/web_footer.dart';
 import '../widgets/web_widgets.dart';
 import '../web_router.dart' show WebRoutes;
@@ -25,15 +27,15 @@ class AboutPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 24),
-          const _AboutHero(),
+          const ScrollReveal(child: _AboutHero()),
           const SizedBox(height: 64),
-          const _MissionSection(),
+          const ScrollReveal(delay: Duration(milliseconds: 100), child: _MissionSection()),
           const SizedBox(height: 64),
-          const _JourneySection(),
+          const ScrollReveal(delay: Duration(milliseconds: 200), child: _JourneySection()),
           const SizedBox(height: 64),
-          const _ImpactBand(),
+          const ScrollReveal(delay: Duration(milliseconds: 300), child: _ImpactBand()),
           const SizedBox(height: 64),
-          const _ContactSection(),
+          const ScrollReveal(delay: Duration(milliseconds: 400), child: _ContactSection()),
           const SizedBox(height: 64),
           const WebFooter(),
         ],
@@ -50,10 +52,11 @@ class _AboutHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
-        gradient: FigmaTokens.heroGradientLight,
+        gradient: figma.heroGradient,
         borderRadius: BorderRadius.circular(24),
       ),
       child: LayoutBuilder(
@@ -68,10 +71,10 @@ class _AboutHero extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: FigmaTokens.accentGoldAmber,
+                  color: figma.accentGoldAmber,
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: const Text(
+                child: Text(
                   'ABOUT ASK IMAN',
                   style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyUiSans,
@@ -83,18 +86,18 @@ class _AboutHero extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Rooted in faith.\nBuilt for the Ummah.',
                 style: TextStyle(
                   fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                   fontSize: 40,
                   fontWeight: FontWeight.w900,
                   height: 1.15,
-                  color: FigmaTokens.textHeading,
+                  color: figma.textHeading,
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Ask Iman is a growing digital companion for Muslims around '
                 'the world — bringing the Quran, authentic hadith, daily '
                 'guidance and community support into one beautiful home.',
@@ -102,7 +105,7 @@ class _AboutHero extends StatelessWidget {
                   fontFamily: FigmaTokens.fontFamilyUiSans,
                   fontSize: 15,
                   height: 1.6,
-                  color: FigmaTokens.textBody,
+                  color: figma.textBody,
                 ),
               ),
               const SizedBox(height: 22),
@@ -120,7 +123,7 @@ class _AboutHero extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: FigmaTokens.accentGoldAmber.withValues(alpha: 0.12),
+              color: figma.accentGoldAmber.withValues(alpha: 0.12),
             ),
             child: const FittedBox(
               fit: BoxFit.scaleDown,
@@ -226,47 +229,48 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(26),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-        border: Border.all(color: FigmaTokens.borderHairline),
-        boxShadow: FigmaTokens.cardShadowSm,
+        border: Border.all(color: figma.borderHairline),
+        boxShadow: figma.cardShadows,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 32, color: FigmaTokens.accentGoldAmber),
+          Icon(icon, size: 32, color: figma.accentGoldAmber),
           const SizedBox(height: 16),
           Text(
             eyebrow.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 10.5,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.4,
-              color: FigmaTokens.accentGoldAmber,
+              color: figma.accentGoldAmber,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyDisplaySerif,
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: FigmaTokens.textHeading,
+              color: figma.textHeading,
             ),
           ),
           const SizedBox(height: 10),
           Text(
             body,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 13.5,
               height: 1.6,
-              color: FigmaTokens.textBody,
+              color: figma.textBody,
             ),
           ),
         ],
@@ -290,6 +294,7 @@ class _JourneySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -319,9 +324,9 @@ class _JourneySection extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: FigmaTokens.surfacePanelMint,
+                    color: figma.surfacePanelMint,
                     borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-                    border: Border.all(color: FigmaTokens.borderHairline),
+                    border: Border.all(color: figma.borderHairline),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,31 +334,31 @@ class _JourneySection extends StatelessWidget {
                     children: [
                       Text(
                         '0${i + 1}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
-                          color: FigmaTokens.accentGoldAmber,
+                          color: figma.accentGoldAmber,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         v.$1,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: FigmaTokens.fontFamilyDisplaySerif,
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: FigmaTokens.textHeading,
+                          color: figma.textHeading,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         v.$2,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: FigmaTokens.fontFamilyUiSans,
                           fontSize: 12.5,
                           height: 1.5,
-                          color: FigmaTokens.textBody,
+                          color: figma.textBody,
                         ),
                       ),
                     ],
@@ -396,7 +401,10 @@ class _ImpactBand extends StatelessWidget {
               for (var i = 0; i < stats.length; i++) ...[
                 if (i > 0) const SizedBox(width: 20),
                 Expanded(
-                  child: _ImpactStat(value: stats[i].$1, label: stats[i].$2),
+                  child: _ImpactStat(value: stats[i].$1, label: stats[i].$2)
+                      .animate(delay: Duration(milliseconds: i * 80))
+                      .fadeIn(duration: 400.ms)
+                      .slideY(begin: 0.1),
                 ),
               ],
             ],
@@ -407,7 +415,10 @@ class _ImpactBand extends StatelessWidget {
                   children: [
                     for (var i = 0; i < stats.length; i++) ...[
                       if (i > 0) const SizedBox(height: 18),
-                      _ImpactStat(value: stats[i].$1, label: stats[i].$2),
+                      _ImpactStat(value: stats[i].$1, label: stats[i].$2)
+                          .animate(delay: Duration(milliseconds: i * 80))
+                          .fadeIn(duration: 400.ms)
+                          .slideY(begin: 0.1),
                     ],
                   ],
                 );
@@ -424,22 +435,23 @@ class _ImpactStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Column(
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: FigmaTokens.fontFamilyDisplaySerif,
             fontSize: 34,
             fontWeight: FontWeight.w900,
-            color: FigmaTokens.accentGoldLight,
+            color: figma.accentGoldLight,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: FigmaTokens.fontFamilyUiSans,
             fontSize: 13,
             color: FigmaTokens.textOnDark,
@@ -495,6 +507,7 @@ class _ContactSectionState extends State<_ContactSection> {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -510,10 +523,10 @@ class _ContactSectionState extends State<_ContactSection> {
           key: const Key('about_contact'),
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            color: FigmaTokens.surfaceCard,
+            color: figma.surfaceCard,
             borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-            border: Border.all(color: FigmaTokens.borderHairline),
-            boxShadow: FigmaTokens.cardShadowSm,
+            border: Border.all(color: figma.borderHairline),
+            boxShadow: figma.cardShadows,
           ),
           child: Form(
             key: _formKey,
@@ -572,29 +585,29 @@ class _ContactSectionState extends State<_ContactSection> {
                           (v == null || v.trim().isEmpty) ? 'Message required' : null,
                       decoration: InputDecoration(
                         hintText: 'How can we help?',
-                        hintStyle: const TextStyle(
+                        hintStyle: TextStyle(
                           fontFamily: FigmaTokens.fontFamilyUiSans,
                           fontSize: 14,
-                          color: FigmaTokens.textMuted,
+                          color: figma.textMuted,
                         ),
                         filled: true,
-                        fillColor: FigmaTokens.surfaceBackground,
+                        fillColor: figma.surfaceBackground,
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide:
-                              const BorderSide(color: FigmaTokens.borderHairline),
+                              BorderSide(color: figma.borderHairline),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(
-                            color: FigmaTokens.accentGoldAmber,
+                          borderSide: BorderSide(
+                            color: figma.accentGoldAmber,
                           ),
                         ),
                       ),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: FigmaTokens.fontFamilyUiSans,
                         fontSize: 14.5,
-                        color: FigmaTokens.textHeading,
+                        color: figma.textHeading,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -649,32 +662,33 @@ class _ContactField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return TextFormField(
       controller: controller,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(
+        labelStyle: TextStyle(
           fontFamily: FigmaTokens.fontFamilyUiSans,
           fontSize: 13,
-          color: FigmaTokens.textMuted,
+          color: figma.textMuted,
         ),
-        prefixIcon: Icon(icon, size: 20, color: FigmaTokens.textMuted),
+        prefixIcon: Icon(icon, size: 20, color: figma.textMuted),
         filled: true,
-        fillColor: FigmaTokens.surfaceBackground,
+        fillColor: figma.surfaceBackground,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: FigmaTokens.borderHairline),
+          borderSide: BorderSide(color: figma.borderHairline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: FigmaTokens.accentGoldAmber),
+          borderSide: BorderSide(color: figma.accentGoldAmber),
         ),
       ),
-      style: const TextStyle(
+      style: TextStyle(
         fontFamily: FigmaTokens.fontFamilyUiSans,
         fontSize: 14.5,
-        color: FigmaTokens.textHeading,
+        color: figma.textHeading,
       ),
     );
   }

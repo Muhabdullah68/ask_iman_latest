@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -63,7 +64,10 @@ class _NavbarInner extends StatelessWidget {
           },
         ),
       ),
-    );
+    )
+        .animate()
+        .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+        .slideY(begin: -0.08, end: 0, duration: 400.ms, curve: Curves.easeOut);
   }
 
   // ── Desktop (≥1180) — full chrome ───────────────────────────────────────
@@ -221,7 +225,7 @@ class _BrandLogo extends StatelessWidget {
 }
 
 // ── Nav link ───────────────────────────────────────────────────────────────
-class _NavLink extends StatelessWidget {
+class _NavLink extends StatefulWidget {
   final String label;
   final String route;
   final String currentPath;
@@ -235,32 +239,64 @@ class _NavLink extends StatelessWidget {
   });
 
   @override
+  State<_NavLink> createState() => _NavLinkState();
+}
+
+class _NavLinkState extends State<_NavLink> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final active = route == '/' ? currentPath == '/' : currentPath.startsWith(route);
+    final active = widget.route == '/'
+        ? widget.currentPath == '/'
+        : widget.currentPath.startsWith(widget.route);
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 2 : 6),
-      child: InkWell(
-        onTap: () => context.go(route),
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 10 : 14,
-            vertical: 9,
-          ),
-          decoration: BoxDecoration(
-            color: active ? FigmaTokens.brandMidGreen : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: FigmaTokens.fontFamilyUiSans,
-              fontSize: compact ? 13.5 : 14.5,
-              fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-              color: active
-                  ? FigmaTokens.accentGoldAmber
-                  : FigmaTokens.textOnDark.withValues(alpha: 0.88),
-            ),
+      padding: EdgeInsets.symmetric(horizontal: widget.compact ? 2 : 6),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        cursor: SystemMouseCursors.click,
+        child: InkWell(
+          onTap: () => context.go(widget.route),
+          borderRadius: BorderRadius.circular(10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: widget.compact ? 10 : 14,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: active ? FigmaTokens.brandMidGreen : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyUiSans,
+                    fontSize: widget.compact ? 13.5 : 14.5,
+                    fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                    color: active
+                        ? FigmaTokens.accentGoldAmber
+                        : _hovered
+                            ? FigmaTokens.accentGoldAmber
+                            : FigmaTokens.textOnDark.withValues(alpha: 0.88),
+                  ),
+                  child: Text(widget.label),
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                height: 2.5,
+                width: active ? (widget.compact ? 20 : 24) : 0,
+                decoration: BoxDecoration(
+                  gradient: FigmaTokens.progressGradient,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ],
           ),
         ),
       ),

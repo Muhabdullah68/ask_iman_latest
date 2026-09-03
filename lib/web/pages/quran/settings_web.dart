@@ -35,26 +35,27 @@ class _QuranSettingsWebState extends State<QuranSettingsWeb> {
 
   @override
   Widget build(BuildContext context) {
-    return QuranPaneScaffold(
+    final figma = context.figma;
+    return QuranPaneContent(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Reading Settings',
             style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyDisplaySerif,
               fontSize: 30,
               fontWeight: FontWeight.w900,
-              color: FigmaTokens.textHeading,
+              color: figma.textHeading,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Customize how the Qur\'ān appears to you.',
             style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 14.5,
-              color: FigmaTokens.textBody,
+              color: figma.textBody,
             ),
           ),
           const SizedBox(height: 28),
@@ -116,23 +117,24 @@ class _SettingsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: FigmaTokens.surfaceCard,
+        color: figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-        border: Border.all(color: FigmaTokens.borderHairline),
+        border: Border.all(color: figma.borderHairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: FigmaTokens.textHeading,
+              color: figma.textHeading,
             ),
           ),
           const SizedBox(height: 14),
@@ -155,16 +157,17 @@ class _FontPreviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: selected ? FigmaTokens.surfacePanelMint : Colors.transparent,
+        color: selected ? figma.surfacePanelMint : Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
           side: BorderSide(
             color: selected
                 ? FigmaTokens.brandMidGreen
-                : FigmaTokens.borderHairline,
+                : figma.borderHairline,
           ),
         ),
         child: InkWell(
@@ -177,7 +180,7 @@ class _FontPreviewTile extends StatelessWidget {
                 if (selected)
                   const Icon(Icons.check_circle_rounded, size: 20, color: FigmaTokens.brandMidGreen)
                 else
-                  Icon(Icons.circle_outlined, size: 20, color: FigmaTokens.textMuted),
+                  Icon(Icons.circle_outlined, size: 20, color: figma.textMuted),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -189,7 +192,7 @@ class _FontPreviewTile extends StatelessWidget {
                           fontFamily: FigmaTokens.fontFamilyUiSans,
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
-                          color: selected ? FigmaTokens.brandMidGreen : FigmaTokens.textHeading,
+                          color: selected ? FigmaTokens.brandMidGreen : figma.textHeading,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -199,7 +202,7 @@ class _FontPreviewTile extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: FigmaTokens.fontFamilyArabicSerif,
                           fontSize: 18,
-                          color: FigmaTokens.textHeading.withValues(alpha: 0.7),
+                          color: figma.textHeading.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -226,6 +229,7 @@ class _SettingsPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final figma = context.figma;
     return Material(
       color: selected ? FigmaTokens.brandMidGreen : Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -233,7 +237,7 @@ class _SettingsPill extends StatelessWidget {
         side: BorderSide(
           color: selected
               ? FigmaTokens.brandMidGreen
-              : FigmaTokens.borderHairline,
+              : figma.borderHairline,
         ),
       ),
       child: InkWell(
@@ -247,7 +251,7 @@ class _SettingsPill extends StatelessWidget {
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: selected ? FigmaTokens.textOnDark : FigmaTokens.textBody,
+              color: selected ? FigmaTokens.textOnDark : figma.textBody,
             ),
           ),
         ),
