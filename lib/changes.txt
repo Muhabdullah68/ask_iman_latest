@@ -1,6 +1,101 @@
-PS C:\Users\Admin\AndroidStudioProjects\ask_iman> flutter build appbundle --release
-Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 21724 bytes (98.7% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
-Running Gradle task 'bundleRelease'...                            749.7s
-Release app bundle failed to strip debug symbols from native libraries.
-Please run flutter doctor and ensure that the Android toolchain does not   
-report any issues.
+ASK IMAN — AI Chat feature changes log.
+
+Spec (updates to the AI Q&A feature):
+- The AI must verify Quran/hadith quotes given through verification channels (e.g. "verify : <quote>") by
+  exact matching against the real Quran corpus and the hadith-api corpus. Verified quotes are reported
+  authentic / not authentic / not supported; anything that does not match is answered
+  "This is not in my knowledge." Sources must NEVER be invented.
+- General Islamic questions (importance of namaz, is X obligatory/wajib, etc.) receive a verdict-first
+  answer with VERIFIED REFERENCES: exact Quran ayahs (Arabic + translation) and hadith (Arabic +
+  translation + grade from the corpus) inserted by code, never transcribed by the model.
+- Never modify functions/, firebase.json, lib/web/**, old Ui\ASK-Iman-main\**.
+- Build/install is done on the user side: tool\run.bat --apk then adb install -r the release APK.
+
+## 1.0.16+16
+Problems: answers echoed the question back, were supposed to verify quotes but hallucinated, repeated
+quotes, had no grounding in real sources.
+Fixes: single-call QnA; quran/hadith corpora downloaded once to a 14-day disk cache (ai_corpus/) with
+prewarm; strict matching thresholds (arabic 0.92 / 0.85 / 0.08, latin 0.75 / 0.70 / 0.10); clamp;
+per-byte db usage counted only on success; quota (30/day, 5/min) written only on success;
+runZonedGuarded error hook; 30s timeout with one 502/503 retry.
+
+## 1.0.17+17
+Renamed private helpers to public for testing (findMatches, strictAccept, parseQuranClaim,
+parseHadithClaim, surahNameIndex, hadithBooks); fixed claim-parser bugs (substring bounds,
+partial-number lookahead, "of surah al baqarah" connective); added test/verify_matching_test.dart
+(18 cases). All pass.
+
+## 1.0.18+18
+Added topic-gated grounded source retrieval: looksLikeIslamicTopic, topicQueryTerms, buildTermIndex /
+topicRank (idf-weighted), per-book best hadith match, _retrieveTopicSources, ambiguity guard
+(_guardRelevance), VERIFIED REFERENCES block in the answer, _qnaSystem prompt updated.
+Added test/sources_test.dart (13 cases). 31/31 pass.
+
+## 1.0.19+19
+Answers changed to verdict-first structured format: verdict -> exact ayat + translation -> hadith
+(Arabic + translation + corpus grade) -> general explanation. The model only returns JSON
+{verdict, explanation}; code inserts the real corpus text via buildSourcedAnswer, with a plain-text +
+cards fallback in _parseSourcedAnswer. topicEvidenceConfident requires an anchor-term match or
+best >= 2. 37/37 tests pass.
+
+## 1.0.19-fix (still versioned 1.0.19+19)
+Reported failure: sourced answers never appeared; logcat showed
+"Bad state: Corpus fetch failed 404 https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-ibn-majah/1.json".
+Causes found & fixed:
+- hadithBooks slug was 'ibn-majah', but the hadith-api corpus edition is named 'ibnmajah' (no hyphen).
+  404 aborted _retrieveTopicSources, so EVERY gated question fell back to a plain, source-less answer;
+  the same bug also aborted the whole-corpus hadith verification search.
+- Retrieval was not resilient: one failing book killed all sources. Each book is now tried separately
+  (try/catch) and skipped on failure, both in _retrieveTopicSources and the whole-corpus _verifyHadith
+  search.
+- Uncaught zone error "duration > Duration.zero" in ai_chat_screen._scrollToBottom: the instant scroll
+  used animateTo(Duration.zero); now uses jumpTo for the instant case and animateTo(250ms) otherwise.
+Retest: "importance of namaz" and "is namaz necessary in islam" should now return a verdict-first
+answer with 2 ayahs + 2 hadith cards.
+
+## 1.0.19-fix2 (still versioned 1.0.19+19)
+Root cause: many genuine Islamic yes/no/knowledge questions never reached source retrieval or had
+their sources stripped away, so the response contained no ayat/hadith at all.
+Causes found & fixed:
+- `_possibleQuote` misrouted verb-initial questions containing quran/hadith keywords
+  (e.g. "is salah obligatory in islam according to quran") into the verification path →
+  "This is not in my knowledge" instead of a sourced Q&A answer. Added word-boundary
+  question-form prefix list (is/does/can/what/...).
+- Gate (`looksLikeIslamicTopic`) was too narrow — "ruling on music", "can we pray in english",
+  "is eating pork allowed" etc. never triggered retrieval. Broadened _topicAnchors with fiqh /
+  daily-life vocabulary; added explicit reference-request rule (quran/hadith/surah + "about X").
+- `topicEvidenceConfident` stripped sources when an anchor term was absent: any single corpus
+  match now suffices (the gate is the primary filter; the matched text is always real corpus).
+- `_guardRelevance` could hard-fail (returning []) and wipe out real sources on a Gemini parse
+  hiccup — now falls back to the original shortlist on error/empty keep list.
+- `_hadithTopicBest` sometimes returned empty Arabic when hadithnumber lookup missed — added
+  parallel-array fallback so Arabic is always present.
+- Hadith Arabic was sometimes missing when the number lookup missed — the provisional
+  parallel-array fallback is kept until superseded (then removed) in fix3.
+- _topicAnchors expanded: prayer verb stems (pray, recite, tilawah, qirat), fiqh / rulings
+  (ruling, allowed, forbidden, wajib, fard, makruh, bidah), daily life (music, pork, gold,
+  beard, dreams, jinn, magic), afterlife / creed (akhirah, aqeedah, kufr, death, burial).
+Tests: 39/39 pass (8 new cases: fiqh gate, reference-request gate, possibleQuote routing,
+confidence loosened).
+
+## 1.0.19-fix3 (still versioned 1.0.19+19)
+Reported failure: Quran references appeared but ahadith never did, and the response repeated
+the ayat/hadith text (inline + cards).
+Causes found & fixed (both are URL/logic bugs):
+- ROUT CAUSE of missing ahadith: `_loadHadith` fetched the SINGLE-HADITH endpoint
+  `editions/$lang-<book>.json/1.json` — it only ever loaded hadith #1 per book, so the topic
+  ranking had nothing to rank against and hadith refs were empty/irrelevant. Switched to the
+  FULL-COLLECTION endpoint `editions/$lang-<book>.json` (ibnmajah 4343, bukhari 7589, both
+  eng+ara confirmed HTTP 200 via tool/check_ibnmajah.dart).
+- Duplication: `buildSourcedAnswer` embedded the full citations (Arabic + translation +
+  grade) into the answer text WHILE the same citations are also rendered as _CitationTile
+  cards below the bubble — every passage shown twice. buildSourcedAnswer now returns ONLY the
+  verdict + a "supported by …" reference-label line + explanation; the passages live in the
+  cards (single source of truth).
+- JSON-fallback (model returns non-JSON) echoed the citations after the plain text — now the
+  plain model text alone is used; cards still show the passages.
+- Anti-repetition instructions added to _sourcedQnaSystem ("do not restate verdict / passages;
+  add NEW context") and to _qnaSystem ("do not repeat yourself or echo the question").
+Tests: 40/40 pass (buildSourcedAnswer contract changed: verdict+labels+explanation only).
+Next retest on device: every Islamic question should show verdict + 2 ayah cards + 2 hadith
+cards (Arabic + grade), with no repeated text.

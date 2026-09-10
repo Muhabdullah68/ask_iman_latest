@@ -76,9 +76,16 @@ android {
     }
 }
 
-// ADDED: Core library desugaring dependency
+// ADDED: Core library desugaring dependency + ML Kit text-recognition scripts
+// (R8 needs all scripts present since google_mlkit_text_recognition references
+// every TextRecognizerOptions subclass at once)
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-devanagari:16.0.1")
+    implementation("com.google.mlkit:text-recognition-japanese:16.0.1")
+    implementation("com.google.mlkit:text-recognition-korean:16.0.1")
 }
 
 flutter {

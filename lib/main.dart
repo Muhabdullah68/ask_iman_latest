@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -21,6 +22,7 @@ import 'core/services/alarm_service.dart';
 import 'core/services/tutorial_service.dart';
 import 'core/services/fcm_service.dart';
 import 'core/services/community_service.dart';
+import 'core/services/ask_iman_ai_service.dart';
 import 'core/l10n/app_localizations.dart';
 import 'core/providers/locale_provider.dart';
 import 'core/providers/theme_provider.dart';
@@ -30,6 +32,11 @@ import 'features/community/admin/admin_dashboard.dart';
 void main() async {
   debugPrint('MAIN: Starting...');
   WidgetsFlutterBinding.ensureInitialized();
+  // Report (and contain) any framework error so a bug never hard-crashes the
+  // app into the "app has stopped" dialog — it's logged for diagnosis instead.
+  FlutterError.onError = (details) {
+    debugPrint('MAIN: FlutterError: ${details.exception}\n${details.stack}');
+  };
   debugPrint('MAIN: Widgets initialized');
 
   if (!kIsWeb) {
@@ -88,6 +95,17 @@ void main() async {
   }
 
   try {
+    await AskImanAiService.bootstrap();
+    debugPrint('MAIN: AskImanAiService configured: ${AskImanAiService.isConfigured}');
+    // Warm the Quran corpus in the background so the user's first verse
+    // verification in the session is instant (uses the on-disk cache).
+    // Errors are swallowed by prewarmCorpus itself.
+    unawaited(AskImanAiService.prewarmCorpus());
+  } catch (e) {
+    debugPrint('MAIN: AskImanAiService bootstrap error: $e');
+  }
+
+  try {
     final fcm = FcmService.instance;
     fcm.setLocalNotificationPlugin(NotificationService.plugin);
     fcm.setNavigatorKey(AlarmService.instance.navigatorKey);
@@ -99,7 +117,10 @@ void main() async {
   }
 
   debugPrint('MAIN: Running app...');
-  runApp(const AskImanApp());
+  runZonedGuarded(
+    () => runApp(const AskImanApp()),
+    (e, st) => debugPrint('MAIN: Uncaught zone error: $e\n$st'),
+  );
   debugPrint('MAIN: App running');
 }
 

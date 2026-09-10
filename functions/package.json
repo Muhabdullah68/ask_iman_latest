@@ -1,9 +1,10 @@
 {
   "name": "ask-iman-functions",
-  "description": "Cloud Functions for ASK Iman - FCM notifications",
+  "description": "Cloud Functions for ASK Iman - FCM notifications & ASK Iman AI",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
-    "deploy": "firebase deploy --only functions"
+    "deploy": "firebase deploy --only functions",
+    "test": "node validate_ai.js"
   },
   "engines": {
     "node": "18"

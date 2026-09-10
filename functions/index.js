@@ -1,7 +1,12 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const { askImanAI } = require('./askiman_ai');
 
-admin.initializeApp();
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+exports.askImanAI = askImanAI;
 
 const db = admin.firestore();
 

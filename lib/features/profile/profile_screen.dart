@@ -17,6 +17,8 @@ import '../ibadah/ibadah_screen.dart';
 import '../charity/charity_list_screen.dart';
 import '../charity/my_charity_screen.dart';
 import '../auth/sign_in_screen.dart';
+import '../ask_iman_ai/ai_chat_screen.dart';
+import '../ask_iman_ai/my_questions_screen.dart';
 
 // ─── PROFILE SCREEN ──────────────────────────────────────────────────────────
 class ProfileScreen extends StatelessWidget {
@@ -446,8 +448,11 @@ class ProfileScreen extends StatelessWidget {
             _actionRow(
               Icons.auto_awesome_outlined,
               'Ask Iman AI',
-              'Coming Soon',
-              isComingSoon: true,
+              'Verify ayat & hadiths',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AiChatScreen()),
+              ),
             ),
             _actionRow(
               Icons.chat_bubble_outline_rounded,
@@ -458,8 +463,11 @@ class ProfileScreen extends StatelessWidget {
             _actionRow(
               Icons.history_rounded,
               'My Questions',
-              'Coming Soon',
-              isComingSoon: true,
+              'Your saved questions',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyQuestionsScreen()),
+              ),
             ),
             _actionRow(
               Icons.notifications_active_outlined,
@@ -480,8 +488,11 @@ class ProfileScreen extends StatelessWidget {
       _actionRow(
         Icons.auto_awesome_outlined,
         'Ask Iman AI',
-        'Coming Soon',
-        isComingSoon: true,
+        'Verify ayat & hadiths',
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AiChatScreen()),
+        ),
       ),
       _actionRow(
         Icons.chat_bubble_outline_rounded,
@@ -492,8 +503,11 @@ class ProfileScreen extends StatelessWidget {
       _actionRow(
         Icons.history_rounded,
         'My Questions',
-        'Coming Soon',
-        isComingSoon: true,
+        'Your saved questions',
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const MyQuestionsScreen()),
+        ),
       ),
       _actionRow(
         Icons.notifications_active_outlined,

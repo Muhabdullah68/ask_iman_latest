@@ -7,6 +7,7 @@ import '../../shared/widgets/tooltip_overlay.dart';
 import '../../core/services/tutorial_service.dart';
 import '../ibadah/qiblah_screen.dart';
 import '../ibadah/tasbeeh_screen.dart';
+import '../ask_iman_ai/ai_chat_screen.dart';
 import '../../core/data/daily_data.dart';
 import '../../core/services/community_service.dart';
 
@@ -171,7 +172,17 @@ class _HomeScreenState extends State<HomeScreen> {
     } else if (label == eventsLabel) {
       _showComingSoon(label, context);
     } else if (label == askAILabel) {
-      _showComingSoon(label, context);
+      final loc = AppLocalizations.of(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AiChatScreen(
+            initialLang: loc.locale.languageCode == 'ur' || loc.locale.languageCode == 'ps'
+                ? loc.locale.languageCode
+                : 'en',
+          ),
+        ),
+      );
     } else {
       _navigateTo(tab);
     }
