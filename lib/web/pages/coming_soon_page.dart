@@ -8,7 +8,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/figma_tokens.dart';
-import '../widgets/web_footer.dart';
 import '../widgets/web_widgets.dart';
 
 class ComingSoonPage extends StatelessWidget {
@@ -59,7 +58,6 @@ class ComingSoonPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          const WebFooter(),
         ],
       ),
     );

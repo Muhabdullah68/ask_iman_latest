@@ -14,7 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../core/services/quran_audio_service.dart';
-import '../../widgets/web_footer.dart';
+import '../../web_origin.dart';
 
 /// Bounded scrollable wrapper for standalone tab panes (e.g. Hadith, Juzz,
 /// Daily Ayah) that are rendered outside the main Quran page. Always ends
@@ -43,7 +43,6 @@ class QuranPaneScaffold extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 44),
-          const WebFooter(),
           SizedBox(height: bottomPad),
         ],
       ),
@@ -126,6 +125,7 @@ class AyahCard extends StatelessWidget {
   final String translation;
   final bool urdu;
   final bool showBasmala;
+  final VoidCallback? onAyahTapped;
 
   const AyahCard({
     super.key,
@@ -135,9 +135,11 @@ class AyahCard extends StatelessWidget {
     required this.translation,
     this.urdu = false,
     this.showBasmala = false,
+    this.onAyahTapped,
   });
 
   void _showContextMenu(BuildContext context) {
+    onAyahTapped?.call();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -247,6 +249,7 @@ class _VerseContextMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final figma = context.figma;
+    final origin = siteOrigin();
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -328,7 +331,7 @@ class _VerseContextMenu extends StatelessWidget {
             onTap: () {
               Navigator.pop(context);
               final url = Uri.parse(
-                'https://askiman.com/quran/surah/$surahNum',
+                '$origin/quran/surah/$surahNum',
               );
               launchUrl(url, mode: LaunchMode.platformDefault);
             },

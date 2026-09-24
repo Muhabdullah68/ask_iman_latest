@@ -24,6 +24,10 @@ class FigmaTokens {
   static const Color accentGoldAmber = Color(0xFFC9962C);
   static const Color accentGoldLight = Color(0xFFE8D28A);
   static const Color accentGoldSurface = Color(0xFFFAEEDA);
+  // Ornament layer (web ornament kit) — warmer "illuminated manuscript" gold
+  // and the deeper mosque green used for devotional ornament strokes/fills.
+  static const Color ornamentGold = Color(0xFFD4A24C);
+  static const Color ornamentDeepGreen = Color(0xFF0E4D3C);
 
   // Text
   static const Color textHeading = Color(0xFF12251C);

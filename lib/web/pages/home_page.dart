@@ -20,8 +20,8 @@ import '../../core/theme/figma_tokens.dart';
 import '../../core/data/daily_data.dart';
 import '../../features/quran/data/ahadees_data.dart';
 import '../widgets/web_widgets.dart';
-import '../widgets/web_footer.dart';
 import '../widgets/web_animations.dart';
+import '../widgets/web_ornaments.dart';
 import '../web_router.dart' show WebRoutes;
 
 class HomePage extends StatelessWidget {
@@ -56,7 +56,6 @@ class HomePage extends StatelessWidget {
             child: _SacredCollections(),
           ),
           const SizedBox(height: 72),
-          const WebFooter(),
         ],
       ),
     );
@@ -213,7 +212,12 @@ class _AyatSliderState extends State<_AyatSlider> {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            _lighten(slide.accent, 0.22),
+                            _lighten(slide.accent, 0.24),
+                            Color.lerp(
+                              slide.accent,
+                              FigmaTokens.ornamentGold,
+                              0.12,
+                            )!,
                             slide.accent,
                             _darken(slide.accent, 0.30),
                           ],
@@ -223,40 +227,28 @@ class _AyatSliderState extends State<_AyatSlider> {
                         borderRadius: BorderRadius.circular(28),
                         child: Stack(
                           children: [
-                            Positioned(
-                              top: -150,
-                              left: -130,
-                              child: Container(
-                                width: 440,
-                                height: 440,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      figma.accentGoldLight.withValues(
-                                        alpha: 0.22,
-                                      ),
-                                      figma.accentGoldLight.withValues(
-                                        alpha: 0.0,
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                            const Positioned(
+                              top: -70,
+                              right: -50,
+                              child: MihrabOrnament(
+                                size: 360,
+                                outerAlpha: 0.20,
+                                innerAlpha: 0.40,
+                                strokeWidth: 1.8,
                               ),
                             ),
                             Positioned(
-                              bottom: -180,
-                              right: -160,
-                              child: Container(
-                                width: 480,
-                                height: 480,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      Colors.white.withValues(alpha: 0.10),
-                                      Colors.white.withValues(alpha: 0.0),
-                                    ],
+                              bottom: -90,
+                              left: -70,
+                              child: RotatedBox(
+                                quarterTurns: 2,
+                                child: const Opacity(
+                                  opacity: 0.4,
+                                  child: MihrabOrnament(
+                                    size: 240,
+                                    outerAlpha: 0.16,
+                                    innerAlpha: 0.32,
+                                    strokeWidth: 1.6,
                                   ),
                                 ),
                               ),
@@ -265,11 +257,17 @@ class _AyatSliderState extends State<_AyatSlider> {
                               child: IgnorePointer(
                                 child: CustomPaint(
                                   painter: _OrnamentPainter(
-                                    color: figma.accentGoldLight
-                                        .withValues(alpha: 0.08),
+                                    color: FigmaTokens.ornamentGold
+                                        .withValues(alpha: 0.10),
                                   ),
                                 ),
                               ),
+                            ),
+                            const Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: ArabesqueBand(height: 84, alpha: 0.07),
                             ),
                           ],
                         ),
@@ -279,7 +277,7 @@ class _AyatSliderState extends State<_AyatSlider> {
                 ),
                 // ── Content ────────────────────────────────────────────────
                 Padding(
-                  padding: const EdgeInsets.all(36),
+                  padding: const EdgeInsets.all(44),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 900),
                     child: AnimatedSwitcher(
@@ -337,7 +335,7 @@ class _AyatSliderState extends State<_AyatSlider> {
                             textDirection: TextDirection.rtl,
                             style: const TextStyle(
                               fontFamily: FigmaTokens.fontFamilyArabicSerif,
-                              fontSize: 34,
+                              fontSize: 38,
                               height: 1.9,
                               color: FigmaTokens.textOnDark,
                               shadows: [
@@ -367,7 +365,18 @@ class _AyatSliderState extends State<_AyatSlider> {
                               color: Colors.white.withValues(alpha: 0.95),
                             ),
                           ),
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 12),
+                          Container(
+                            width: 24,
+                            height: 2,
+                            decoration: BoxDecoration(
+                              color: FigmaTokens.ornamentGold.withValues(
+                                alpha: 0.85,
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
                           // ── Search bar ──────────────────────────────────
                           Row(
                             children: [
@@ -626,7 +635,7 @@ class _FeatureTiles extends StatelessWidget {
   }
 }
 
-class _ImageFeatureTile extends StatelessWidget {
+class _ImageFeatureTile extends StatefulWidget {
   final IconData icon;
   final String label;
   final String subtitle;
@@ -642,11 +651,19 @@ class _ImageFeatureTile extends StatelessWidget {
   });
 
   @override
+  State<_ImageFeatureTile> createState() => _ImageFeatureTileState();
+}
+
+class _ImageFeatureTileState extends State<_ImageFeatureTile> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final figma = context.figma;
     return HoverLift(
-      onTap: onTap,
+      onTap: widget.onTap,
       lift: 1.03,
+      onHoverChanged: (v) => setState(() => _hovered = v),
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -663,11 +680,11 @@ class _ImageFeatureTile extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   Image.asset(
-                    image,
+                    widget.image,
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => Container(
                       color: figma.surfacePanelMint,
-                      child: Icon(icon,
+                      child: Icon(widget.icon,
                           size: 40, color: FigmaTokens.brandMidGreen),
                     ),
                   ),
@@ -694,8 +711,41 @@ class _ImageFeatureTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(13),
                         boxShadow: figma.cardShadows,
                       ),
-                      child: Icon(icon,
+                      child: Icon(widget.icon,
                           color: FigmaTokens.brandDeepGreen, size: 21),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: FigmaTokens.ornamentGold.withValues(
+                                alpha: 0.30,
+                              ),
+                              width: 1.5,
+                            ),
+                            borderRadius:
+                                BorderRadius.circular(FigmaTokens.radiusCard),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: AnimatedOpacity(
+                      opacity: _hovered ? 1 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
+                      child: const KhatamOrnament(
+                        size: 18,
+                        alpha: 0.85,
+                        strokeWidth: 1.2,
+                      ),
                     ),
                   ),
                 ],
@@ -710,7 +760,7 @@ class _ImageFeatureTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          label,
+                          widget.label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -722,7 +772,7 @@ class _ImageFeatureTile extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          subtitle,
+                          widget.subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -912,13 +962,29 @@ class _DailyInspiration extends StatelessWidget {
 
     final ornament = Center(
       child: SizedBox(
-        width: 180,
-        height: 180,
-        child: CustomPaint(
-          painter: _StarOrnamentPainter(
-            accentGoldAmber: figma.accentGoldAmber,
-            surfaceCardColor: figma.surfaceCard,
-          ),
+        width: 220,
+        height: 220,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            const KhatamOrnament(
+              size: 256,
+              alpha: 0.5,
+              strokeWidth: 1.2,
+              crescent: true,
+            ),
+            const ArabicRoundel(size: 220, glow: 0.22),
+            Positioned(
+              top: 14,
+              right: 26,
+              child: KhatamOrnament(
+                size: 22,
+                alpha: 0.7,
+                strokeWidth: 1.1,
+                color: figma.accentGoldAmber,
+              ),
+            ),
+          ],
         ),
       ).animate(
         onPlay: (controller) => controller.repeat(reverse: false),
@@ -1056,7 +1122,9 @@ class _SacredCollections extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 18),
+                    const GoldRule(height: 2, alpha: 0.35, khatamSize: 22),
+                    const SizedBox(height: 18),
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final wide = constraints.maxWidth >= 760;
@@ -1127,6 +1195,7 @@ class _BookCard extends StatelessWidget {
             Container(
               width: 62,
               height: 88,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6),
                 gradient: LinearGradient(
@@ -1145,25 +1214,60 @@ class _BookCard extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Container(
-                    width: 30,
-                    height: 2,
-                    color: figma.accentGoldAmber.withValues(alpha: 0.8),
+                  Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: FigmaTokens.ornamentGold
+                              .withValues(alpha: 0.45),
+                          width: 0.8,
+                        ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Icon(
-                    Icons.menu_book_rounded,
-                    color: figma.accentGoldLight,
-                    size: 18,
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CrescentOrnament(size: 12, alpha: 0.95),
+                      const SizedBox(height: 7),
+                      Icon(
+                        Icons.menu_book_rounded,
+                        color: figma.accentGoldLight,
+                        size: 18,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
-                  Container(
-                    width: 30,
-                    height: 2,
-                    color: figma.accentGoldAmber.withValues(alpha: 0.8),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          const KhatamOrnament(
+                            size: 18,
+                            alpha: 0.85,
+                            strokeWidth: 1.0,
+                          ),
+                          Text(
+                            '${index + 1}',
+                            style: TextStyle(
+                              fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w900,
+                              color: FigmaTokens.textOnDark,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1209,103 +1313,71 @@ class _BookCard extends StatelessWidget {
   }
 }
 
-// ── 8-point star ornament ─────────────────────────────────────────────────
-class _StarOrnamentPainter extends CustomPainter {
-  final Color accentGoldAmber;
-  final Color surfaceCardColor;
-  _StarOrnamentPainter({
-    required this.accentGoldAmber,
-    required this.surfaceCardColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 6;
-    final outer = Paint()
-      ..color = accentGoldAmber.withValues(alpha: 0.9);
-    final inner = Paint()..color = surfaceCardColor;
-
-    Path starPath(int points, double rOuter, double rInner, double angleOffset) {
-      final path = Path();
-      for (int i = 0; i < points * 2; i++) {
-        final r = i.isEven ? rOuter : rInner;
-        final a = angleOffset + i * math.pi / points;
-        final p = Offset(
-          center.dx + math.cos(a) * r,
-          center.dy + math.sin(a) * r,
-        );
-        if (i == 0) {
-          path.moveTo(p.dx, p.dy);
-        } else {
-          path.lineTo(p.dx, p.dy);
-        }
-      }
-      path.close();
-      return path;
-    }
-
-    canvas.drawPath(starPath(4, radius, radius * 0.32, -math.pi / 2), outer);
-    canvas.drawPath(
-      starPath(4, radius, radius * 0.32, -math.pi / 2 + math.pi / 4),
-      outer,
-    );
-    canvas.drawPath(
-      starPath(4, radius * 0.14, radius * 0.06, -math.pi / 2),
-      inner,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _StarOrnamentPainter oldDelegate) =>
-      oldDelegate.accentGoldAmber != accentGoldAmber ||
-      oldDelegate.surfaceCardColor != surfaceCardColor;
-}
-
-// ── Subtle gold ornamental lattice (stars + dots) ────────────────────────────
+// ── Gold ornamental khatam lattice (8-point stars + crescent + connectors) ──
 class _OrnamentPainter extends CustomPainter {
   final Color color;
   _OrnamentPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
+    final stroke = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4
+      ..strokeWidth = 1.2
+      ..strokeJoin = StrokeJoin.round
       ..isAntiAlias = true;
-    final cell = 140.0;
+    final fill = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+    const cell = 96.0;
 
-    void star(Offset c, double r) {
-      final path = Path();
-      const points = 8;
-      for (int i = 0; i < points * 2; i++) {
-        final rr = i.isEven ? r : r * 0.42;
-        final a = -math.pi / 2 + i * math.pi / points;
-        final p = Offset(c.dx + math.cos(a) * rr, c.dy + math.sin(a) * rr);
-        if (i == 0) {
-          path.moveTo(p.dx, p.dy);
-        } else {
-          path.lineTo(p.dx, p.dy);
+    void khatam(Offset c, double r) {
+      void square(double rotation) {
+        final path = Path();
+        for (int i = 0; i < 4; i++) {
+          final a = rotation + i * math.pi / 2;
+          final p = c + Offset(math.cos(a), math.sin(a)) * r;
+          if (i == 0) {
+            path.moveTo(p.dx, p.dy);
+          } else {
+            path.lineTo(p.dx, p.dy);
+          }
         }
+        path.close();
+        canvas.drawPath(path, stroke);
       }
-      path.close();
-      canvas.drawPath(path, paint);
+
+      square(-math.pi / 2);
+      square(-math.pi / 2 + math.pi / 4);
     }
 
-    for (double y = -cell; y < size.height + cell; y += cell) {
-      for (double x = -cell; x < size.width + cell; x += cell) {
-        final offset = (y / cell) % 2 == 0 ? 0.0 : cell / 2;
-        final cx = x + offset + cell / 2;
-        final cy = y + cell / 2;
-        star(Offset(cx, cy), 26);
-        canvas.drawCircle(
-          Offset(cx - cell / 2, cy - cell / 2),
-          2.4,
-          paint..style = PaintingStyle.fill,
+    void crescent(Offset c, double r) {
+      final shift = r * 0.42;
+      final moon = Path()
+        ..addArc(Rect.fromCircle(center: c, radius: r), 0, math.pi * 2)
+        ..addArc(
+          Rect.fromCircle(center: c + Offset(shift, 0), radius: r * 0.86),
+          0,
+          math.pi * 2,
         );
-        paint.style = PaintingStyle.stroke;
+      canvas.drawPath(moon, fill);
+    }
+
+    var row = 0;
+    for (double y = 0; y < size.height + cell; y += cell) {
+      final stagger = row.isEven ? 0.0 : cell / 2;
+      var col = 0;
+      for (double x = -cell; x < size.width + cell; x += cell) {
+        final c = Offset(x + stagger + cell / 2, y + cell / 2);
+        final scale = col % 3 == 0 ? 1.6 : (col % 4 == 0 ? 0.8 : 1.0);
+        khatam(c, 15 * scale);
+        if (col.isEven) crescent(c + Offset(0, 6), 4.5 * scale);
+        canvas.drawLine(c, Offset(c.dx + cell, c.dy), stroke);
+        canvas.drawLine(c, Offset(c.dx + cell / 2, c.dy + cell), stroke);
+        col++;
       }
+      row++;
     }
   }
 

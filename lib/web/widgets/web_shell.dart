@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/figma_tokens.dart';
+import 'web_footer.dart';
 import 'web_navbar.dart';
 
 class WebShell extends StatelessWidget {
@@ -34,6 +35,8 @@ class WebShell extends StatelessWidget {
         children: [
           WebNavbar(currentPath: path),
           Expanded(child: child),
+          const SizedBox(height: 72),
+          const WebFooter(),
         ],
       ),
     );

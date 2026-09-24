@@ -14,7 +14,6 @@ import 'package:intl/intl.dart' hide TextDirection;
 import '../../core/theme/figma_tokens.dart';
 import '../../core/services/prayer_service.dart';
 import '../../core/utils/seo_meta.dart';
-import '../widgets/web_footer.dart';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
@@ -118,7 +117,6 @@ class _CalendarToolsPageState extends State<CalendarToolsPage>
             const SizedBox(height: 32),
             _buildPrayerTimes(),
             const SizedBox(height: 48),
-            const WebFooter(),
           ],
         ),
       ),
@@ -1654,7 +1652,6 @@ class TasbeehPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 48),
-                  const WebFooter(),
                 ],
               ),
             ),

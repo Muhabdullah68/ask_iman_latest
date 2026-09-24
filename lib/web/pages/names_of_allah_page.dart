@@ -14,7 +14,6 @@ import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/seo_meta.dart';
 import '../data/asmaul_husna_data.dart';
 import '../services/speech_service.dart';
-import '../widgets/web_footer.dart';
 import '../widgets/web_widgets.dart';
 
 class NamesOfAllahPage extends StatefulWidget {
@@ -191,7 +190,6 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
             },
           ),
           const SizedBox(height: 40),
-          const WebFooter(),
         ],
       ),
     );

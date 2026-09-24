@@ -131,8 +131,19 @@ final router = GoRouter(
         GoRoute(
           path: 'share',
           name: 'quranShare',
-          pageBuilder: (context, state) =>
-              _buildPage(WebShell(child: const QuranPage(tab: 4)), state),
+          pageBuilder: (context, state) {
+            final params = state.uri.queryParameters;
+            return _buildPage(
+              WebShell(
+                child: QuranPage(
+                  tab: 4,
+                  initialSurah: int.tryParse(params['surah'] ?? ''),
+                  initialAyah: int.tryParse(params['ayah'] ?? ''),
+                ),
+              ),
+              state,
+            );
+          },
         ),
         GoRoute(
           path: 'surah/:id',

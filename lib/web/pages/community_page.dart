@@ -12,7 +12,6 @@ import '../widgets/web_animations.dart';
 import '../../core/utils/seo_meta.dart';
 import '../../features/community/community_screen.dart';
 import '../../features/charity/charity_list_screen.dart';
-import '../widgets/web_footer.dart';
 
 class CommunityPage extends StatelessWidget {
   const CommunityPage({super.key});
@@ -25,7 +24,6 @@ class CommunityPage extends StatelessWidget {
         Expanded(
           child: CommunityScreen(embedded: true),
         ),
-        const WebFooter(),
       ],
     );
   }
@@ -81,7 +79,6 @@ class CharityPage extends StatelessWidget {
                 ),
                 const CharityListScreen(showScaffold: false),
                 const SizedBox(height: 24),
-                const WebFooter(),
               ],
             ),
           ),

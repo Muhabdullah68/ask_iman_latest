@@ -21,8 +21,8 @@ import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/seo_meta.dart';
 import '../web_router.dart' show WebRoutes;
 import '../widgets/web_animations.dart';
-import '../widgets/web_footer.dart';
 import 'quran/audio_bar_web.dart';
+import 'quran/quran_reading_state.dart';
 import 'quran/settings_web.dart';
 import 'quran/share_web.dart';
 import 'quran/surah_explorer_web.dart';
@@ -32,7 +32,14 @@ import 'quran/web_quran_tab.dart';
 
 class QuranPage extends StatefulWidget {
   final int tab;
-  const QuranPage({super.key, this.tab = 0});
+  final int? initialSurah;
+  final int? initialAyah;
+  const QuranPage({
+    super.key,
+    this.tab = 0,
+    this.initialSurah,
+    this.initialAyah,
+  });
 
   @override
   State<QuranPage> createState() => _QuranPageState();
@@ -43,6 +50,20 @@ class _QuranPageState extends State<QuranPage> {
   final Map<int, Widget> _built = {};
   bool _juzMode = false;
   bool _indexDrawerOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final s = widget.initialSurah;
+    if (s != null && s >= 1 && s <= 114) {
+      final a = widget.initialAyah;
+      if (a != null && a >= 1) {
+        QuranReadingState.instance.selectAyah(s, a);
+      } else {
+        QuranReadingState.instance.setSurah(s);
+      }
+    }
+  }
 
   @override
   void didUpdateWidget(covariant QuranPage oldWidget) {
@@ -95,49 +116,55 @@ class _QuranPageState extends State<QuranPage> {
     setPageTitle('Quran Explorer — Talawat, Tarjuma, Tafseer · Ask Iman');
     return Stack(
       children: [
-        Container(
-          color: figma.surfaceBackground,
-          child: CustomScrollView(
-            physics: webScrollPhysics,
-            slivers: [
-              SliverToBoxAdapter(child: const _QuranHero()),
-              SliverToBoxAdapter(
-                child: _SubNavBar(
-                  indexDrawerOpen: _indexDrawerOpen,
-                  onToggleIndex: _toggleIndexDrawer,
+        SafeArea(
+          top: false,
+          bottom: false,
+          child: Container(
+            color: figma.surfaceBackground,
+            child: CustomScrollView(
+              physics: webScrollPhysics,
+              slivers: [
+                const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                SliverToBoxAdapter(child: const _QuranHero()),
+                SliverToBoxAdapter(
+                  child: _SubNavBar(
+                    indexDrawerOpen: _indexDrawerOpen,
+                    onToggleIndex: _toggleIndexDrawer,
+                  ),
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: _ControlBar(
-                  juzMode: _juzMode,
-                  onToggleJuz: _toggleJuz,
-                  indexDrawerOpen: _indexDrawerOpen,
-                  onToggleIndex: _toggleIndexDrawer,
+                SliverToBoxAdapter(
+                  child: _ControlBar(
+                    juzMode: _juzMode,
+                    onToggleJuz: _toggleJuz,
+                    indexDrawerOpen: _indexDrawerOpen,
+                    onToggleIndex: _toggleIndexDrawer,
+                  ),
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: _PillTabBar(
-                  current: _tabIndex,
-                  onSelect: _select,
+                SliverToBoxAdapter(
+                  child: _PillTabBar(
+                    current: _tabIndex,
+                    onSelect: _select,
+                  ),
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: IndexedStack(
-                  index: _tabIndex,
-                  children: [
-                    for (var i = 0; i < WebQuranTab.values.length; i++)
-                      i == 0
-                          ? _TalawatBounded(child: _pane(i))
-                          : _pane(i)
-                                .animate(key: ValueKey(i))
-                                .fadeIn(duration: 300.ms, curve: Curves.easeOut),
-                  ],
+                SliverToBoxAdapter(
+                  child: IndexedStack(
+                    index: _tabIndex,
+                    children: [
+                      for (var i = 0; i < WebQuranTab.values.length; i++)
+                        i == 0
+                            ? _TalawatBounded(child: _pane(i))
+                            : _pane(i)
+                                  .animate(key: ValueKey(i))
+                                  .fadeIn(
+                                    duration: 300.ms,
+                                    curve: Curves.easeOut,
+                                  ),
+                    ],
+                  ),
                 ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 44)),
-              const SliverToBoxAdapter(child: WebFooter()),
-              SliverToBoxAdapter(child: SizedBox(height: audioPad)),
-            ],
+                SliverToBoxAdapter(child: SizedBox(height: audioPad)),
+              ],
+            ),
           ),
         ),
         const Positioned(
@@ -157,7 +184,7 @@ class _TalawatBounded extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final minH = (MediaQuery.sizeOf(context).height * 0.72).clamp(640.0, 960.0);
+    final minH = (MediaQuery.sizeOf(context).height * 0.72).clamp(520.0, 960.0);
     return SizedBox(
       height: minH,
       child: child,
@@ -178,11 +205,14 @@ class _QuranHero extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1180),
-          child: Row(
-            children: [
-              Container(
-                width: 88,
-                height: 88,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 120),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 88,
+                  height: 88,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
@@ -243,6 +273,7 @@ class _QuranHero extends StatelessWidget {
               ),
             ],
           ),
+          ),
         ),
       ),
     );
@@ -262,7 +293,15 @@ class _SubNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final figma = context.figma;
     return Container(
-      color: FigmaTokens.brandDeepGreen,
+      decoration: BoxDecoration(
+        color: FigmaTokens.brandDeepGreen,
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.white.withValues(alpha: 0.18),
+            width: 0.5,
+          ),
+        ),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
       child: Center(
         child: ConstrainedBox(

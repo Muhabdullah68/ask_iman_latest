@@ -378,12 +378,14 @@ class HoverLift extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final double lift;
+  final ValueChanged<bool>? onHoverChanged;
 
   const HoverLift({
     super.key,
     required this.child,
     this.onTap,
     this.lift = 1.02,
+    this.onHoverChanged,
   });
 
   @override
@@ -393,12 +395,18 @@ class HoverLift extends StatefulWidget {
 class _HoverLiftState extends State<HoverLift> {
   bool _hovered = false;
 
+  void _setHovered(bool value) {
+    if (_hovered == value) return;
+    setState(() => _hovered = value);
+    widget.onHoverChanged?.call(value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final reduceMotion = MediaQuery.of(context).disableAnimations;
     return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
+      onEnter: (_) => _setHovered(true),
+      onExit: (_) => _setHovered(false),
       child: AnimatedScale(
         scale: _hovered ? widget.lift : 1.0,
         duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 160),

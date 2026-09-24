@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import '../../core/utils/seo_meta.dart';
 import '../widgets/web_animations.dart';
 import '../../features/profile/profile_screen.dart';
-import '../widgets/web_footer.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -28,7 +27,6 @@ class ProfilePage extends StatelessWidget {
               children: [
                 ProfileScreen(embedded: true),
                 const SizedBox(height: 24),
-                const WebFooter(),
               ],
             ),
           ),

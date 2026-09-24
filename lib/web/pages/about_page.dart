@@ -12,7 +12,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/seo_meta.dart';
 import '../widgets/web_animations.dart';
-import '../widgets/web_footer.dart';
+import '../widgets/web_ornaments.dart';
 import '../widgets/web_widgets.dart';
 import '../web_router.dart' show WebRoutes;
 
@@ -37,7 +37,6 @@ class AboutPage extends StatelessWidget {
           const SizedBox(height: 64),
           const ScrollReveal(delay: Duration(milliseconds: 400), child: _ContactSection()),
           const SizedBox(height: 64),
-          const WebFooter(),
         ],
       ),
     );
@@ -118,22 +117,51 @@ class _AboutHero extends StatelessWidget {
           );
 
           final ornament = Container(
-            width: 150,
-            height: 150,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
+            width: 160,
+            height: 160,
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: figma.accentGoldAmber.withValues(alpha: 0.12),
+              border: Border.fromBorderSide(
+                BorderSide(color: FigmaTokens.ornamentGold, width: 1.5),
+              ),
             ),
-            child: const FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                '﴿﷽﴾',
-                style: TextStyle(
-                  fontFamily: FigmaTokens.fontFamilyArabicSerif,
-                  fontSize: 30,
-                  color: FigmaTokens.brandDeepGreen,
-                  height: 1,
+            child: Container(
+              margin: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: FigmaTokens.ornamentGold.withValues(alpha: 0.42),
+                  width: 0.8,
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Color(0x3AD4A24C),
+                      Color(0x0AD4A24C),
+                    ],
+                  ),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    '﴿﷽﴾',
+                    style: TextStyle(
+                      fontFamily: FigmaTokens.fontFamilyArabicSerif,
+                      fontSize: 30,
+                      color: figma.accentGoldAmber,
+                      height: 1,
+                      shadows: const [
+                        Shadow(
+                          color: Color(0x40D4A24C),
+                          blurRadius: 18,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -238,39 +266,79 @@ class _InfoCard extends StatelessWidget {
         border: Border.all(color: figma.borderHairline),
         boxShadow: figma.cardShadows,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Icon(icon, size: 32, color: figma.accentGoldAmber),
-          const SizedBox(height: 16),
-          Text(
-            eyebrow.toUpperCase(),
-            style: TextStyle(
-              fontFamily: FigmaTokens.fontFamilyUiSans,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.4,
-              color: figma.accentGoldAmber,
+          const Positioned(
+            top: 28,
+            right: 28,
+            child: KhatamOrnament(
+              size: 14,
+              alpha: 0.53,
+              strokeWidth: 1.0,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: figma.textHeading,
+          Container(
+            margin: const EdgeInsets.all(8),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: FigmaTokens.ornamentGold.withValues(alpha: 0.33),
+                width: 0.8,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            body,
-            style: TextStyle(
-              fontFamily: FigmaTokens.fontFamilyUiSans,
-              fontSize: 13.5,
-              height: 1.6,
-              color: figma.textBody,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GoldIconBadge(
+                  icon: icon,
+                  size: 48,
+                  iconSize: 24,
+                  iconColor: figma.accentGoldLight,
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const KhatamOrnament(
+                      size: 10,
+                      alpha: 0.9,
+                      strokeWidth: 1.0,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      eyebrow.toUpperCase(),
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyUiSans,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.4,
+                        color: figma.accentGoldAmber,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: figma.textHeading,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  body,
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyUiSans,
+                    fontSize: 13.5,
+                    height: 1.6,
+                    color: figma.textBody,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -325,20 +393,38 @@ class _JourneySection extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: figma.surfacePanelMint,
-                    borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-                    border: Border.all(color: figma.borderHairline),
+                    borderRadius:
+                        BorderRadius.circular(FigmaTokens.radiusCard),
+                    border: Border.all(
+                      color: FigmaTokens.ornamentGold.withValues(alpha: 0.16),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        '0${i + 1}',
-                        style: TextStyle(
-                          fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: figma.accentGoldAmber,
+                      SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const KhatamOrnament(
+                              size: 28,
+                              alpha: 0.6,
+                              strokeWidth: 1.1,
+                            ),
+                            Text(
+                              '0${i + 1}',
+                              style: TextStyle(
+                                fontFamily:
+                                    FigmaTokens.fontFamilyDisplaySerif,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                                color: FigmaTokens.ornamentGold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -351,7 +437,17 @@ class _JourneySection extends StatelessWidget {
                           color: figma.textHeading,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
+                      Center(
+                        child: Container(
+                          width: 18,
+                          height: 1,
+                          color: FigmaTokens.ornamentGold.withValues(
+                            alpha: 0.40,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         v.$2,
                         style: TextStyle(
@@ -382,47 +478,83 @@ class _ImpactBand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         gradient: FigmaTokens.darkBandGradient,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 800;
-          final stats = [
-            ('1.2B+', 'Muslims worldwide'),
-            ('114', 'Surahs in the Mushaf'),
-            ('99', 'Names of Allah'),
-            ('6', 'Authentic hadith books'),
-          ];
-          final row = Row(
-            children: [
-              for (var i = 0; i < stats.length; i++) ...[
-                if (i > 0) const SizedBox(width: 20),
-                Expanded(
-                  child: _ImpactStat(value: stats[i].$1, label: stats[i].$2)
-                      .animate(delay: Duration(milliseconds: i * 80))
-                      .fadeIn(duration: 400.ms)
-                      .slideY(begin: 0.1),
-                ),
-              ],
-            ],
-          );
-          return isWide
-              ? row
-              : Column(
-                  children: [
-                    for (var i = 0; i < stats.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 18),
-                      _ImpactStat(value: stats[i].$1, label: stats[i].$2)
-                          .animate(delay: Duration(milliseconds: i * 80))
-                          .fadeIn(duration: 400.ms)
-                          .slideY(begin: 0.1),
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(28, 22, 28, 0),
+            child: GoldRule(
+              height: 1.5,
+              alpha: 0.55,
+              khatamSize: 22,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(26),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 800;
+                final stats = [
+                  ('1.2B+', 'Muslims worldwide'),
+                  ('114', 'Surahs in the Mushaf'),
+                  ('99', 'Names of Allah'),
+                  ('6', 'Authentic hadith books'),
+                ];
+                Widget stat(int i) => _ImpactStat(
+                      value: stats[i].$1,
+                      label: stats[i].$2,
+                    )
+                        .animate(delay: Duration(milliseconds: i * 80))
+                        .fadeIn(duration: 400.ms)
+                        .slideY(begin: 0.1);
+                if (!isWide) {
+                  return Column(
+                    children: [
+                      for (var i = 0; i < stats.length; i++) ...[
+                        if (i > 0) const SizedBox(height: 18),
+                        stat(i),
+                      ],
                     ],
-                  ],
+                  );
+                }
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var i = 0; i < stats.length; i++) ...[
+                        if (i > 0)
+                          const SizedBox(
+                            width: 20,
+                            child: Center(
+                              child: SizedBox(
+                                width: 0.6,
+                                height: double.infinity,
+                                child: ColoredBox(
+                                  color: Color(0x33D4A24C),
+                                ),
+                              ),
+                            ),
+                          ),
+                        Expanded(child: stat(i)),
+                      ],
+                    ],
+                  ),
                 );
-        },
+              },
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(28, 0, 28, 22),
+            child: GoldRule(
+              height: 1.5,
+              alpha: 0.55,
+              khatamSize: 22,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -445,6 +577,12 @@ class _ImpactStat extends StatelessWidget {
             fontSize: 34,
             fontWeight: FontWeight.w900,
             color: figma.accentGoldLight,
+            shadows: const [
+              Shadow(
+                color: Color(0x44D4A24C),
+                blurRadius: 20,
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 6),
@@ -521,16 +659,35 @@ class _ContactSectionState extends State<_ContactSection> {
         const SizedBox(height: 24),
         Container(
           key: const Key('about_contact'),
-          padding: const EdgeInsets.all(28),
+          padding: const EdgeInsets.all(26),
           decoration: BoxDecoration(
             color: figma.surfaceCard,
             borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
             border: Border.all(color: figma.borderHairline),
             boxShadow: figma.cardShadows,
           ),
-          child: Form(
-            key: _formKey,
-            child: LayoutBuilder(
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: FigmaTokens.ornamentGold.withValues(alpha: 0.23),
+              ),
+            ),
+            child: Stack(
+              children: [
+                const Positioned(
+                  top: 6,
+                  right: 6,
+                  child: KhatamOrnament(
+                    size: 14,
+                    alpha: 0.53,
+                    strokeWidth: 1.0,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
+                  child: Form(key: _formKey, child: LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 720;
                 return Column(
@@ -643,6 +800,10 @@ class _ContactSectionState extends State<_ContactSection> {
             ),
           ),
         ),
+        ],
+      ),
+    ),
+  ),
       ],
     );
   }

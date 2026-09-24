@@ -13,7 +13,6 @@ import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/seo_meta.dart';
 import '../../features/quran/data/ahadees_data.dart';
 import '../../features/quran/data/surahs_data.dart';
-import '../widgets/web_footer.dart';
 import '../widgets/web_widgets.dart';
 import '../web_router.dart' show WebRoutes;
 
@@ -147,7 +146,6 @@ class _SearchPageState extends State<SearchPage> {
             ],
           ],
           const SizedBox(height: 40),
-          const WebFooter(),
         ],
       ),
     );

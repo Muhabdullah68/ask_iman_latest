@@ -17,7 +17,8 @@ import '../../../core/services/quran_audio_service.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../features/quran/data/quran_api_service.dart';
 import '../../../features/quran/data/surahs_data.dart';
-import '../../widgets/web_animations.dart';
+import '../../widgets/web_ornaments.dart';
+import 'quran_reading_state.dart';
 import 'quran_web_widgets.dart';
 
 class SurahExplorerWeb extends StatefulWidget {
@@ -38,8 +39,18 @@ class SurahExplorerWeb extends StatefulWidget {
 }
 
 class _SurahExplorerWebState extends State<SurahExplorerWeb> {
-  int _selected = 1;
+  late int _selected;
   String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = QuranReadingState.instance.surahNum.clamp(1, 114);
+  }
+
+  void _handleAyahTapped(int surah, int ayah) {
+    QuranReadingState.instance.selectAyah(surah, ayah);
+  }
 
   List<Map<String, dynamic>> get _filtered {
     final all = SurahsData.surahs;
@@ -56,6 +67,7 @@ class _SurahExplorerWebState extends State<SurahExplorerWeb> {
 
   void _selectSurah(int n) {
     setState(() => _selected = n);
+    QuranReadingState.instance.setSurah(n);
     if (widget.drawerOpen) widget.onToggleDrawer();
   }
 
@@ -83,9 +95,12 @@ class _SurahExplorerWebState extends State<SurahExplorerWeb> {
           surahNum: _selected,
           onNextSurah: () {
             if (_selected < 114) {
-              setState(() => _selected++);
+              final next = _selected + 1;
+              setState(() => _selected = next);
+              QuranReadingState.instance.setSurah(next);
             }
           },
+          onAyahTapped: _handleAyahTapped,
         );
 
         if (wide) {
@@ -440,7 +455,13 @@ class _SurahTile extends StatelessWidget {
 class SurahReadingPane extends StatefulWidget {
   final int surahNum;
   final VoidCallback? onNextSurah;
-  const SurahReadingPane({super.key, required this.surahNum, this.onNextSurah});
+  final void Function(int surah, int ayah)? onAyahTapped;
+  const SurahReadingPane({
+    super.key,
+    required this.surahNum,
+    this.onNextSurah,
+    this.onAyahTapped,
+  });
 
   @override
   State<SurahReadingPane> createState() => _SurahReadingPaneState();
@@ -521,35 +542,201 @@ class _SurahReadingPaneState extends State<SurahReadingPane> {
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
                     ? _ErrorRetry(message: _error!, onRetry: _load)
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(24, 22, 24, 132),
-                        itemCount: (_ayahs?.length ?? 0) + (_showBasmala ? 1 : 0),
-                        itemBuilder: (context, i) {
-                          if (_showBasmala && i == 0) {
-                            return const BasmalaWidget();
-                          }
-                          final ayahIndex = _showBasmala ? i - 1 : i;
-                          final a = _ayahs![ayahIndex];
-                          return Column(
-                            children: [
-                              AyahCard(
-                                surahNum: widget.surahNum,
-                                ayahNum: int.parse(a['num']!),
-                                arabic: a['a']!,
-                                translation:
-                                    _urdu ? (a['tu'] ?? a['t']!) : a['t']!,
-                                urdu: _urdu,
-                              ),
-                              const VerseDivider(),
-                            ],
-                          );
-                        },
+                    : _AyahScrollView(
+                        surahNum: widget.surahNum,
+                        ayahs: _ayahs!,
+                        urdu: _urdu,
+                        showBasmala: _showBasmala,
+                        onAyahTapped: widget.onAyahTapped,
+                        onNextSurah: widget.onNextSurah,
                       ),
           ),
         ],
       ),
     );
   }
+}
+
+// ── Ayah scroll view (fills viewport; short surahs get a filler banner) ──────
+class _AyahScrollView extends StatelessWidget {
+  final int surahNum;
+  final List<Map<String, String>> ayahs;
+  final bool urdu;
+  final bool showBasmala;
+  final void Function(int surah, int ayah)? onAyahTapped;
+  final VoidCallback? onNextSurah;
+  const _AyahScrollView({
+    required this.surahNum,
+    required this.ayahs,
+    required this.urdu,
+    required this.showBasmala,
+    this.onAyahTapped,
+    this.onNextSurah,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final shortSurah = ayahs.length <= 6;
+    return CustomScrollView(
+      slivers: [
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, i) {
+              if (showBasmala && i == 0) {
+                return const Padding(
+                  padding: EdgeInsets.fromLTRB(24, 22, 24, 0),
+                  child: BasmalaWidget(),
+                );
+              }
+              final ayahIndex = showBasmala ? i - 1 : i;
+              final a = ayahs[ayahIndex];
+              final ayahNum = int.parse(a['num']!);
+              return Column(
+                children: [
+                  AyahCard(
+                    surahNum: surahNum,
+                    ayahNum: ayahNum,
+                    arabic: a['a']!,
+                    translation: urdu ? (a['tu'] ?? a['t']!) : a['t']!,
+                    urdu: urdu,
+                    onAyahTapped: onAyahTapped == null
+                        ? null
+                        : () => onAyahTapped!(surahNum, ayahNum),
+                  ),
+                  const VerseDivider(),
+                ],
+              );
+            },
+            childCount: ayahs.length + (showBasmala ? 1 : 0),
+          ),
+        ),
+        if (shortSurah)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 10, 24, 132),
+                child: _ContinueBanner(
+                  surahNum: surahNum,
+                  onNextSurah: onNextSurah,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ContinueBanner extends StatelessWidget {
+  final int surahNum;
+  final VoidCallback? onNextSurah;
+  const _ContinueBanner({required this.surahNum, this.onNextSurah});
+
+  @override
+  Widget build(BuildContext context) {
+    final figma = context.figma;
+    final nextName = surahNum < 114
+        ? (SurahsData.surahs[surahNum]['name'] as String)
+        : '';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        color: figma.surfacePanelMint,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: figma.borderHairline, width: 1),
+      ),
+      child: Row(
+        children: [
+          GoldIconBadge(
+            icon: Icons.auto_stories_rounded,
+            size: 46,
+            iconSize: 22,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Continue your recitation',
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: figma.textHeading,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Juz ${_juzForSurah(surahNum)}'
+                  '${nextName.isEmpty ? '' : ' · Next: Surah $nextName'}'
+                  ' — keep your streak alive.',
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyUiSans,
+                    fontSize: 12.5,
+                    height: 1.4,
+                    color: figma.textBody,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (onNextSurah != null) ...[
+            const SizedBox(width: 12),
+            Material(
+              color: FigmaTokens.brandMidGreen,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
+              ),
+              child: InkWell(
+                onTap: onNextSurah,
+                borderRadius:
+                    BorderRadius.circular(FigmaTokens.radiusPill),
+                child: const Padding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Open Next Surah',
+                        style: TextStyle(
+                          fontFamily: FigmaTokens.fontFamilyUiSans,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: FigmaTokens.textOnDark,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: FigmaTokens.textOnDark,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+int _juzForSurah(int surahNum) {
+  const juzStarts = [
+    1, 2, 2, 3, 4, 4, 5, 6, 7, 8, 9, 11, 12, 14, 16, 17, 18, 21, 23, 25, 27,
+    29, 33, 36, 39, 41, 45, 48, 49, 58,
+  ];
+  for (var i = juzStarts.length - 1; i >= 0; i--) {
+    if (surahNum >= juzStarts[i]) return i + 1;
+  }
+  return 1;
 }
 
 class _PaneHeader extends StatelessWidget {

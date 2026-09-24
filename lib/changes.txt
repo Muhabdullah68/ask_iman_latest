@@ -500,3 +500,59 @@ FIX 18: AZAN NOTIFICATIONS REMOVED (not reliable on device)
   (record stays).
 - flutter analyze: 64 total issues (same baseline), 0 in touched files;
   81 tests pass, 2 pre-existing splash-thread failures unchanged.
+
+======================================================================
+FIX 19 — WEB UI ORNAMENT + ROUTING + FOOTER UNIFORMITY (24 SEP 2026)
+======================================================================
+Root cause: Website surfaced the "basic, not Islamic" home + about
+screens, a Quran top-overlap and short-ayat bottom gap, broken share
+routing, and a centrally-constrained footer that was not uniform across
+screens. All fixes are web-only (lib/web + shared tokens); mobile app
+untouched.
+
+Implemented:
+  * Tokens: added ornamentGold #D4A24C + ornamentDeepGreen #0E4D3C to
+    figma_tokens.dart; kept existing accentGoldAmber/Light intact.
+  * New lib/web/widgets/web_ornaments.dart ornament kit: KhatamOrnament,
+    MihrabOrnament, ArabicRoundel, GoldRule, ArabesqueBand,
+    GoldIconBadge, CrescentOrnament.
+  * WEB-1 home_page.dart: hero gradient mid-stop gold wash (12% lerp),
+    two mihrab silhouettes + arabesque tile band at hero bottom, upgraded
+    _OrnamentPainter to an 8-point khatam+crescent+connector lattice
+    (~12 motifs), removed the generic 8-point _StarOrnamentPainter;
+    Arabic 34->38, padding 36->44, thin gold rule under translation;
+    _ImageFeatureTile -> stateful with hover gold inner border
+    (6px/1.5px 0x30 gold) + 18px top-right corner khatam fade-in via
+    new HoverLift.onHoverChanged; Daily Inspiration now ArabicRoundel +
+    KhatamOrnament stack; Sacred Collections gold rule with centered
+    khatam + leather-bound book covers (inset frame, crescent, book
+    number in corner khatam).
+  * WEB-2 quran_page.dart: SafeArea(top:false) + 8px top gap (navbar
+    overlap), hero Row min-height 120 + explicit crossAxisAlignment
+    center, _SubNavBar bottom 0.5px white divider, _TalawatBounded lower
+    clamp 640->520, removed page-local footer. surah_explorer_web.dart:
+    ayat list -> CustomScrollView + SliverFillRemaining "Continue your
+    recitation" banner (Juz X · Next: Surah Y + Open Next Surah button)
+    for surahs <= 6 ayahs.
+  * WEB-3 about_page.dart: hero Bismillah medallion = radial gold bloom
+    + gold two-ring border + accentGoldAmber text w/ gold glow;
+    _InfoCard = 48px gold-icon badge + gold inset frame + khatam corner
+    + khatam-bulleted eyebrow; value tiles = gold khatam-framed
+    numerals + gold underline; _ImpactBand = GoldRule top/bottom +
+    stat gold bloom + vertical gold separators; contact card = inset
+    gold hairline + corner khatam.
+  * WEB-4 share routing: new QuranReadingState ChangeNotifier singleton
+    (quran_reading_state.dart) seeded by Talawat (surah/ayah selection)
+    and by deep links; share_web.dart cards now dynamic (Share Surah X /
+    Share Verse Y, ?surah=&ayah= + #ayah- anchors) built from
+    siteOrigin() (lib/web/web_origin.dart, Uri.base.origin on web);
+    verse context-menu share URL no longer hard-coded askiman.com;
+    /quran/share route parses surah/ayah query params into QuranPage.
+  * WEB-5 footer: WebFooter promoted into WebShell (SizedBox 72 gap),
+    removed all 11 per-page WebFooter instances + QuranPaneScaffold
+    footer (full-bleed edge-to-edge green band, inner 1200 content);
+    footer bismillah now fontFamilyArabicSerif, gold 0.85, gold shadow.
+
+Verification: flutter analyze 63 issues (all pre-existing, baseline 64,
+0 errors); flutter test 81 pass + 2 pre-existing splash golden
+failures. No build/deploy performed — commit + push only.

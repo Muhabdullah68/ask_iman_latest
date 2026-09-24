@@ -47,11 +47,17 @@ class WebFooter extends StatelessWidget {
                         'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
                         textAlign: TextAlign.end,
                         style: TextStyle(
-                          fontFamily: 'Amiri',
+                          fontFamily: FigmaTokens.fontFamilyArabicSerif,
                           fontSize: 13,
                           color: FigmaTokens.accentGoldLight.withValues(
-                            alpha: 0.7,
+                            alpha: 0.85,
                           ),
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x22D4A24C),
+                              blurRadius: 10,
+                            ),
+                          ],
                         ),
                       );
                       final askWebLink = InkWell(
