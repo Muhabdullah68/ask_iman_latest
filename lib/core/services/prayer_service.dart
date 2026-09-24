@@ -18,13 +18,12 @@
 
 import 'dart:async';
 import 'package:adhan/adhan.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -210,9 +209,7 @@ class PrayerService extends ChangeNotifier {
   int _reminderMins = 10;
 
   FlutterLocalNotificationsPlugin? _notifPlugin;
-  final AudioPlayer _azanPlayer = AudioPlayer();
-  Timer? _azanTimer;
-  Timer? _stopCheckTimer;
+  AppLifecycleListener? _lifecycle;
 
   // Getters
   PrayerTimes? get prayerTimes => _prayerTimes;
@@ -227,9 +224,9 @@ class PrayerService extends ChangeNotifier {
 
   Future<void> initialize(FlutterLocalNotificationsPlugin plugin) async {
     _notifPlugin = plugin;
-    // tz already initialized in NotificationService
+    // tz already initialized by NotificationService (correct local zone).
 
-    // Create notification channel for prayer reminders
+    // Azan channel carries the adhan sound for the "X minutes before" calls.
     const AndroidNotificationChannel azzanChannel = AndroidNotificationChannel(
       'prayer_azzan_channel',
       'Prayer Azan Notifications',
@@ -240,22 +237,17 @@ class PrayerService extends ChangeNotifier {
       enableVibration: true,
     );
 
-    const AndroidNotificationChannel reminderChannel =
-        AndroidNotificationChannel(
-          'prayer_reminder_channel',
-          'Prayer Reminders',
-          description: 'Prayer time reminder notifications',
-          importance: Importance.high,
-          sound: RawResourceAndroidNotificationSound('allah_hu_allah_hu'),
-          playSound: true,
-        );
-
-    final androidPlugin = _notifPlugin
-        ?.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
+    final androidPlugin = _notifPlugin?.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+    >();
     await androidPlugin?.createNotificationChannel(azzanChannel);
-    await androidPlugin?.createNotificationChannel(reminderChannel);
+
+    // "When the app is opened the azan stops": cancelling the delivered azan
+    // notification halts its sound, so tap the pipeline to wire this in after
+    // the first frame (needs a WidgetsBinding up).
+    _lifecycle ??= AppLifecycleListener(onResume: () {
+      unawaited(_cancelActiveAzzanNotifications());
+    });
 
     await refresh();
     _scheduleMidnightRefresh();
@@ -304,12 +296,34 @@ class PrayerService extends ChangeNotifier {
     if (_notifEnabled != v) {
       _notifEnabled = v;
       if (v) {
-        _scheduleAllNotifications();
+        unawaited(_enableAndSchedule());
       } else if (!kIsWeb) {
         _notifPlugin?.cancelAll();
       }
       notifyListeners();
     }
+  }
+
+  /// Requests the Android 13+ POST_NOTIFICATIONS and exact-alarm permissions
+  /// (Android 12+ / 14 invites settings), then schedules the azan calls.
+  Future<void> _enableAndSchedule() async {
+    if (kIsWeb || _notifPlugin == null) return;
+    final android = _notifPlugin!.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+    >();
+    if (android != null) {
+      try {
+        final granted = await android.requestNotificationsPermission();
+        if (granted == false) return; // nothing will display — don't schedule
+      } catch (_) {}
+      try {
+        final canExact = await android.canScheduleExactNotifications();
+        if (canExact != true) {
+          await android.requestExactAlarmsPermission();
+        }
+      } catch (_) {}
+    }
+    await _scheduleAllNotifications();
   }
 
   void setReminderMinutes(int m) {
@@ -423,25 +437,8 @@ class PrayerService extends ChangeNotifier {
       ('Isha', _prayerTimes!.isha, 4),
     ];
 
-    final reminderDetails = NotificationDetails(
-      android: AndroidNotificationDetails(
-        'prayer_reminder_channel',
-        'Prayer Reminders',
-        channelDescription: 'Prayer time reminder notifications',
-        importance: Importance.high,
-        priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
-        sound: const RawResourceAndroidNotificationSound('allah_hu_allah_hu'),
-        playSound: true,
-      ),
-      iOS: const DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      ),
-    );
-
-    // Azan actions
+    // Azan actions — the notification carries a "Stop Azan" action that
+    // dismisses it (cancelling the notification halts its sound).
     const azanStopAction = AndroidNotificationAction(
       'stop_azan',
       'Stop Azan',
@@ -461,6 +458,7 @@ class PrayerService extends ChangeNotifier {
         playSound: true,
         category: AndroidNotificationCategory.alarm,
         visibility: NotificationVisibility.public,
+        fullScreenIntent: true,
         enableVibration: true,
         color: const Color(0xFF1B4332),
         colorized: true,
@@ -474,43 +472,55 @@ class PrayerService extends ChangeNotifier {
       ),
     );
 
+    // One azan notification per prayer, fired at prayer time minus the chosen
+    // minutes ("X MIN BEFORE NAMAZ") — the text reminder and at-time firing
+    // were replaced by this single call. Guards:
+    //   • never schedule in the past;
+    //   • never let a later prayer's call overlap an earlier one's window.
     final now = customTime ?? DateTime.now();
+    var prevFire = DateTime(1970);
     for (final (name, time, id) in prayers) {
-      final rem = time.subtract(Duration(minutes: _reminderMins));
-      if (rem.isAfter(now)) {
-        try {
-          await _notifPlugin!.zonedSchedule(
-            id,
-            '$name Reminder',
-            '$_reminderMins minutes until $name prayer',
-            tz.TZDateTime.from(rem, tz.local),
-            reminderDetails,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-          );
-        } catch (e) {
-          debugPrint('Error scheduling reminder for $name: $e');
+      final fire = time.subtract(Duration(minutes: _reminderMins));
+      if (!fire.isAfter(now)) continue;
+      if (fire.isBefore(prevFire)) continue;
+      prevFire = fire;
+
+      try {
+        await _notifPlugin!.zonedSchedule(
+          id + 10,
+          '$name Azan',
+          'Allahu Akbar — $name adhan begins in $_reminderMins minutes.',
+          tz.TZDateTime.from(fire, tz.local),
+          azzanDetails,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      } on PlatformException catch (e) {
+        // Exact alarms not permitted (Android 12+/14) — fall back to inexact so
+        // the call still arrives (possibly slightly rounded to the minute).
+        if (e.code == 'exact_alarms_not_permitted') {
+          try {
+            await _notifPlugin!.zonedSchedule(
+              id + 10,
+              '$name Azan',
+              'Allahu Akbar — $name adhan begins in $_reminderMins minutes.',
+              tz.TZDateTime.from(fire, tz.local),
+              azzanDetails,
+              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+            );
+          } catch (e2) {
+            debugPrint('Error scheduling azan for $name (inexact): $e2');
+          }
+        } else {
+          debugPrint('Error scheduling azan for $name: $e');
         }
-      }
-      if (time.isAfter(now)) {
-        try {
-          await _notifPlugin!.zonedSchedule(
-            id + 10,
-            'Time for $name',
-            'Allahu Akbar — it is time for $name prayer.',
-            tz.TZDateTime.from(time, tz.local),
-            azzanDetails,
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-          );
-        } catch (e) {
-          debugPrint('Error scheduling adhan for $name: $e');
-        }
+      } catch (e) {
+        debugPrint('Error scheduling azan for $name: $e');
       }
     }
-    _scheduleForegroundAzan();
   }
 
   void _scheduleMidnightRefresh() {
@@ -534,68 +544,33 @@ class PrayerService extends ChangeNotifier {
     });
   }
 
-  void _scheduleForegroundAzan() {
-    _azanTimer?.cancel();
-    if (_prayerTimes == null) return;
-    final prayers = [
-      _prayerTimes!.fajr,
-      _prayerTimes!.dhuhr,
-      _prayerTimes!.asr,
-      _prayerTimes!.maghrib,
-      _prayerTimes!.isha,
-    ];
-    final now = DateTime.now();
-    for (final time in prayers) {
-      if (time.isAfter(now)) {
-        final duration = time.difference(now);
-        _azanTimer = Timer(duration, _playAzanForeground);
-        return;
-      }
-    }
-  }
-
-  Future<void> _playAzanForeground() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool('stop_azan') == true) {
-      await prefs.setBool('stop_azan', false);
-      _scheduleForegroundAzan();
-      return;
-    }
+  /// Cancels any azan call that is CURRENTLY delivered (i.e. still ringing in
+  /// the notification shade with its sound playing). Pending future calls are
+  /// untouched. Called from the "Stop Azan" action and on app resume.
+  Future<void> _cancelActiveAzzanNotifications() async {
+    if (kIsWeb || _notifPlugin == null) return;
     try {
-      await _azanPlayer.setAsset('assets/sounds/allah_o_akbar01.mp3');
-      await _azanPlayer.setLoopMode(LoopMode.one);
-      await _azanPlayer.play();
-    } catch (e) {
-      debugPrint('Error playing Azan in foreground: $e');
-      _scheduleForegroundAzan();
-      return;
-    }
-    _stopCheckTimer?.cancel();
-    _stopCheckTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
-      final p = await SharedPreferences.getInstance();
-      if (p.getBool('stop_azan') == true) {
-        _azanPlayer.stop();
-        _azanPlayer.setLoopMode(LoopMode.off);
-        await p.setBool('stop_azan', false);
-        _stopCheckTimer?.cancel();
+      final active = await _notifPlugin!.getActiveNotifications();
+      for (final n in active) {
+        final id = n.id;
+        if (id != null && id >= 10 && id <= 14) {
+          await _notifPlugin!.cancel(id);
+        }
       }
-    });
-    _scheduleForegroundAzan();
+    } catch (e) {
+      debugPrint('Azan stop error: $e');
+    }
   }
 
-  void stopAzanPlayback() {
-    _azanPlayer.stop();
-    _azanPlayer.setLoopMode(LoopMode.off);
-    _stopCheckTimer?.cancel();
-  }
+  /// Stops a ringing azan: cancels the delivered notification (halting its
+  /// system sound). Kept for the "Stop Azan" notification action handler.
+  Future<void> stopAzanPlayback() => _cancelActiveAzzanNotifications();
 
   @override
   void dispose() {
     _midnightTimer?.cancel();
     _countdownTimer?.cancel();
-    _azanTimer?.cancel();
-    _stopCheckTimer?.cancel();
-    _azanPlayer.dispose();
+    _lifecycle?.dispose();
     super.dispose();
   }
 }

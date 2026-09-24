@@ -26,7 +26,7 @@ import 'core/services/ask_iman_ai_service.dart';
 import 'core/l10n/app_localizations.dart';
 import 'core/providers/locale_provider.dart';
 import 'core/providers/theme_provider.dart';
-import 'features/splash/splash_screen.dart';
+import 'screens/splash_screen.dart';
 import 'features/community/admin/admin_dashboard.dart';
 
 void main() async {
@@ -64,6 +64,20 @@ void main() async {
 
   tz_data.initializeTimeZones();
   debugPrint('MAIN: Timezones initialized');
+
+  try {
+    await NotificationService.initialize(
+      onDidReceiveNotificationResponse: (response) {
+        if (response.actionId == 'stop_azan') {
+          // Cancels the delivered azan notification -> its sound stops.
+          PrayerService().stopAzanPlayback();
+        }
+      },
+    );
+    debugPrint('MAIN: NotificationService initialized');
+  } catch (e) {
+    debugPrint('MAIN: NotificationService error: $e');
+  }
 
   try {
     PrayerService().initialize(NotificationService.plugin).ignore();
@@ -107,7 +121,8 @@ void main() async {
 
   try {
     final fcm = FcmService.instance;
-    fcm.setLocalNotificationPlugin(NotificationService.plugin);
+    // AZAN-ONLY: the plugin is intentionally NOT handed to FcmService so its
+    // group-notification display stays no-op (kept disabled since v1.0.6).
     fcm.setNavigatorKey(AlarmService.instance.navigatorKey);
     final uid = FirebaseAuth.instance.currentUser?.uid;
     await fcm.initialize(uid: uid);

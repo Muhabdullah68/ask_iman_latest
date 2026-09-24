@@ -1,101 +1,479 @@
-ASK IMAN — AI Chat feature changes log.
+Build a Flutter splash screen. Single static screen, no navigation,
+no extra UI. You cannot view any image, so every visual not covered
+by the one provided asset must be built from the written spec below.
 
-Spec (updates to the AI Q&A feature):
-- The AI must verify Quran/hadith quotes given through verification channels (e.g. "verify : <quote>") by
-  exact matching against the real Quran corpus and the hadith-api corpus. Verified quotes are reported
-  authentic / not authentic / not supported; anything that does not match is answered
-  "This is not in my knowledge." Sources must NEVER be invented.
-- General Islamic questions (importance of namaz, is X obligatory/wajib, etc.) receive a verdict-first
-  answer with VERIFIED REFERENCES: exact Quran ayahs (Arabic + translation) and hadith (Arabic +
-  translation + grade from the corpus) inserted by code, never transcribed by the model.
-- Never modify functions/, firebase.json, lib/web/**, old Ui\ASK-Iman-main\**.
-- Build/install is done on the user side: tool\run.bat --apk then adb install -r the release APK.
+=== ASSET PROVIDED (the only one) ===
+assets/images/splash_bg.png — 1024x1536px. Contains, already baked
+in as pixels: warm ivory background, a faint cream Islamic arch
+outline near the top, a faint blurred mosque/minaret skyline low in
+the frame, a tilted smartphone (dark screen, metallic gold edges)
+with a green-and-gold Quran resting diagonally across it, thin
+glowing gold light ribbons orbiting the phone+Quran, a few small
+green leaves, and a soft floor reflection under the phone. The
+phone+Quran hero sits roughly centered at x≈512, y≈870 of the
+1024x1536 frame, tilted so its top points to the upper-left and its
+base to the lower-right.
 
-## 1.0.16+16
-Problems: answers echoed the question back, were supposed to verify quotes but hallucinated, repeated
-quotes, had no grounding in real sources.
-Fixes: single-call QnA; quran/hadith corpora downloaded once to a 14-day disk cache (ai_corpus/) with
-prewarm; strict matching thresholds (arabic 0.92 / 0.85 / 0.08, latin 0.75 / 0.70 / 0.10); clamp;
-per-byte db usage counted only on success; quota (30/day, 5/min) written only on success;
-runZonedGuarded error hook; 30s timeout with one 502/503 retry.
+Use this ONLY as Positioned.fill + BoxFit.cover background. Do not
+attempt to redraw the hero, ribbons, leaves, skyline or arch — they
+exist only in this image.
 
-## 1.0.17+17
-Renamed private helpers to public for testing (findMatches, strictAccept, parseQuranClaim,
-parseHadithClaim, surahNameIndex, hadithBooks); fixed claim-parser bugs (substring bounds,
-partial-number lookahead, "of surah al baqarah" connective); added test/verify_matching_test.dart
-(18 cases). All pass.
+=== EVERYTHING ELSE MUST BE BUILT WITH WIDGETS ===
 
-## 1.0.18+18
-Added topic-gated grounded source retrieval: looksLikeIslamicTopic, topicQueryTerms, buildTermIndex /
-topicRank (idf-weighted), per-book best hadith match, _retrieveTopicSources, ambiguity guard
-(_guardRelevance), VERIFIED REFERENCES block in the answer, _qnaSystem prompt updated.
-Added test/sources_test.dart (13 cases). 31/31 pass.
+--- LOGO (build with widgets, no image) ---
+Vertical column, centered, top: 100, width: 400:
+1. An 8-pointed star outline (two overlapping squares rotated 45°
+   from each other, or a CustomPainter drawing an 8-point star
+   outline), size 130x130, stroke color Color(0xFF0E4D3C), stroke
+   width 6, centered horizontally. Inside it, a crescent moon shape
+   (draw as two overlapping circles / arc, or use Icon(Icons.
+   nightlight_round) rotated/flipped if a custom painter is too
+   much), color Color(0xFFC9A24B) (gold), roughly 55% of the star's
+   size, centered.
+2. 12px gap, then "ASK IMAN" — Poppins, size 46, weight 800 (Black
+   if available), color Color(0xFF0E4D3C), letterSpacing 1.
+3. 10px gap, a horizontal gold rule: width 90, height 2.5,
+   color Color(0xFFC9A24B).
+4. 8px gap, "ISLAMIC GUIDANCE" — Poppins, size 14, weight 600,
+   letterSpacing 5, color Color(0xFFC9A24B).
+Static, no animation.
 
-## 1.0.19+19
-Answers changed to verdict-first structured format: verdict -> exact ayat + translation -> hadith
-(Arabic + translation + corpus grade) -> general explanation. The model only returns JSON
-{verdict, explanation}; code inserts the real corpus text via buildSourcedAnswer, with a plain-text +
-cards fallback in _parseSourcedAnswer. topicEvidenceConfident requires an anchor-term match or
-best >= 2. 37/37 tests pass.
+--- CARD ICONS (build with widgets, no image assets) ---
+Use Material/Lucide-style Icons, all sized 26, colored
+Color(0xFF0E4D3C) unless noted, centered in a 42x42 box:
+  Translation      → Icons.translate
+  Talawat          → Icons.menu_book_rounded
+  Tafseer          → Icons.auto_stories_rounded
+  Ahadees          → Icons.mosque (fallback: Icons.account_balance)
+  Prayer           → Icons.self_improvement
+  Progress         → Icons.trending_up_rounded
+  Personal Growth  → Icons.person_outline_rounded
+If flutter_lucide or similar icon package is available, prefer its
+closer equivalents; otherwise the Material icons above are fine.
 
-## 1.0.19-fix (still versioned 1.0.19+19)
-Reported failure: sourced answers never appeared; logcat showed
-"Bad state: Corpus fetch failed 404 https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-ibn-majah/1.json".
-Causes found & fixed:
-- hadithBooks slug was 'ibn-majah', but the hadith-api corpus edition is named 'ibnmajah' (no hyphen).
-  404 aborted _retrieveTopicSources, so EVERY gated question fell back to a plain, source-less answer;
-  the same bug also aborted the whole-corpus hadith verification search.
-- Retrieval was not resilient: one failing book killed all sources. Each book is now tried separately
-  (try/catch) and skipped on failure, both in _retrieveTopicSources and the whole-corpus _verifyHadith
-  search.
-- Uncaught zone error "duration > Duration.zero" in ai_chat_screen._scrollToBottom: the instant scroll
-  used animateTo(Duration.zero); now uses jumpTo for the instant case and animateTo(250ms) otherwise.
-Retest: "importance of namaz" and "is namaz necessary in islam" should now return a verdict-first
-answer with 2 ayahs + 2 hadith cards.
+=== SCALING ARCHITECTURE ===
+Design canvas = exactly 1024 x 1536 logical px. Structure:
 
-## 1.0.19-fix2 (still versioned 1.0.19+19)
-Root cause: many genuine Islamic yes/no/knowledge questions never reached source retrieval or had
-their sources stripped away, so the response contained no ayat/hadith at all.
-Causes found & fixed:
-- `_possibleQuote` misrouted verb-initial questions containing quran/hadith keywords
-  (e.g. "is salah obligatory in islam according to quran") into the verification path →
-  "This is not in my knowledge" instead of a sourced Q&A answer. Added word-boundary
-  question-form prefix list (is/does/can/what/...).
-- Gate (`looksLikeIslamicTopic`) was too narrow — "ruling on music", "can we pray in english",
-  "is eating pork allowed" etc. never triggered retrieval. Broadened _topicAnchors with fiqh /
-  daily-life vocabulary; added explicit reference-request rule (quran/hadith/surah + "about X").
-- `topicEvidenceConfident` stripped sources when an anchor term was absent: any single corpus
-  match now suffices (the gate is the primary filter; the matched text is always real corpus).
-- `_guardRelevance` could hard-fail (returning []) and wipe out real sources on a Gemini parse
-  hiccup — now falls back to the original shortlist on error/empty keep list.
-- `_hadithTopicBest` sometimes returned empty Arabic when hadithnumber lookup missed — added
-  parallel-array fallback so Arabic is always present.
-- Hadith Arabic was sometimes missing when the number lookup missed — the provisional
-  parallel-array fallback is kept until superseded (then removed) in fix3.
-- _topicAnchors expanded: prayer verb stems (pray, recite, tilawah, qirat), fiqh / rulings
-  (ruling, allowed, forbidden, wajib, fard, makruh, bidah), daily life (music, pork, gold,
-  beard, dreams, jinn, magic), afterlife / creed (akhirah, aqeedah, kufr, death, burial).
-Tests: 39/39 pass (8 new cases: fiqh gate, reference-request gate, possibleQuote routing,
-confidence loosened).
+Scaffold(backgroundColor: Color(0xFFF8F6F0))
+└── Center
+    └── FittedBox(fit: BoxFit.contain)
+        └── SizedBox(width: 1024, height: 1536)
+            └── Stack(children: [...])
 
-## 1.0.19-fix3 (still versioned 1.0.19+19)
-Reported failure: Quran references appeared but ahadith never did, and the response repeated
-the ayat/hadith text (inline + cards).
-Causes found & fixed (both are URL/logic bugs):
-- ROUT CAUSE of missing ahadith: `_loadHadith` fetched the SINGLE-HADITH endpoint
-  `editions/$lang-<book>.json/1.json` — it only ever loaded hadith #1 per book, so the topic
-  ranking had nothing to rank against and hadith refs were empty/irrelevant. Switched to the
-  FULL-COLLECTION endpoint `editions/$lang-<book>.json` (ibnmajah 4343, bukhari 7589, both
-  eng+ara confirmed HTTP 200 via tool/check_ibnmajah.dart).
-- Duplication: `buildSourcedAnswer` embedded the full citations (Arabic + translation +
-  grade) into the answer text WHILE the same citations are also rendered as _CitationTile
-  cards below the bubble — every passage shown twice. buildSourcedAnswer now returns ONLY the
-  verdict + a "supported by …" reference-label line + explanation; the passages live in the
-  cards (single source of truth).
-- JSON-fallback (model returns non-JSON) echoed the citations after the plain text — now the
-  plain model text alone is used; cards still show the passages.
-- Anti-repetition instructions added to _sourcedQnaSystem ("do not restate verdict / passages;
-  add NEW context") and to _qnaSystem ("do not repeat yourself or echo the question").
-Tests: 40/40 pass (buildSourcedAnswer contract changed: verdict+labels+explanation only).
-Next retest on device: every Islamic question should show verdict + 2 ayah cards + 2 hadith
-cards (Arabic + grade), with no repeated text.
+Every element below uses these EXACT raw reference-pixel numbers as
+Positioned offsets — no MediaQuery math. FittedBox does all scaling.
+
+precacheImage() splash_bg.png in didChangeDependencies.
+
+=== LAYER ORDER (bottom to top) ===
+1. splash_bg.png, Positioned.fill, BoxFit.cover
+2. Logo (built from widgets, see above)
+3. 7 cards
+4. Tagline + pagination
+
+=== CARD DATA TABLE ===
+One const list — single source of truth. dx/dy = top-left corner in
+reference px. rot = radians. All cards 165 wide x 132 tall.
+
+  title            subtitle                icon              dx   dy   rot
+  Talawat          Read & Listen           menu_book_rounded  398  500   0.00
+  Translation      Understand              translate          197  612  -0.02
+  Tafseer          Go Deeper               auto_stories_rounded 655 568  0.02
+  Ahadees          Learn & Reflect         mosque             768  712   0.03
+  Prayer           Stay Connected          self_improvement   125  845  -0.02
+  Progress         Be Better               trending_up_rounded 235 975  -0.01
+  Personal Growth  Build Your Best Self    person_outline_rounded 742 955 0.03
+
+Exactly these 7, no more, no fewer. Each is its own Positioned +
+Transform.rotate — never a Row/Column/GridView.
+
+=== CARD VISUAL STYLE ===
+Container:
+  borderRadius: BorderRadius.circular(22)
+  color: Color(0xF2FFFFFA)
+  border: Border.all(color: Color(0x40DCCDA5), width: 1)
+  boxShadow: [BoxShadow(color: Color(0x1A283C2D), blurRadius: 30,
+              offset: Offset(0, 12))]
+No BackdropFilter — costs frame rate for no visible gain here.
+
+Padding 14, centered Column, 8px gaps:
+  icon 42x42 box (see icon list above)
+  title:    Poppins, 20, w600, Color(0xFF0E4D3C)
+  subtitle: Poppins, 13.5, w400, Color(0xFF4A6B5C)
+Wrap title+subtitle in FittedBox(fit: BoxFit.scaleDown), maxLines: 1.
+
+=== FLOAT ANIMATION ===
+ONE AnimationController (vsync, duration: 12s, repeat()) drives all
+7 cards. Phase offsets in list order: 0.0, 0.14, 0.28, 0.43, 0.57,
+0.71, 0.85.
+  t = sin(2*pi*(controller.value + phase))
+  translateY = t * 6
+  rotation   = rot + t * 0.008
+Wrap only the cards in AnimatedBuilder; background and logo never
+rebuild. Freeze at t=0 if MediaQuery.disableAnimations is true.
+
+=== BOTTOM TEXT ===
+Centered, top: 1330:
+  "Your Complete Islamic Companion"
+  Poppins, 23, w400, letterSpacing 6.5, Color(0xFF1B5E48)
+
+Pagination, centered Row, top: 1392, gap 10:
+  3 pills, 45x8, borderRadius 4
+  pill 1: Color(0xFF0E4D3C) — pill 2 & 3: Color(0xFFD5DDD8)
+
+=== FONTS ===
+google_fonts package, Poppins throughout.
+
+=== FILES ===
+lib/screens/splash_screen.dart — screen + card data table
+lib/widgets/topic_card.dart    — card widget
+lib/widgets/ask_iman_logo.dart — logo widget (star + crescent via
+  CustomPainter, wordmark, rule, subtitle)
+
+=== ACCEPTANCE CHECKS ===
+- Only asset used is splash_bg.png — logo and icons are pure widgets.
+- Exactly 7 Positioned cards per the table, no Row/Column/Grid layout.
+- No BackdropFilter anywhere; single AnimationController for motion.
+- Identical composition at 1024x1536 and at a 390x844 preview
+  (FittedBox handles scaling — no breakpoint logic).
+- google_fonts Poppins resolves correctly.
+
+======================================================================
+FIX 12 — SPLASH BUILT & INTEGRATED  (18 Sep 2026)
+======================================================================
+- lib/screens/splash_screen.dart — new splash per the spec above:
+  Scaffold(0xFFF8F6F0) > Center > FittedBox(contain) > 1024x1536 Stack;
+  7 Positioned cards exactly on the table; ONE 12s repeating controller
+  driving sin(2*pi*(v+phase)) float (dy=t*6, rot=base+t*0.008); tagline
+  + pagination pills; ~6s hold then 450ms fade pushReplacement to
+  MainShell; freezes at value 0 when MediaQuery disableAnimations is on;
+  hero only from assets/images/splash_bg.png (absent -> quiet ivory
+  fallback via rootBundle probe, then precacheImage when present).
+- lib/widgets/ask_iman_logo.dart — AskImanLogo: 8-point star (two
+  overlapping 45deg squares, 6px stroke 0xFF0E4D3C) + gold crescent
+  (Path.combine difference, 0xFFC9A24B) + "ASK IMAN"/rule/"ISLAMIC
+  GUIDANCE" wordmark (Poppins).
+- lib/widgets/topic_card.dart — TopicCard 165x132 r22 (0xF2FFFFFA,
+  border 0x40DCCDA5, shadow 0x1A283C2D blur30 (0,12)) + CardIconBox.
+- Poppins bundled offline (fonts/Poppins-{Regular,SemiBold,ExtraBold},
+  pubspec 400/600/800) per build-mode decision (matches spec intent).
+- lib/main.dart:29/196 repointed to screens/splash_screen.dart; old
+  lib/features/splash/splash_screen.dart deleted.
+- Native launch frame tinted ivory: values/colors.xml launch_ivory +
+  drawable/(v21/)launch_background.xml -> @color/launch_ivory.
+- Tests 77 pass (+5 splash: 1024x1536 composition, 390x844 composition,
+  exact table slot coords, float drift sin(2pi(v+phase)) at 3s, reduce-
+  motion statics). flutter analyze: 62 (all pre-existing web/old/tool).
+- PENDING: assets/images/splash_bg.png still not provided by client —
+  build falls back to ivory until it lands.
+
+======================================================================
+FIX 13 — SPLASH REDESIGN: 7 ORBITAL ROTATING POINTS  (21 Sep 2026)
+======================================================================
+- lib/screens/splash_screen.dart — complete rewrite of motion layer:
+  * Background path changed: assets/images/splash_bg.png
+    -> assets/category_images/splash_image.png (client-supplied
+    mosque-skyline + phone/Quran hero, 1024x1536, ivory arch).
+  * Removed the 7 TopicCard floating cards and sin(2pi(v+phase))
+    vertical float. Replaced with SEVEN GOLDEN GLOWING ORBITAL POINTS
+    (_orbitalPoints list, OrbitalPointSpec: radius / speed / phase /
+    dotSize / glowSize / color).
+  * Single AnimationController (18s, repeat()) drives all 7 points.
+    Per-point trig: angle = 2pi*(value * speed + phase); position =
+    Offset(512, 860) + radius * (cos, sin). Radii ladder:
+    215,250,285,320,355,390,420; speeds: 0.85,0.72,0.92,0.68,0.78,0.88,0.62
+    so orbits drift elegantly and never visually lock. Phase offsets:
+    0, 1/7, 2/7, ... 6/7 for even initial spacing.
+  * Each point: RadialGradient halo (4-stop, 85%->0% opacity gold)
+    in a glowSize circle (26-34px), solid dot core (10-13px) with
+    inner boxShadow bloom; palette: #D4A24C / #E8C26A / #F0CE70
+    (3-tone golds to match the phone light-ribbons).
+  * Canvas still 1024x1536 inside FittedBox(contain); Logo (top:100
+    left:312 w:400), tagline top:1330, pagination top:1392 unchanged.
+  * reduceMotion: points freeze at phase offsets, no animation.
+  * ~6s hold still valid then 450ms FadeTransition pushReplacement
+    to MainShell; rootBundle existence probe + precacheImage for
+    splash_image.png (silent ivory fallback if missing).
+
+======================================================================
+FIX 14 — SPLASH: GREEN/GOLDEN DYNAMIC BACKGROUND + ISLAMIC DECOR  (21 Sep 2026)
+======================================================================
+- lib/screens/splash_screen.dart — complete layered background overhaul
+  so the area above the 7 orbit cards no longer reads as a flat static
+  image. Replaced the single bg-image + thin wash with a 9-deep stack
+  of pure-widget layers (all still inside the 1024x1536 FittedBox):
+
+  * _BaseGradientLayer — 15-stop vertical gradient anchoring the
+    whole canvas: deep green (#0E4D3C) at top 0% → medium greens
+    through 20-55% → warm ivory/cream 66-93% → gold (#C9A24B) at
+    100%. No pixel assets involved; gives the "color fill" the user
+    requested for the empty top space.
+
+  * splash_image.png — retained but Opacity 0.55 instead of opaque.
+    It now sits as a subtle detail/texture under the widget layers
+    instead of being the only background, so the composition never
+    feels like "a static photo with cards stuck on top." Fallback
+    when missing is now SizedBox.shrink() (base gradient covers it).
+
+  * _MihrabArchLayer — CustomPainter drawing a large Islamic mihrab
+    arch (780 wide × 720 tall, top:20) behind the logo area:
+      - Double-frame arch: outer 1.5px gold stroke + inner 1px gold
+        stroke, both fading from #F0CE70 at top down to transparent
+      - Arch frame filled with gold→green vertical gradient
+        (0x7A D4A24C → 0x0A 1E6B53)
+      - Inner arch interior filled with translucent green gradient
+        (#52125542 top → transparent)
+      - Soft golden radial bloom at the crown (MaskFilter blur 40)
+        so the arch top feels luminous, not flat.
+
+  * _MosqueSkylineLayer — CustomPainter silhouette (skylineY:420)
+    placed behind the logo so the top band has Islamic architecture
+    presence instead of blank gradient:
+      - 2 minarets (left:70/height 180, right:800/height 160)
+      - 5 domes: large central dome (cx410 w120 h80) + 4 secondary
+        (cx200/320/560/640/910) of decreasing sizes
+      - Painted with a 4-stop translucent green gradient
+        (0x2A 0A3A2C → transparent) so it reads as atmospheric haze
+        not a hard cutout.
+      - Golden crescent hilals perched on the 3 largest domes
+        (Path.combine difference, 0x22 C9A24B, 6px blur) — matches
+        the logo crescent for brand cohesion.
+
+  * _TopGreenGoldWash — diagonal (topLeft→bottomRight) 15-stop
+    overlay reinforcing the green→gold transition in the top half:
+    0x6A 0A3A2C → 0x55 0E4D3C → 0x44 1E6B53 → 0x18 C9A24B →
+    0x0C F0D07A → transparent mid → 0x30 856A1E at the bottom
+    corners. Bakes in the "golden-green" color language the user
+    asked for so even without the image it reads as a premium
+    Islamic palette, not just cream.
+
+  * _GlowingOrbitRing — 3 animated concentric golden rings painted
+    with SweepGradient around the orbit center (Offset 512,860)
+    alongside the existing orbit cards and driven by the SAME
+    20s controller (no new ticker):
+      - radii 295 / 320 / 355 at thicknesses 1.5 / 1.0 / 0.8
+      - each rotates at its own speedFactor (0.18 / −0.12 / 0.08 —
+        mixed directions so they never lock)
+      - 8-stop sweep gold gradient (transparent→#D4A24C→#F0CE70→
+        #F5E7C4→#F0CE70→#D4A24C→transparent→transparent) so the
+        ring has a leading "light trail" arc feel instead of a
+        uniform circle
+      - Central radial glow (0x1A F0CE70 → 0x0C D4A24C → transparent
+        over radius 260) that pools golden light behind the
+        phone/Quran hero and beneath the 7 cards.
+
+  * _FloatingLeaf × 12 — twelve hand-placed leaf widgets (each a
+    CustomPainter bezier leaf with a vein line and 3-stop green
+    gradient fill) scattered in the band y≈500–1060 around the
+    orbit center. Each leaf spec carries x,y, phase, amplitude,
+    size, base rotation, and opacity (0x42–0x7A). All driven by
+    the same controller via sin(2π*(value+phase)), producing
+    independent gentle float + micro-rotation so the middle zone
+    has living micro-motion like the reference image's drifting
+    leaves, without needing asset images.
+
+  * _BottomWarmWash — soft 11-stop vertical overlay keeping the
+    very bottom warm and on-brand: transparent 0–88% → 0x15
+    F5E7C4 → 0x2A B98A3C → 0x4A 0E4D3C → 0x6A 0A3A2C at 100%.
+
+- Composition preserved: logo at top:100/left:312/w:400, 7 orbit
+  TopicCards unchanged (OrbitCardSpec list, angle/radius/speed
+  ladders, floatAmp + rotation, _floatPhases 0/0.14/.../0.85),
+  tagline top:1330, pagination pills top:1392. reduceMotion still
+  freezes all rings/leaves/cards at t=0. 6s hold → MainShell
+  unchanged.
+- No new assets, no new fonts, no new packages, no new
+  AnimationControllers — every new visual is a pure Flutter
+  CustomPainter or DecoratedBox sharing the existing _orbit ticker.
+- Stack order (bottom→top): BaseGradient → (image@0.55) → MihrabArch
+  → MosqueSkyline → TopGreenGoldWash → [GlowingRing, 12 Leaves,
+  7 Cards] → Logo → BottomWarmWash → Tagline → Pagination.
+
+======================================================================
+FIX 15 — SPLASH REVERT: ASSET-ONLY STACK, NO OVERLAP  (21 Sep 2026)
+======================================================================
+- lib/screens/splash_screen.dart — composition stripped back to the
+  EXACT four-layer order the user asked for, removing every painter
+  that was covering / overlapping splash_image.png and swapping the
+  widget logo for the actual applogo.png asset:
+
+  * LAYER 0 (backmost) — SOLID BACKGROUND COLOR:
+    Scaffold.backgroundColor = Color(0xFFF8F6F0) ivory, not a
+    gradient. Same value used as ColoredBox fallback while the
+    image asset loads.
+
+  * LAYER 1 — splash_image.png, FULLY OPAQUE, Positioned.fill +
+    BoxFit.cover. Restored gaplessPlayback:true, 100% opacity
+    (removed the 0.55 Opacity wrapper). ValueKey('ambient_wash_
+    layer') pinned to this layer so splash_test.dart's key-based
+    composition check still passes.
+
+  * LAYER 2 — applogo.png ASSET LOGO, not the custom-painted
+    AskImanLogo widget.
+      - path: assets/images/applogo.png (already declared in
+        pubspec assets/images/ and used by ask_iman_app_bar.dart,
+        profile_screen.dart, web_navbar.dart)
+      - Positioned: top=100, left=312, width=400, height=420,
+        Center > Image.asset(BoxFit.contain, gaplessPlayback:true).
+        The extra height gives the image room to grow without
+        clipping its own star/crescent + wordmark stack.
+      - _LogoFallback() Column (mosque Icon + ASK IMAN/rule/
+        ISLAMIC GUIDANCE Poppins) used if rootBundle precache
+        fails or errorBuilder fires. rootBundle probe + precache-
+        Image runs for BOTH assets now (_precacheAssets probes
+        splash_image.png AND applogo.png separately, each with
+        its own mounted-guard setState flag: _bgReady/_logoReady).
+
+  * LAYER 3 — SEVEN ROTATING TopicCards ONLY. Removed every
+    overlapping painter added in FIX 14: _BaseGradientLayer,
+    _MihrabArchLayer, _MosqueSkylineLayer, _TopGreenGoldWash,
+    _BottomWarmWash, _GlowingOrbitRing/_OrbitRingPainter/
+    _RingSpec, _FloatingLeaf/_LeafSpec/_LeafPainter — all gone.
+    No painters now sit between the splash_image and the cards.
+    Orbital math preserved 1:1:
+      - Offset _orbitCenter = Offset(512, 860)
+      - All 7 OrbitCardSpec entries unchanged (radius/speed/
+        baseAngle/baseRot/floatAmp ladders: Talawat 295/-1.66/
+        0.28 … Personal Growth 355/0.62/0.20)
+      - _floatPhases = [0, 0.14, 0.28, 0.43, 0.57, 0.71, 0.85]
+      - tFloat = sin(2π(value+phase)); orbitAngle = baseAngle +
+        2π·value·speed; Positioned via cx/cy − cardW/H/2 + tFloat·
+        floatAmp + rot = baseRot + tFloat·0.008.
+      - Single AnimationController (20s, repeat()) — same ticker
+        shared; reduceMotion still drives value=0 so cards freeze
+        at their baseAngle slots.
+
+  * LAYER 4 (topmost, preserved unchanged) — tagline top:1330
+    ("Your Complete Islamic Companion" Poppins 23 w400 #1B5E48,
+    letterSpacing 6.5) and 3 pagination pills top:1392 (green
+    #0E4D3C, two #D5DDD8, 45×8 r4, gap 10). These rest in the
+    ivory area of splash_image.png where they don't overlap the
+    logo (y≈100–520) or the orbit card ring (y≈860 ± 355 radius +
+    132 cardH → y≈373 to y≈1347 — only touches bottommost edge
+    of lowest Progress/Growth cards, exactly as reference image).
+
+- Removed import of ask_iman_logo.dart (AskImanLogo/SplashPalette
+  no longer used). Scaffold backgroundColor + pill + fallback
+  text colors are hardcoded to matching values (#F8F6F0, #0E4D3C,
+  #C9A24B, #1B5E48, #D5DDD8). 6s Timer + 450ms FadeTransition
+  pushReplacement to MainShell unchanged.
+- Stack order (bottom→top, new canonical):
+  0. Scaffold background Color(0xFFF8F6F0)
+  1. splash_image.png (opaque, key=ambient_wash_layer)
+  2. applogo.png asset logo (top:100 left:312 w:400 h:420)
+3. 7 × TopicCard orbit (AnimatedBuilder, one controller)
+4. Tagline + Pagination pills.
+
+======================================================================
+FIX 16 — AZAN NOTIFICATION FLOW (X MIN BEFORE NAMAZ)  (23 Sep 2026)
+======================================================================
+Spec (client): azan notification selects "X MIN BEFORE NAMAZ"; the
+azan plays at that chosen time via a pushed notification; the azan can
+be stopped from the notification shade ("Stop Azan"); when the app is
+opened the azan stops. Implemented exactly:
+
+FLOW (now)
+- One azan notification per prayer, fired at prayerTime − selected
+  minutes (default 10, slider 5–30 in settings). Replaces BOTH the old
+  pre-time text reminder (removed) and the at-time azan (removed).
+- Channel: 'prayer_azzan_channel' (Importance.max), allah_o_akbar01
+  sound, alarm category, fullScreenIntent, colorized 0xFF1B4332,
+  "Stop Azan" action (cancelNotification:true). Title "$prayer Azan",
+  body "Allahu Akbar — $prayer adhan begins in X minutes."
+- Guard rails: no past schedules; a later prayer's call never overlaps
+  an earlier one's window (prevFire). Daily re-schedule at midnight +
+  on location/refresh.
+- STOP paths:
+  * "Stop Azan" notification action → onDidReceiveNotificationResponse
+    (main.dart) → PrayerService().stopAzanPlayback() → cancels the
+    delivered azan → sound stops.
+  * Opening the app → AppLifecycleListener.onResume in PrayerService
+    → _cancelActiveAzzanNotifications() cancels any ACTIVE azan
+    (getActiveNotifications id 10–14) → sound stops. Pending future
+    calls untouched.
+- Removed the foreground just_audio azan loop (_azanTimer/
+  _playAzanForeground/stop_azan prefs) — the notification is now the
+  single azan source (per client's "notification sound" decision).
+
+INFRASTRUCTURE (azor-only restore)
+- lib/core/services/notification_service.dart — real initialize()
+  (AndroidInitializationSettings '@mipmap/ic_launcher', tz.local set
+  via flutter_timezone, response callbacks forwarded) + functional
+  requestPermission(). scheduleReminder/cancelReminder STAY no-ops →
+  family reminders remain disabled.
+- lib/main.dart — NotificationService.initialize(...) with stop_azan
+  handler before PrayerService().initialize; fcm.setLocalNotification-
+  Plugin(plugin) REMOVED so FCM group-notification display stays no-op.
+- AndroidManifest.xml — added ScheduledNotificationReceiver +
+  ScheduledNotificationBootReceiver (BOOT_COMPLETED / MY_PACKAGE_
+  REPLACED / QUICKBOOT_POWERON ×2) for delivery + reboot re-schedule.
+- PrayerService.setNotificationsEnabled(true) now runtime-requests
+  POST_NOTIFICATIONS (Android 13+) and exact-alarm permission
+  (canScheduleExactNotifications guard); per-prayer fallback from
+  exactAllowWhileIdle → inexactAllowWhileIdle when exact is denied.
+- pubspec.yaml: + flutter_timezone ^5.1.0 (only new package).
+- Settings sheets (ibadah_screen.dart + shared/widgets/notif_settings_
+  sheet.dart): "Prayer Reminders/Remind me X minutes before" →
+  "Azan Notifications / Azan plays X minutes before".
+
+Known limitation (client-accepted): Android notification sounds are
+one-shot and system-truncated (no looping).
+
+NOTE: 2 pre-existing splash-test failures (test/splash_test.dart still
+expects AskImanLogo / FIX 15 swapped it for the applogo.png asset) —
+splash redesign thread, OUT OF SCOPE here. 75/77 run green; azan files
+analyze clean (64 total = pre-existing web/old/community issues).
+
+======================================================================
+FIX 17 — ASK IMAN: HADITH TOPICALITY + SOURCE-SHEET OVERFLOW  (23 Sep 2026)
+======================================================================
+Reported by client: ayat answers "somewhat acceptable", but the hadith
+cards in topic answers are NOT acceptable AND are off-topic; and opening
+a long source overflows at the bottom. Scope confirmed by client: fix
+hadith topicality + the overflow only (azan untouched, ayat selection
+untouched, 2-ayah + 2-hadith card mix kept).
+
+HADITH TOPICALITY (deterministic + offline-testable)
+- lib/core/services/ask_iman_ai_service.dart — _hadithTopicBest now has
+  an absolute TOPICALITY FLOOR instead of returning the idf top-1 per
+  book blindly:
+    * A narration becomes a source card ONLY if it matches >=2 distinct
+      query terms OR >=1 strong topic-anchor term (single weak content-
+      word overlaps like "people"/"day" — the classic off-topic source —
+      are dropped).
+    * Among passing candidates: prefer more matched terms, then anchor
+      hits, then authenticity (_gradeQuality: Sahih=3 / Hasan=2 /
+      Da'if=1 / empty="sahih collections"=3), then a shorter matn.
+    * A book with no topically-confident narration contributes NOTHING
+      (returns null) — an off-topic hadith is never forced into the
+      2-hadith cards just to fill slots.
+- _retrieveTopicSources: per-book winners are aggregated and sorted by
+  (matched desc, grade desc) before take(2); fixed a List<Record> type
+  bug in the allMatched computation (split per-list maps). topicEvidence-
+  Confident gate + conditional Gemini _guardRelevance safety net kept.
+- Constraint honored: ayah selection NOT touched.
+
+SOURCE-SHEET OVERFLOW
+- lib/features/ask_iman_ai/ai_chat_screen.dart — _CitationDetailsSheet
+  renamed to public CitationDetailsSheet and the sheet body is now a
+  scrollable region: Container maxHeight = 78% of screen, body
+  (book / label / Arabic / translation / grade) wrapped in
+  Flexible > SingleChildScrollView, Copy/Close actions pinned below and
+  always reachable. No RenderFlex overflow for any citation length.
+  (Class made public ONLY so the widget can be regression-tested
+  directly without the Firebase-heavy chat-screen harness.)
+
+TESTS (was 75 passing; now 81 passing)
+- sources_test.dart — new "hadith topicality floor + grade tiebreak"
+  group: grade tiebreak (Sahih>Hasan>Da'if incl. "Da'if (Darussalam)",
+  empty=3); single generic non-anchor term ("camel") is DROPPED across
+  4 books; gibberish -> empty rank -> null; topic-anchor positives
+  (hajj/charity/fasting/zakat/prayer) keep an on-topic hadith; multi-term
+  question keeps a narration. Test hooks added: hadithTopicMatchedForTest
+  and gradeQualityForTest.
+- citation_sheet_test.dart (new) — pumps CitationDetailsSheet inside a
+  real showModalBottomSheet with a very long hadith; asserts Copy/Close
+  visible and no overflow.
+- flutter analyze: 64 issues total, NONE in touched files (all pre-
+  existing web/old/community); 2 splash-thread test failures remain
+  (standalone, out of scope).

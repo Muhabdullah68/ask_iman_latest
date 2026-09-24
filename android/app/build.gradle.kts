@@ -24,7 +24,7 @@ android {
 
     defaultConfig {
         applicationId = "com.askiman.ask_iman"
-        minSdk = flutter.minSdkVersion
+        minSdk = maxOf(flutter.minSdkVersion, 23)  // record plugin requires API 23+
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

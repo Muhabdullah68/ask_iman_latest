@@ -34,31 +34,32 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
   }
 
   Future<void> _clear() async {
+    final loc = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text(
-          'Clear history?',
-          style: TextStyle(
+        title: Text(
+          loc.translate('aiClearHistoryTitle'),
+          style: const TextStyle(
             fontFamily: 'Cairo',
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
         ),
-        content: const Text(
-          'This removes all your saved questions and answers.',
-          style: TextStyle(fontFamily: 'Cairo', fontSize: 13),
+        content: Text(
+          loc.translate('aiClearHistoryBody'),
+          style: const TextStyle(fontFamily: 'Cairo', fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(loc.translate('cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Clear',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              loc.translate('clear'),
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -73,10 +74,10 @@ class _MyQuestionsScreenState extends State<MyQuestionsScreen> {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(const SnackBar(
-        content: Text('Copied!'),
+      ..showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context).translate('aiCopied')),
         backgroundColor: AppColors.primaryDarkest,
-        duration: Duration(milliseconds: 900),
+        duration: const Duration(milliseconds: 900),
         behavior: SnackBarBehavior.floating,
       ));
   }
@@ -185,6 +186,7 @@ class _HistoryTile extends StatelessWidget {
 
     final verdict = message['verdict'] as String? ?? '';
     final text = message['text'] as String? ?? '';
+    final loc = AppLocalizations.of(context);
     final citations = ((message['citations'] as List?) ?? [])
         .whereType<Map>()
         .map((e) => AskAICitation.fromJson(Map<String, dynamic>.from(e)))
@@ -207,8 +209,10 @@ class _HistoryTile extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 verdict == 'verified'
-                    ? '✓ Verified'
-                    : (verdict == 'unverified' ? 'Cannot verify' : 'Answer'),
+                    ? '✓ ${loc.translate('aiVerified')}'
+                    : (verdict == 'unverified'
+                        ? loc.translate('aiCannotVerify')
+                        : loc.translate('aiAnswerLabel')),
                 style: TextStyle(
                   fontFamily: 'Cairo',
                   fontSize: 12,

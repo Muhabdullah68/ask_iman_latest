@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warm ivory used by the native launch background so the OS frame melts
+         straight into the Flutter splash (values/ + values-night/styles.xml). -->
+    <color name="launch_ivory">#FFF8F6F0</color>
+</resources>
