@@ -477,3 +477,26 @@ TESTS (was 75 passing; now 81 passing)
 - flutter analyze: 64 issues total, NONE in touched files (all pre-
   existing web/old/community); 2 splash-thread test failures remain
   (standalone, out of scope).
+
+FIX 18: AZAN NOTIFICATIONS REMOVED (not reliable on device)
+- notification_service.dart restored to the v1.0.5 no-op: initialize/
+  requestPermission/scheduleReminder/cancelReminder are empty, only the
+  static FlutterLocalNotificationsPlugin `plugin` stub remains so
+  FcmService still receives it (FCM group display stays enabled).
+- prayer_service.dart: stripped channel creation, _scheduleAllNotifications,
+  foreground azan playback (_scheduleForegroundAzan/_playAzanForeground/
+  stopAzanPlayback), and the scheduling side-effects in refresh /
+  setCalculationMethod / setMadhab / setNotificationsEnabled /
+  setReminderMinutes. Toggle + minutes slider persist state only
+  (inert, as in the v1.0.6 stub era). Removed just_audio, timezone,
+  foundation(kIsWeb), shared_preferences imports that were azan-only.
+  initialize(plugin) signature kept so main.dart is unchanged there.
+- main.dart: removed NotificationService.initialize + 'stop_azan' handler;
+  fcm.setLocalNotificationPlugin(NotificationService.plugin) restored.
+- AndroidManifest: removed ScheduledNotificationReceiver + BootReceiver.
+- Labels back to "Prayer Reminders" / "Remind me X minutes before"
+  (ibadah_screen.dart, notif_settings_sheet.dart).
+- pubspec: flutter_timezone removed; pub get regenerated registrants
+  (record stays).
+- flutter analyze: 64 total issues (same baseline), 0 in touched files;
+  81 tests pass, 2 pre-existing splash-thread failures unchanged.

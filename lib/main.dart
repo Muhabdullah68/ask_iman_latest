@@ -66,20 +66,6 @@ void main() async {
   debugPrint('MAIN: Timezones initialized');
 
   try {
-    await NotificationService.initialize(
-      onDidReceiveNotificationResponse: (response) {
-        if (response.actionId == 'stop_azan') {
-          // Cancels the delivered azan notification -> its sound stops.
-          PrayerService().stopAzanPlayback();
-        }
-      },
-    );
-    debugPrint('MAIN: NotificationService initialized');
-  } catch (e) {
-    debugPrint('MAIN: NotificationService error: $e');
-  }
-
-  try {
     PrayerService().initialize(NotificationService.plugin).ignore();
     debugPrint('MAIN: PrayerService initialized');
   } catch (e) {
@@ -121,8 +107,7 @@ void main() async {
 
   try {
     final fcm = FcmService.instance;
-    // AZAN-ONLY: the plugin is intentionally NOT handed to FcmService so its
-    // group-notification display stays no-op (kept disabled since v1.0.6).
+    fcm.setLocalNotificationPlugin(NotificationService.plugin);
     fcm.setNavigatorKey(AlarmService.instance.navigatorKey);
     final uid = FirebaseAuth.instance.currentUser?.uid;
     await fcm.initialize(uid: uid);

@@ -2032,7 +2032,7 @@ class _NotifSettingsSheetState extends State<NotifSettingsSheet> {
             ),
           ),
           const Text(
-            'Azan Notifications',
+            'Prayer Reminders',
             style: TextStyle(
               fontFamily: 'Cairo',
               fontSize: 17,
@@ -2064,7 +2064,7 @@ class _NotifSettingsSheetState extends State<NotifSettingsSheet> {
           if (_enabled) ...[
             const SizedBox(height: 16),
             Text(
-              'Azan plays $_minutes minutes before',
+              'Remind me $_minutes minutes before',
               style: const TextStyle(
                 fontFamily: 'Cairo',
                 fontSize: 14,
