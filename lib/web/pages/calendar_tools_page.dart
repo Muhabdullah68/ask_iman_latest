@@ -14,6 +14,7 @@ import 'package:intl/intl.dart' hide TextDirection;
 import '../../core/theme/figma_tokens.dart';
 import '../../core/services/prayer_service.dart';
 import '../../core/utils/seo_meta.dart';
+import '../widgets/web_footer.dart';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
@@ -82,10 +83,9 @@ class _CalendarToolsPageState extends State<CalendarToolsPage>
     if (mounted) setState(() {});
   }
 
-  String get _currentDhikrName =>
-      _showCustomField && _customDhikr.isNotEmpty
-          ? _customDhikr
-          : _dhikrPresets[_selectedDhikrIndex];
+  String get _currentDhikrName => _showCustomField && _customDhikr.isNotEmpty
+      ? _customDhikr
+      : _dhikrPresets[_selectedDhikrIndex];
 
   void _incrementDhikr() {
     setState(() => _dhikrCount++);
@@ -104,21 +104,36 @@ class _CalendarToolsPageState extends State<CalendarToolsPage>
     setPageTitle('Calendar & Tools — Hijri, Prayer Times · Ask Iman');
     return Container(
       color: figma.surfaceBackground,
-      child: SingleChildScrollView(
-        physics: webScrollPhysics,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _HeroSection(),
-            const SizedBox(height: 28),
-            _buildMainContent(),
-            const SizedBox(height: 32),
-            _buildUpcomingEvents(),
-            const SizedBox(height: 32),
-            _buildPrayerTimes(),
-            const SizedBox(height: 48),
-          ],
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: webScrollPhysics,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _HeroSection(),
+                      const SizedBox(height: 28),
+                      _buildMainContent(),
+                      const SizedBox(height: 32),
+                      _buildUpcomingEvents(),
+                      const SizedBox(height: 32),
+                      _buildPrayerTimes(),
+                      const SizedBox(height: 48),
+                    ],
+                  ),
+                  const SizedBox(height: 56),
+                  const WebFooter(),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -187,7 +202,13 @@ class _CalendarToolsPageState extends State<CalendarToolsPage>
                   children: [
                     Expanded(flex: 5, child: calendarWidget),
                     const SizedBox(width: 24),
-                    Expanded(flex: 4, child: tasbeehWidget.animate().fadeIn(duration: 400.ms).slideY(begin: 0.05)),
+                    Expanded(
+                      flex: 4,
+                      child: tasbeehWidget
+                          .animate()
+                          .fadeIn(duration: 400.ms)
+                          .slideY(begin: 0.05),
+                    ),
                   ],
                 );
               }
@@ -196,7 +217,10 @@ class _CalendarToolsPageState extends State<CalendarToolsPage>
                 children: [
                   calendarWidget,
                   const SizedBox(height: 24),
-                  tasbeehWidget.animate().fadeIn(duration: 400.ms).slideY(begin: 0.05),
+                  tasbeehWidget
+                      .animate()
+                      .fadeIn(duration: 400.ms)
+                      .slideY(begin: 0.05),
                 ],
               );
             },
@@ -212,7 +236,7 @@ class _CalendarToolsPageState extends State<CalendarToolsPage>
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1180),
-          child:           _UpcomingEventsWidget(
+          child: _UpcomingEventsWidget(
             expanded: _eventsExpanded,
             onToggleExpand: () => setState(() => _eventsExpanded = true),
           ),
@@ -265,9 +289,7 @@ class _HeroSection extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 2.4,
-                        color: figma.accentGoldLight.withValues(
-                          alpha: 0.85,
-                        ),
+                        color: figma.accentGoldLight.withValues(alpha: 0.85),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -321,7 +343,11 @@ class _HeroPill extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool gold;
-  const _HeroPill({required this.icon, required this.label, required this.gold});
+  const _HeroPill({
+    required this.icon,
+    required this.label,
+    required this.gold,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -345,9 +371,7 @@ class _HeroPill extends StatelessWidget {
           Icon(
             icon,
             size: 14,
-            color: gold
-                ? figma.accentGoldAmber
-                : figma.accentGoldLight,
+            color: gold ? figma.accentGoldAmber : figma.accentGoldLight,
           ),
           const SizedBox(width: 6),
           Text(
@@ -356,9 +380,7 @@ class _HeroPill extends StatelessWidget {
               fontFamily: FigmaTokens.fontFamilyUiSans,
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: gold
-                  ? figma.accentGoldAmber
-                  : FigmaTokens.textOnDark,
+              color: gold ? figma.accentGoldAmber : FigmaTokens.textOnDark,
             ),
           ),
         ],
@@ -411,13 +433,17 @@ class _HijriCalendarWidget extends StatelessWidget {
                 size: 20,
               ),
               const SizedBox(width: 10),
-              Text(
-                'Hijri Calendar',
-                style: TextStyle(
-                  fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: figma.textHeading,
+              Flexible(
+                child: Text(
+                  'Hijri Calendar',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: figma.textHeading,
+                  ),
                 ),
               ),
             ],
@@ -428,27 +454,37 @@ class _HijriCalendarWidget extends StatelessWidget {
             children: [
               _CalNavBtn(icon: Icons.chevron_left, onTap: onPrevMonth),
               const SizedBox(width: 12),
-              Column(
-                children: [
-                  Text(
-                    HijriDate(day: 1, month: viewMonth, year: viewYear)
-                        .monthName,
-                    style: TextStyle(
-                      fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: figma.textHeading,
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      HijriDate(
+                        day: 1,
+                        month: viewMonth,
+                        year: viewYear,
+                      ).monthName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: figma.textHeading,
+                      ),
                     ),
-                  ),
-                  Text(
-                    '$viewYear AH',
-                    style: TextStyle(
-                      fontFamily: FigmaTokens.fontFamilyUiSans,
-                      fontSize: 12,
-                      color: figma.textMuted,
+                    Text(
+                      '$viewYear AH',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyUiSans,
+                        fontSize: 12,
+                        color: figma.textMuted,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(width: 12),
               _CalNavBtn(icon: Icons.chevron_right, onTap: onNextMonth),
@@ -456,21 +492,17 @@ class _HijriCalendarWidget extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                .asMap()
-                .entries
                 .map(
-                  (e) => SizedBox(
-                    width: 40,
+                  (e) => Expanded(
                     child: Center(
                       child: Text(
-                        e.value,
+                        e,
                         style: TextStyle(
                           fontFamily: FigmaTokens.fontFamilyUiSans,
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: e.key == 5
+                          color: e == 'F'
                               ? figma.accentGoldAmber
                               : figma.textMuted,
                         ),
@@ -561,83 +593,97 @@ class _MonthGrid extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(bottom: 4),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(7, (col) {
               final cellIndex = row * 7 + col;
               final day = cellIndex - startOffset + 1;
               if (day < 1 || day > daysInMonth) {
-                return const SizedBox(width: 40, height: 44);
+                return const Expanded(child: SizedBox(height: 44));
               }
 
-              final isToday = day == today.day &&
+              final isToday =
+                  day == today.day &&
                   viewMonth == today.month &&
                   viewYear == today.year;
               final isSelected = day == selectedDay;
               final isFriday = col == 5;
 
-              return GestureDetector(
-                onTap: () => onDayTap(day),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  width: 40,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: isSelected && isToday
-                        ? figma.accentGoldAmber
-                        : isSelected
-                            ? figma.accentGoldAmber.withValues(
-                                alpha: 0.15,
-                              )
-                            : isToday
-                                ? figma.accentGoldSurface
-                                : Colors.transparent,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isToday || isSelected
-                          ? figma.accentGoldAmber
-                          : Colors.transparent,
-                      width: isToday || isSelected ? 1.2 : 0,
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      if (isFriday)
-                        Positioned(
-                          left: 2,
-                          top: 8,
-                          bottom: 8,
-                          child: Container(
-                            width: 3,
-                            decoration: BoxDecoration(
-                              color: figma.accentGoldAmber,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                      Center(
-                        child: Text(
-                          '$day',
-                          style: TextStyle(
-                            fontFamily: FigmaTokens.fontFamilyUiSans,
-                            fontSize: 14,
-                            fontWeight: isToday || isSelected
-                                ? FontWeight.w800
-                                : FontWeight.w500,
-                            color: isSelected && isToday
-                                ? Colors.white
-                                : isToday || isSelected
+              return Expanded(
+                child: Center(
+                  child:
+                      GestureDetector(
+                            onTap: () => onDayTap(day),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: 40,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: isSelected && isToday
                                     ? figma.accentGoldAmber
-                                    : isFriday
-                                        ? figma.accentGoldAmber
-                                            .withValues(alpha: 0.8)
-                                        : figma.textBody,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                                    : isSelected
+                                    ? figma.accentGoldAmber.withValues(
+                                        alpha: 0.15,
+                                      )
+                                    : isToday
+                                    ? figma.accentGoldSurface
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isToday || isSelected
+                                      ? figma.accentGoldAmber
+                                      : Colors.transparent,
+                                  width: isToday || isSelected ? 1.2 : 0,
+                                ),
+                              ),
+                              child: Stack(
+                                children: [
+                                  if (isFriday)
+                                    Positioned(
+                                      left: 2,
+                                      top: 8,
+                                      bottom: 8,
+                                      child: Container(
+                                        width: 3,
+                                        decoration: BoxDecoration(
+                                          color: figma.accentGoldAmber,
+                                          borderRadius: BorderRadius.circular(
+                                            2,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  Center(
+                                    child: Text(
+                                      '$day',
+                                      style: TextStyle(
+                                        fontFamily:
+                                            FigmaTokens.fontFamilyUiSans,
+                                        fontSize: 14,
+                                        fontWeight: isToday || isSelected
+                                            ? FontWeight.w800
+                                            : FontWeight.w500,
+                                        color: isSelected && isToday
+                                            ? Colors.white
+                                            : isToday || isSelected
+                                            ? figma.accentGoldAmber
+                                            : isFriday
+                                            ? figma.accentGoldAmber.withValues(
+                                                alpha: 0.8,
+                                              )
+                                            : figma.textBody,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                          .animate(
+                            delay: Duration(milliseconds: row * 30 + col * 15),
+                          )
+                          .fadeIn(duration: 300.ms)
+                          .slideY(begin: 0.1),
                 ),
-              ).animate(delay: Duration(milliseconds: row * 30 + col * 15)).fadeIn(duration: 300.ms).slideY(begin: 0.1);
+              );
             }),
           ),
         );
@@ -665,7 +711,11 @@ class _SelectedDayInfo extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(Icons.info_outline_rounded, size: 16, color: figma.accentGoldAmber),
+        Icon(
+          Icons.info_outline_rounded,
+          size: 16,
+          color: figma.accentGoldAmber,
+        ),
         const SizedBox(width: 8),
         Text(
           '${hijri.formatted}  ·  $gregFormatted',
@@ -729,8 +779,9 @@ class _TasbeehCounterWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final figma = context.figma;
-    final progress =
-        target != null && target! > 0 ? (count / target!).clamp(0.0, 1.0) : 0.0;
+    final progress = target != null && target! > 0
+        ? (count / target!).clamp(0.0, 1.0)
+        : 0.0;
 
     return Container(
       decoration: BoxDecoration(
@@ -751,13 +802,17 @@ class _TasbeehCounterWidget extends StatelessWidget {
                 size: 20,
               ),
               const SizedBox(width: 10),
-              Text(
-                'Tasbeeh Counter',
-                style: TextStyle(
-                  fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: figma.textHeading,
+              Flexible(
+                child: Text(
+                  'Tasbeeh Counter',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: figma.textHeading,
+                  ),
                 ),
               ),
             ],
@@ -801,8 +856,10 @@ class _TasbeehCounterWidget extends StatelessWidget {
                 filled: true,
                 fillColor: figma.surfaceBackground,
                 isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(FigmaTokens.radiusInput),
                   borderSide: BorderSide.none,
@@ -838,10 +895,7 @@ class _TasbeehCounterWidget extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        figma.surfacePanelMint,
-                        figma.accentGoldSurface,
-                      ],
+                      colors: [figma.surfacePanelMint, figma.accentGoldSurface],
                     ),
                     border: Border.all(
                       color: figma.accentGoldAmber.withValues(alpha: 0.4),
@@ -917,21 +971,21 @@ class _TasbeehCounterWidget extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 14,
+            runSpacing: 12,
             children: [
               _CounterBtn(
                 icon: Icons.refresh_rounded,
                 onTap: onReset,
                 tooltip: 'Reset',
               ),
-              const SizedBox(width: 14),
               _CounterBtn(
                 icon: Icons.remove_rounded,
                 onTap: onDecrement,
                 tooltip: 'Decrement',
               ),
-              const SizedBox(width: 14),
               _TargetDropdown(
                 currentTarget: target,
                 onChanged: onTargetChanged,
@@ -975,9 +1029,7 @@ class _DhikrPill extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
         side: BorderSide(
-          color: selected
-              ? FigmaTokens.brandMidGreen
-              : figma.borderHairline,
+          color: selected ? FigmaTokens.brandMidGreen : figma.borderHairline,
         ),
       ),
       child: InkWell(
@@ -995,8 +1047,7 @@ class _DhikrPill extends StatelessWidget {
                 Icon(
                   icon,
                   size: 14,
-                  color:
-                      selected ? FigmaTokens.textOnDark : figma.textBody,
+                  color: selected ? FigmaTokens.textOnDark : figma.textBody,
                 ),
                 const SizedBox(width: 6),
               ],
@@ -1006,9 +1057,7 @@ class _DhikrPill extends StatelessWidget {
                   fontFamily: FigmaTokens.fontFamilyUiSans,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: selected
-                      ? FigmaTokens.textOnDark
-                      : figma.textBody,
+                  color: selected ? FigmaTokens.textOnDark : figma.textBody,
                 ),
               ),
             ],
@@ -1087,10 +1136,7 @@ class _TargetDropdown extends StatelessWidget {
           color: figma.textHeading,
         ),
         items: [
-          const DropdownMenuItem(
-            value: 0,
-            child: Text('No target'),
-          ),
+          const DropdownMenuItem(value: 0, child: Text('No target')),
           for (final t in _targets.where((t) => t > 0))
             DropdownMenuItem(value: t, child: Text('Target $t')),
         ],
@@ -1161,19 +1207,19 @@ class _UpcomingEventsWidget extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.event_rounded,
-                color: figma.accentGoldAmber,
-                size: 20,
-              ),
+              Icon(Icons.event_rounded, color: figma.accentGoldAmber, size: 20),
               const SizedBox(width: 10),
-              Text(
-                'Upcoming Islamic Events',
-                style: TextStyle(
-                  fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: figma.textHeading,
+              Flexible(
+                child: Text(
+                  'Upcoming Islamic Events',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: figma.textHeading,
+                  ),
                 ),
               ),
             ],
@@ -1201,8 +1247,8 @@ class _UpcomingEventsWidget extends StatelessWidget {
               final daysText = diffDays > 0
                   ? '$diffDays days away'
                   : diffDays == 0
-                      ? 'Today'
-                      : '${diffDays.abs()} days ago';
+                  ? 'Today'
+                  : '${diffDays.abs()} days ago';
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _EventCard(
@@ -1383,13 +1429,17 @@ class _PrayerTimesWidget extends StatelessWidget {
                 size: 20,
               ),
               const SizedBox(width: 10),
-              Text(
-                "Today's Prayer Times",
-                style: TextStyle(
-                  fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: figma.textHeading,
+              Flexible(
+                child: Text(
+                  "Today's Prayer Times",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: figma.textHeading,
+                  ),
                 ),
               ),
             ],
@@ -1431,11 +1481,13 @@ class _PrayerTimesWidget extends StatelessWidget {
             )
           else ...[
             for (final p in prayers) ...[
-              _PrayerRow(
-                name: p.name,
-                time: p.timeFormatted,
-                isNext: p.isNext,
-              ).animate().fadeIn(duration: 350.ms, delay: Duration(milliseconds: prayers.indexOf(p) * 60)).slideY(begin: 0.08),
+              _PrayerRow(name: p.name, time: p.timeFormatted, isNext: p.isNext)
+                  .animate()
+                  .fadeIn(
+                    duration: 350.ms,
+                    delay: Duration(milliseconds: prayers.indexOf(p) * 60),
+                  )
+                  .slideY(begin: 0.08),
               if (p != prayers.last)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
@@ -1528,8 +1580,8 @@ class _PrayerRow extends StatelessWidget {
                 color: isSunrise
                     ? figma.textMuted
                     : isNext
-                        ? figma.textHeading
-                        : figma.textBody,
+                    ? figma.textHeading
+                    : figma.textBody,
               ),
             ),
           ),
@@ -1542,8 +1594,8 @@ class _PrayerRow extends StatelessWidget {
               color: isNext
                   ? figma.accentGoldAmber
                   : isSunrise
-                      ? figma.textMuted
-                      : figma.textHeading,
+                  ? figma.textMuted
+                  : figma.textHeading,
             ),
           ),
         ],
@@ -1568,7 +1620,8 @@ bool _isHijriLeapYear(int year) {
 }
 
 DateTime _hijriToGregorian(int day, int month, int year) {
-  final n = day +
+  final n =
+      day +
       (29.5001 * (month - 1)).ceil() +
       (year - 1) * 354 +
       (3 + 11 * year) ~/ 30 +
@@ -1605,54 +1658,76 @@ class TasbeehPage extends StatelessWidget {
         children: [
           Expanded(
             child: SingleChildScrollView(
-        physics: webScrollPhysics,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 26,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: figma.heroGradient,
+              physics: webScrollPhysics,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          'Tasbeeh',
-                          style: TextStyle(
-                            fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                            fontSize: 30,
-                            fontWeight: FontWeight.w900,
-                            color: figma.textHeading,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 26,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: figma.heroGradient,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Tasbeeh',
+                                    style: TextStyle(
+                                      fontFamily:
+                                          FigmaTokens.fontFamilyDisplaySerif,
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.w900,
+                                      color: figma.textHeading,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Count your adhkar with the digital dhikr counter.',
+                                    style: TextStyle(
+                                      fontFamily: FigmaTokens.fontFamilyUiSans,
+                                      fontSize: 14,
+                                      color: figma.textBody,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              child: Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 600,
+                                  ),
+                                  child: _TasbeehPageBody(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 48),
+                          ],
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Count your adhkar with the digital dhikr counter.',
-                          style: TextStyle(
-                            fontFamily: FigmaTokens.fontFamilyUiSans,
-                            fontSize: 14,
-                            color: figma.textBody,
-                          ),
-                        ),
+                        const SizedBox(height: 56),
+                        const WebFooter(),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 600),
-                        child: _TasbeehPageBody(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                ],
+                  );
+                },
               ),
             ),
           ),
@@ -1703,10 +1778,9 @@ class _TasbeehPageBodyState extends State<_TasbeehPageBody>
     super.dispose();
   }
 
-  String get _currentName =>
-      _showCustom && _customDhikr.isNotEmpty
-          ? _customDhikr
-          : _dhikrPresets[_selectedIndex];
+  String get _currentName => _showCustom && _customDhikr.isNotEmpty
+      ? _customDhikr
+      : _dhikrPresets[_selectedIndex];
 
   @override
   Widget build(BuildContext context) {

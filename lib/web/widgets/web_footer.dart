@@ -53,10 +53,7 @@ class WebFooter extends StatelessWidget {
                             alpha: 0.85,
                           ),
                           shadows: const [
-                            Shadow(
-                              color: Color(0x22D4A24C),
-                              blurRadius: 10,
-                            ),
+                            Shadow(color: Color(0x22D4A24C), blurRadius: 10),
                           ],
                         ),
                       );
@@ -81,7 +78,8 @@ class WebFooter extends StatelessWidget {
                           TextSpan(
                             children: [
                               TextSpan(
-                                text: '© ${DateTime.now().year} Ask Iman — BarakAllahu feekum. ',
+                                text:
+                                    '© ${DateTime.now().year} Ask Iman — BarakAllahu feekum. ',
                                 style: TextStyle(
                                   fontFamily: FigmaTokens.fontFamilyUiSans,
                                   fontSize: 12,
@@ -142,13 +140,37 @@ class WebFooter extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 5, child: ScrollReveal(delay: Duration.zero, child: _brandBlock(context))),
+        Expanded(
+          flex: 5,
+          child: ScrollReveal(
+            delay: Duration.zero,
+            child: _brandBlock(context),
+          ),
+        ),
         const SizedBox(width: 32),
-        Expanded(flex: 4, child: ScrollReveal(delay: const Duration(milliseconds: 80), child: _linkColumn('Explore', _exploreLinks, context))),
+        Expanded(
+          flex: 4,
+          child: ScrollReveal(
+            delay: const Duration(milliseconds: 80),
+            child: _linkColumn('Explore', _exploreLinks, context),
+          ),
+        ),
         const SizedBox(width: 32),
-        Expanded(flex: 4, child: ScrollReveal(delay: const Duration(milliseconds: 160), child: _linkColumn('Community', _communityLinks, context))),
+        Expanded(
+          flex: 4,
+          child: ScrollReveal(
+            delay: const Duration(milliseconds: 160),
+            child: _linkColumn('Community', _communityLinks, context),
+          ),
+        ),
         const SizedBox(width: 32),
-        Expanded(flex: 5, child: ScrollReveal(delay: const Duration(milliseconds: 240), child: _contactBlock(context))),
+        Expanded(
+          flex: 5,
+          child: ScrollReveal(
+            delay: const Duration(milliseconds: 240),
+            child: _contactBlock(context),
+          ),
+        ),
       ],
     );
   }
@@ -353,7 +375,9 @@ class WebFooter extends StatelessWidget {
                 onTap: () {
                   ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                     const SnackBar(
-                      content: Text('Thanks for subscribing — BarakAllahu feekum!'),
+                      content: Text(
+                        'Thanks for subscribing — BarakAllahu feekum!',
+                      ),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );

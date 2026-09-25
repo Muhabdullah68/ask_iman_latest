@@ -19,11 +19,23 @@ class Model3D extends StatelessWidget {
   final String alt;
   final BorderRadius? borderRadius;
 
+  /// Starting camera orbit "$theta $phi $radius" (e.g. '25deg 75deg auto')
+  /// so low wide models like the Ka'aba read from a pleasing 3/4 view
+  /// instead of straight-on.
+  final String? cameraOrbit;
+
+  /// Drop-shadow cast by the model. `null` keeps model-viewer's default;
+  /// pass 0 for models that already carry their own ground surface so no
+  /// shadow floats beneath a circular-cropped medallion.
+  final double? shadowIntensity;
+
   const Model3D({
     super.key,
     required this.src,
     this.alt = '',
     this.borderRadius,
+    this.cameraOrbit,
+    this.shadowIntensity,
   });
 
   @override
@@ -54,12 +66,17 @@ class Model3D extends StatelessWidget {
           backgroundColor: Colors.transparent,
           cameraControls: true,
           disablePan: true,
+          cameraOrbit: cameraOrbit,
           autoRotate: true,
           rotationPerSecond: reduceMotion ? '4deg' : '18deg',
+          interpolationDecay: 120,
+          exposure: 1.05,
           interactionPrompt: InteractionPrompt.none,
-          shadowIntensity: 1,
-          shadowSoftness: 0.8,
+          shadowIntensity: shadowIntensity,
+          shadowSoftness: shadowIntensity == null ? null : 0.7,
           environmentImage: 'neutral',
+          loading: Loading.eager,
+          touchAction: TouchAction.panY,
           debugLogging: false,
         ),
       ),

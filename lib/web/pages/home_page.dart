@@ -279,7 +279,7 @@ class _AyatSliderState extends State<_AyatSlider> {
                 ),
                 // ── Content ────────────────────────────────────────────────
                 Padding(
-                  padding: const EdgeInsets.all(44),
+                  padding: EdgeInsets.all(wide ? 44 : 28),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 900),
                     child: AnimatedSwitcher(
@@ -302,9 +302,9 @@ class _AyatSliderState extends State<_AyatSlider> {
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 7,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: wide ? 14 : 10,
+                                  vertical: wide ? 7 : 6,
                                 ),
                                 decoration: BoxDecoration(
                                   color: figma.accentGoldAmber,
@@ -321,14 +321,17 @@ class _AyatSliderState extends State<_AyatSlider> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Text(
-                                slide.reference,
-                                style: TextStyle(
-                                  fontFamily: FigmaTokens.fontFamilyUiSans,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: figma.accentGoldLight,
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  slide.reference,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontFamily: FigmaTokens.fontFamilyUiSans,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: figma.accentGoldLight,
+                                  ),
                                 ),
                               ),
                             ],
@@ -948,14 +951,15 @@ class _DailyInspiration extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 24),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
                   children: [
                     WebButton(
                       label: 'Explore Quran',
                       icon: Icons.arrow_forward_rounded,
                       onPressed: () => context.go(WebRoutes.quran),
                     ),
-                    const SizedBox(width: 12),
                     WebButton(
                       label: 'View Tafseer',
                       outlined: true,
@@ -1002,6 +1006,8 @@ class _DailyInspiration extends StatelessWidget {
                   child: const Model3D(
                     src: 'assets/3D/open_quran_rehal_polished.glb',
                     borderRadius: BorderRadius.all(Radius.circular(112)),
+                    cameraOrbit: '0deg 85deg auto',
+                    shadowIntensity: 0,
                   ),
                 ),
               ),

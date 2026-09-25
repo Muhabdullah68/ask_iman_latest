@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/figma_tokens.dart';
 import '../web_router.dart' show WebRoutes;
 import '../widgets/web_animations.dart';
+import '../widgets/web_footer.dart';
 import '../widgets/web_model3d.dart';
 import '../widgets/web_ornaments.dart';
 import '../widgets/web_widgets.dart';
@@ -150,6 +151,8 @@ class _CommunityHero extends StatelessWidget {
                         child: const Model3D(
                           src: 'assets/3D/kaaba_polished_detailed.glb',
                           borderRadius: BorderRadius.all(Radius.circular(110)),
+                          cameraOrbit: '25deg 75deg auto',
+                          shadowIntensity: 0.6,
                         ),
                       ),
                     ),
@@ -194,70 +197,93 @@ class CharityPage extends StatelessWidget {
     return Column(
       children: [
         Expanded(
-          child: SingleChildScrollView(
-            physics: webScrollPhysics,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 26,
-                  ),
-                  decoration: BoxDecoration(gradient: figma.heroGradient),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: webScrollPhysics,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          KhatamOrnament(
-                            size: 12,
-                            alpha: 0.9,
-                            strokeWidth: 1.2,
-                            color: figma.accentGoldAmber,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'SADAQAH · ZAKAT · RELIEF',
-                            style: TextStyle(
-                              fontFamily: FigmaTokens.fontFamilyUiSans,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 2.2,
-                              color: figma.accentGoldAmber,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 26,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: figma.heroGradient,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    KhatamOrnament(
+                                      size: 12,
+                                      alpha: 0.9,
+                                      strokeWidth: 1.2,
+                                      color: figma.accentGoldAmber,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      'SADAQAH · ZAKAT · RELIEF',
+                                      style: TextStyle(
+                                        fontFamily:
+                                            FigmaTokens.fontFamilyUiSans,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 2.2,
+                                        color: figma.accentGoldAmber,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Charity',
+                                  style: TextStyle(
+                                    fontFamily:
+                                        FigmaTokens.fontFamilyDisplaySerif,
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w900,
+                                    color: FigmaTokens.textHeading,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Support active campaigns, mosques and relief projects.',
+                                  style: TextStyle(
+                                    fontFamily: FigmaTokens.fontFamilyUiSans,
+                                    fontSize: 14,
+                                    color: figma.textBody,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                const GoldRule(
+                                  height: 1.5,
+                                  alpha: 0.35,
+                                  khatamSize: 18,
+                                ),
+                              ],
                             ),
                           ),
+                          const CharityListScreen(showScaffold: false),
+                          const SizedBox(height: 24),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Charity',
-                        style: TextStyle(
-                          fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                          fontSize: 30,
-                          fontWeight: FontWeight.w900,
-                          color: FigmaTokens.textHeading,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Support active campaigns, mosques and relief projects.',
-                        style: TextStyle(
-                          fontFamily: FigmaTokens.fontFamilyUiSans,
-                          fontSize: 14,
-                          color: figma.textBody,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const GoldRule(height: 1.5, alpha: 0.35, khatamSize: 18),
+                      const SizedBox(height: 56),
+                      const WebFooter(),
                     ],
                   ),
                 ),
-                const CharityListScreen(showScaffold: false),
-                const SizedBox(height: 24),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ],

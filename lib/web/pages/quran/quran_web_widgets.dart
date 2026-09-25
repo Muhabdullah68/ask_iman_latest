@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../core/services/quran_audio_service.dart';
 import '../../web_origin.dart';
+import '../../widgets/web_footer.dart';
 
 /// Bounded scrollable wrapper for standalone tab panes (e.g. Hadith, Juzz,
 /// Daily Ayah) that are rendered outside the main Quran page. Always ends
@@ -43,6 +44,7 @@ class QuranPaneScaffold extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 44),
+          const WebFooter(),
           SizedBox(height: bottomPad),
         ],
       ),
@@ -52,9 +54,10 @@ class QuranPaneScaffold extends StatelessWidget {
 
 /// Centered, internally-scrollable content wrapper used for the four tab
 /// panes *inside* the main [QuranPage]. The QuranPage provides the unified
-/// outer chrome and the single shared [WebFooter] at the very bottom of the
-/// page. Scrolls internally (never nests an unbounded scrollable) and leaves
-/// a small bottom pad so the sticky [QuranAudioBar] never covers content.
+/// outer chrome; the site footer is rendered at the end of each pane's scroll
+/// (so it appears once the user scrolls that tab to the bottom), with a small
+/// trailing pad so the sticky [QuranAudioBar] never covers content. Scrolls
+/// internally (never nests an unbounded scrollable).
 class QuranPaneContent extends StatelessWidget {
   final Widget child;
   const QuranPaneContent({super.key, required this.child});
@@ -63,15 +66,22 @@ class QuranPaneContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       physics: webScrollPhysics,
-      padding: const EdgeInsets.only(bottom: 64),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1180),
-            child: child,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1180),
+                child: child,
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: 44),
+          const WebFooter(),
+          const SizedBox(height: 72),
+        ],
       ),
     );
   }

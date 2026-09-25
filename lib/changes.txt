@@ -602,4 +602,42 @@ Implemented (all web-only):
 Verification: flutter analyze 65 issues (63 baseline + 2 fixed during pass
 -> 63 pre-existing, 0 errors); dart analyze on all 7 changed files clean;
 flutter test 81 pass + 2 pre-existing splash golden failures. No
-build/deploy performed — commit + push only.
+build/deploy performed — commit + push only.FIX 21 - FOOTER UNPIN + RESPONSIVE NO-OVERFLOW PASS + 3D FRAMING (25 SEP 2026)
+======================================================================================
+Root cause: After FIX 20 the footer was pinned to the bottom of short
+viewports on every page (forced at the first screenful, pre-empting content),
+and several desktop-first layouts (fixed-aspect grids, non-ellipsizing
+button/title labels, fixed nav columns, rigid title rows) overflowed at widths
+360/560. Separately the rehal and Kaaba models needed better camera framing.
+
+Implemented (all web-only):
+  * Footer un-pin: WebPageScaffold now uses LayoutBuilder +
+    SingleChildScrollView (ConstrainedBox minHeight) + Column(spaceBetween)
+    [content, gutter, WebFooter] so the footer is reached only by scrolling to
+    the page bottom; short pages still pin it at the viewport bottom. Applied
+    to /, /about, /search, /99-names, /coming-soon, 404 + CalendarToolsPage
+    and TasbeehPage workspaces, profile page, Community CharityPage, and the
+    Quran panes/surah explorer (footer sliver in _AyahScrollView).
+    Community/Sign-in/Sign-up intentionally stay footer-free (embedded app
+    surfaces).
+  * New regression guard test/web_responsive_test.dart: MaterialApp.router
+    harness (AppTheme.getTheme, mock GoRouter, Material wrapper) pumps /,
+    /about, /calendar, /99-names, /search, /coming-soon at 360/560/820/1280
+    x900 and asserts zero exceptions/overflows (settle + unmount the tree to
+    clear entrance-animation timers and satisfy framework invariants).
+  * Overflow fixes: WebButton label Flexible + ellipsis; home chip-row padding/
+    gap and dua-button Wrap; About journey values fixed-aspect GridView ->
+    natural-height Wrap (cols 4/2/1); calendar header/nav Rows Flexible +
+    ellipsis, weekday Expanded cells, month-grid cells Expanded + Center,
+    counter controls Wrap; 99-names grid fixed-aspect GridView ->
+    natural-height Wrap (cols 4/3/2). Bracket-balance fixes in community_page
+    and calendar_tools_page (missing Flexible/ConstrainedBox closes).
+  * Model3D framing: interpolationDecay 120, exposure 1.05, eager loading,
+    touchAction panY, soft shadows; Kaaba cameraOrbit 25deg 75deg,
+    shadowIntensity 0.6; rehal cameraOrbit 0deg 85deg, shadowIntensity 0.
+
+Verification: flutter analyze 63 issues (all pre-existing, 0 errors);
+flutter test 87 pass + 2 pre-existing splash golden failures (6 new
+responsive tests all green); flutter build web --release OK + local
+http-server smoke test (index, main.dart.js, flutter_bootstrap serve 200).
+No deploy performed.

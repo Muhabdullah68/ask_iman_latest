@@ -61,9 +61,12 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
       return;
     }
     setState(() => _pulseIndex = name.number);
-    speakText(name.arabic, onEnd: () {
-      if (mounted) setState(() => _pulseIndex = null);
-    });
+    speakText(
+      name.arabic,
+      onEnd: () {
+        if (mounted) setState(() => _pulseIndex = null);
+      },
+    );
   }
 
   void _togglePlayAll() {
@@ -99,12 +102,15 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
     setState(() => _playingIndex = i);
     final name = names[i];
     setState(() => _pulseIndex = name.number);
-    speakText(name.arabic, onEnd: () {
-      if (mounted) {
-        setState(() => _pulseIndex = null);
-        _reciteAt(i + 1);
-      }
-    });
+    speakText(
+      name.arabic,
+      onEnd: () {
+        if (mounted) {
+          setState(() => _pulseIndex = null);
+          _reciteAt(i + 1);
+        }
+      },
+    );
   }
 
   void _flashUnsupported() {
@@ -156,36 +162,41 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
               final cols = constraints.maxWidth >= 1100
                   ? 4
                   : (constraints.maxWidth >= 760 ? 3 : 2);
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: cols,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1.3,
-                ),
-                itemCount: names.length,
-                itemBuilder: (_, i) {
-                  final name = names[i];
-                  final isSelected =
-                      _selected != null && names[_selected!] == name;
-                  final isReciting = _playingIndex == i && _playing;
-                  final isPulsing = _pulseIndex == name.number;
-                  return HoverLift(
-                    onTap: () {
-                      setState(() => _selected = i);
-                      _speakName(name);
-                    },
-                    child: _NameCard(
-                      name: name,
-                      isSelected: isSelected,
-                      isReciting: isReciting,
-                      isPulsing: isPulsing,
-                      onSpeak: () => _speakName(name),
+              const gap = 16.0;
+              final tileWidth =
+                  (constraints.maxWidth - gap * (cols - 1)) / cols;
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: [
+                  for (var i = 0; i < names.length; i++)
+                    SizedBox(
+                      width: tileWidth,
+                      child:
+                          HoverLift(
+                                onTap: () {
+                                  setState(() => _selected = i);
+                                  _speakName(names[i]);
+                                },
+                                child: _NameCard(
+                                  name: names[i],
+                                  isSelected:
+                                      _selected != null &&
+                                      names[_selected!] == names[i],
+                                  isReciting: _playingIndex == i && _playing,
+                                  isPulsing: _pulseIndex == names[i].number,
+                                  onSpeak: () => _speakName(names[i]),
+                                ),
+                              )
+                              .animate(
+                                delay: Duration(
+                                  milliseconds: (i.clamp(0, 30)) * 30,
+                                ),
+                              )
+                              .fadeIn(duration: 350.ms)
+                              .slideY(begin: 0.08),
                     ),
-                  ).animate(delay: Duration(milliseconds: (i.clamp(0, 30)) * 30)).fadeIn(duration: 350.ms).slideY(begin: 0.08);
-                },
+                ],
               );
             },
           ),
@@ -335,7 +346,12 @@ class _NamesOfAllahPageState extends State<NamesOfAllahPage> {
           fontWeight: FontWeight.w800,
         ),
       ),
-    ).animate().scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), duration: 300.ms, curve: Curves.easeOut);
+    ).animate().scale(
+      begin: const Offset(0.95, 0.95),
+      end: const Offset(1, 1),
+      duration: 300.ms,
+      curve: Curves.easeOut,
+    );
   }
 
   Widget _buildRecitingBar(AsmaulHusnaName name) {
@@ -495,9 +511,7 @@ class _NameCard extends StatelessWidget {
       duration: const Duration(milliseconds: 250),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isPulsing
-            ? figma.accentGoldSurface
-            : figma.surfaceCard,
+        color: isPulsing ? figma.accentGoldSurface : figma.surfaceCard,
         borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
         border: Border.all(
           color: isReciting || isSelected

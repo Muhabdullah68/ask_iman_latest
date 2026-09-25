@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/figma_tokens.dart';
 import 'web_animations.dart';
+import 'web_footer.dart';
 
 // ── Mint page background ──────────────────────────────────────────────────
 class WebPageScaffold extends StatelessWidget {
@@ -30,22 +31,38 @@ class WebPageScaffold extends StatelessWidget {
     return Container(
       color: context.figma.surfaceBackground,
       alignment: Alignment.topCenter,
-      child: SingleChildScrollView(
-        physics: webScrollPhysics,
-        child: Column(
-          children: [
-            ?top,
-            Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxWidth),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: child,
-                ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: webScrollPhysics,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ?top,
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxWidth),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: child,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 56),
+                  const WebFooter(),
+                ],
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -151,7 +168,11 @@ class WebSectionHeader extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 12),
-        GoldReveal(width: 56, height: 3, delay: const Duration(milliseconds: 200)),
+        GoldReveal(
+          width: 56,
+          height: 3,
+          delay: const Duration(milliseconds: 200),
+        ),
       ],
     );
   }
@@ -197,11 +218,7 @@ class WebFeatureTile extends StatelessWidget {
                 color: iconColor ?? figma.surfacePanelMint,
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: Icon(
-                icon,
-                color: FigmaTokens.brandDeepGreen,
-                size: 26,
-              ),
+              child: Icon(icon, color: FigmaTokens.brandDeepGreen, size: 26),
             ),
             const SizedBox(height: 14),
             Text(
@@ -280,19 +297,21 @@ class WebButton extends StatelessWidget {
 
     final child = Row(
       mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
-      mainAxisAlignment:
-          fullWidth ? MainAxisAlignment.center : MainAxisAlignment.start,
+      mainAxisAlignment: fullWidth
+          ? MainAxisAlignment.center
+          : MainAxisAlignment.start,
       children: [
-        if (icon != null) ...[
-          Icon(icon, size: 17),
-          const SizedBox(width: 8),
-        ],
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: FigmaTokens.fontFamilyUiSans,
-            fontSize: 14.5,
-            fontWeight: FontWeight.w800,
+        if (icon != null) ...[Icon(icon, size: 17), const SizedBox(width: 8)],
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontFamily: FigmaTokens.fontFamilyUiSans,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ],
@@ -409,7 +428,9 @@ class _HoverLiftState extends State<HoverLift> {
       onExit: (_) => _setHovered(false),
       child: AnimatedScale(
         scale: _hovered ? widget.lift : 1.0,
-        duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 160),
+        duration: reduceMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 160),
         curve: Curves.easeOut,
         child: Material(
           color: Colors.transparent,
@@ -437,9 +458,7 @@ class WebDarkBand extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: FigmaTokens.darkBandGradient,
-      ),
+      decoration: const BoxDecoration(gradient: FigmaTokens.darkBandGradient),
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),

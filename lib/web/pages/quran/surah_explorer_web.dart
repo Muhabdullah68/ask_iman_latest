@@ -17,6 +17,7 @@ import '../../../core/services/quran_audio_service.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../features/quran/data/quran_api_service.dart';
 import '../../../features/quran/data/surahs_data.dart';
+import '../../widgets/web_footer.dart';
 import '../../widgets/web_ornaments.dart';
 import 'quran_reading_state.dart';
 import 'quran_web_widgets.dart';
@@ -652,6 +653,8 @@ class _AyahScrollView extends StatelessWidget {
               ),
             ),
           ),
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+        const SliverToBoxAdapter(child: WebFooter()),
         const SliverToBoxAdapter(child: SizedBox(height: 72)),
       ],
     );

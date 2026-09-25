@@ -29,13 +29,25 @@ class AboutPage extends StatelessWidget {
           const SizedBox(height: 24),
           const ScrollReveal(child: _AboutHero()),
           const SizedBox(height: 64),
-          const ScrollReveal(delay: Duration(milliseconds: 100), child: _MissionSection()),
+          const ScrollReveal(
+            delay: Duration(milliseconds: 100),
+            child: _MissionSection(),
+          ),
           const SizedBox(height: 64),
-          const ScrollReveal(delay: Duration(milliseconds: 200), child: _JourneySection()),
+          const ScrollReveal(
+            delay: Duration(milliseconds: 200),
+            child: _JourneySection(),
+          ),
           const SizedBox(height: 64),
-          const ScrollReveal(delay: Duration(milliseconds: 300), child: _ImpactBand()),
+          const ScrollReveal(
+            delay: Duration(milliseconds: 300),
+            child: _ImpactBand(),
+          ),
           const SizedBox(height: 64),
-          const ScrollReveal(delay: Duration(milliseconds: 400), child: _ContactSection()),
+          const ScrollReveal(
+            delay: Duration(milliseconds: 400),
+            child: _ContactSection(),
+          ),
           const SizedBox(height: 64),
         ],
       ),
@@ -139,10 +151,7 @@ class _AboutHero extends StatelessWidget {
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
-                    colors: [
-                      Color(0x3AD4A24C),
-                      Color(0x0AD4A24C),
-                    ],
+                    colors: [Color(0x3AD4A24C), Color(0x0AD4A24C)],
                   ),
                 ),
                 child: FittedBox(
@@ -155,10 +164,7 @@ class _AboutHero extends StatelessWidget {
                       color: figma.accentGoldAmber,
                       height: 1,
                       shadows: const [
-                        Shadow(
-                          color: Color(0x40D4A24C),
-                          blurRadius: 18,
-                        ),
+                        Shadow(color: Color(0x40D4A24C), blurRadius: 18),
                       ],
                     ),
                   ),
@@ -223,11 +229,7 @@ class _MissionSection extends StatelessWidget {
         ];
         if (!wide) {
           return Column(
-            children: [
-              cards[0],
-              const SizedBox(height: 20),
-              cards[1],
-            ],
+            children: [cards[0], const SizedBox(height: 20), cards[1]],
           );
         }
         return Row(
@@ -271,11 +273,7 @@ class _InfoCard extends StatelessWidget {
           const Positioned(
             top: 28,
             right: 28,
-            child: KhatamOrnament(
-              size: 14,
-              alpha: 0.53,
-              strokeWidth: 1.0,
-            ),
+            child: KhatamOrnament(size: 14, alpha: 0.53, strokeWidth: 1.0),
           ),
           Container(
             margin: const EdgeInsets.all(8),
@@ -376,91 +374,94 @@ class _JourneySection extends StatelessWidget {
         const SizedBox(height: 24),
         LayoutBuilder(
           builder: (context, constraints) {
-            final cols = constraints.maxWidth >= 900 ? 4 : 2;
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 1.5,
-              ),
-              itemCount: _values.length,
-              itemBuilder: (_, i) {
-                final v = _values[i];
-                return Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: figma.surfacePanelMint,
-                    borderRadius:
-                        BorderRadius.circular(FigmaTokens.radiusCard),
-                    border: Border.all(
-                      color: FigmaTokens.ornamentGold.withValues(alpha: 0.16),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            const KhatamOrnament(
-                              size: 28,
-                              alpha: 0.6,
-                              strokeWidth: 1.1,
-                            ),
-                            Text(
-                              '0${i + 1}',
-                              style: TextStyle(
-                                fontFamily:
-                                    FigmaTokens.fontFamilyDisplaySerif,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                                color: FigmaTokens.ornamentGold,
-                              ),
-                            ),
-                          ],
+            final cols = constraints.maxWidth >= 900
+                ? 4
+                : (constraints.maxWidth >= 600 ? 2 : 1);
+            const gap = 16.0;
+            final tileWidth = (constraints.maxWidth - gap * (cols - 1)) / cols;
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final v in _values)
+                  SizedBox(
+                    width: tileWidth,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: figma.surfacePanelMint,
+                        borderRadius: BorderRadius.circular(
+                          FigmaTokens.radiusCard,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        v.$1,
-                        style: TextStyle(
-                          fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: figma.textHeading,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Center(
-                        child: Container(
-                          width: 18,
-                          height: 1,
+                        border: Border.all(
                           color: FigmaTokens.ornamentGold.withValues(
-                            alpha: 0.40,
+                            alpha: 0.16,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        v.$2,
-                        style: TextStyle(
-                          fontFamily: FigmaTokens.fontFamilyUiSans,
-                          fontSize: 12.5,
-                          height: 1.5,
-                          color: figma.textBody,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                const KhatamOrnament(
+                                  size: 28,
+                                  alpha: 0.6,
+                                  strokeWidth: 1.1,
+                                ),
+                                Text(
+                                  '0${_values.indexOf(v) + 1}',
+                                  style: TextStyle(
+                                    fontFamily:
+                                        FigmaTokens.fontFamilyDisplaySerif,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                    color: FigmaTokens.ornamentGold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            v.$1,
+                            style: TextStyle(
+                              fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: figma.textHeading,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Center(
+                            child: Container(
+                              width: 18,
+                              height: 1,
+                              color: FigmaTokens.ornamentGold.withValues(
+                                alpha: 0.40,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            v.$2,
+                            style: TextStyle(
+                              fontFamily: FigmaTokens.fontFamilyUiSans,
+                              fontSize: 12.5,
+                              height: 1.5,
+                              color: figma.textBody,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                );
-              },
+              ],
             );
           },
         ),
@@ -486,11 +487,7 @@ class _ImpactBand extends StatelessWidget {
         children: [
           const Padding(
             padding: EdgeInsets.fromLTRB(28, 22, 28, 0),
-            child: GoldRule(
-              height: 1.5,
-              alpha: 0.55,
-              khatamSize: 22,
-            ),
+            child: GoldRule(height: 1.5, alpha: 0.55, khatamSize: 22),
           ),
           Padding(
             padding: const EdgeInsets.all(26),
@@ -503,10 +500,8 @@ class _ImpactBand extends StatelessWidget {
                   ('99', 'Names of Allah'),
                   ('6', 'Authentic hadith books'),
                 ];
-                Widget stat(int i) => _ImpactStat(
-                      value: stats[i].$1,
-                      label: stats[i].$2,
-                    )
+                Widget stat(int i) =>
+                    _ImpactStat(value: stats[i].$1, label: stats[i].$2)
                         .animate(delay: Duration(milliseconds: i * 80))
                         .fadeIn(duration: 400.ms)
                         .slideY(begin: 0.1);
@@ -532,9 +527,7 @@ class _ImpactBand extends StatelessWidget {
                               child: SizedBox(
                                 width: 0.6,
                                 height: double.infinity,
-                                child: ColoredBox(
-                                  color: Color(0x33D4A24C),
-                                ),
+                                child: ColoredBox(color: Color(0x33D4A24C)),
                               ),
                             ),
                           ),
@@ -548,11 +541,7 @@ class _ImpactBand extends StatelessWidget {
           ),
           const Padding(
             padding: EdgeInsets.fromLTRB(28, 0, 28, 22),
-            child: GoldRule(
-              height: 1.5,
-              alpha: 0.55,
-              khatamSize: 22,
-            ),
+            child: GoldRule(height: 1.5, alpha: 0.55, khatamSize: 22),
           ),
         ],
       ),
@@ -577,12 +566,7 @@ class _ImpactStat extends StatelessWidget {
             fontSize: 34,
             fontWeight: FontWeight.w900,
             color: figma.accentGoldLight,
-            shadows: const [
-              Shadow(
-                color: Color(0x44D4A24C),
-                blurRadius: 20,
-              ),
-            ],
+            shadows: const [Shadow(color: Color(0x44D4A24C), blurRadius: 20)],
           ),
         ),
         const SizedBox(height: 6),
@@ -687,123 +671,137 @@ class _ContactSectionState extends State<_ContactSection> {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(22, 22, 22, 22),
-                  child: Form(key: _formKey, child: LayoutBuilder(
-              builder: (context, constraints) {
-                final wide = constraints.maxWidth >= 720;
-                return Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _ContactField(
-                            controller: _name,
-                            label: 'Your Name',
-                            icon: Icons.person_outline_rounded,
-                            validator: (v) =>
-                                (v == null || v.trim().isEmpty) ? 'Name required' : null,
-                          ),
-                        ),
-                        if (wide) const SizedBox(width: 16),
-                        if (wide)
-                          Expanded(
-                            child: _ContactField(
-                              controller: _email,
-                              label: 'Email Address',
-                              icon: Icons.email_outlined,
-                              validator: (v) =>
-                                  (v == null || !v.contains('@')) ? 'Valid email required' : null,
-                            ),
-                          ),
-                      ],
-                    ),
-                    if (!wide) ...[
-                      const SizedBox(height: 16),
-                      _ContactField(
-                        controller: _email,
-                        label: 'Email Address',
-                        icon: Icons.email_outlined,
-                        validator: (v) =>
-                            (v == null || !v.contains('@')) ? 'Valid email required' : null,
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    _ContactField(
-                      controller: _subject,
-                      label: 'Subject',
-                      icon: Icons.subject_rounded,
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Subject required' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _message,
-                      maxLines: 5,
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'Message required' : null,
-                      decoration: InputDecoration(
-                        hintText: 'How can we help?',
-                        hintStyle: TextStyle(
-                          fontFamily: FigmaTokens.fontFamilyUiSans,
-                          fontSize: 14,
-                          color: figma.textMuted,
-                        ),
-                        filled: true,
-                        fillColor: figma.surfaceBackground,
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide:
-                              BorderSide(color: figma.borderHairline),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(
-                            color: figma.accentGoldAmber,
-                          ),
-                        ),
-                      ),
-                      style: TextStyle(
-                        fontFamily: FigmaTokens.fontFamilyUiSans,
-                        fontSize: 14.5,
-                        color: figma.textHeading,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: _sent
-                          ? const Row(
-                              mainAxisSize: MainAxisSize.min,
+                  child: Form(
+                    key: _formKey,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final wide = constraints.maxWidth >= 720;
+                        return Column(
+                          children: [
+                            Row(
                               children: [
-                                Icon(Icons.check_circle_rounded,
-                                    color: FigmaTokens.brandMidGreen),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Message sent! We will get back to you soon.',
-                                  style: TextStyle(
-                                    fontFamily: FigmaTokens.fontFamilyUiSans,
-                                    fontSize: 13,
-                                    color: FigmaTokens.brandMidGreen,
+                                Expanded(
+                                  child: _ContactField(
+                                    controller: _name,
+                                    label: 'Your Name',
+                                    icon: Icons.person_outline_rounded,
+                                    validator: (v) =>
+                                        (v == null || v.trim().isEmpty)
+                                        ? 'Name required'
+                                        : null,
                                   ),
                                 ),
+                                if (wide) const SizedBox(width: 16),
+                                if (wide)
+                                  Expanded(
+                                    child: _ContactField(
+                                      controller: _email,
+                                      label: 'Email Address',
+                                      icon: Icons.email_outlined,
+                                      validator: (v) =>
+                                          (v == null || !v.contains('@'))
+                                          ? 'Valid email required'
+                                          : null,
+                                    ),
+                                  ),
                               ],
-                            )
-                          : WebButton(
-                              label: 'Send Message',
-                              icon: Icons.send_rounded,
-                              loading: _sending,
-                              onPressed: _submit,
                             ),
+                            if (!wide) ...[
+                              const SizedBox(height: 16),
+                              _ContactField(
+                                controller: _email,
+                                label: 'Email Address',
+                                icon: Icons.email_outlined,
+                                validator: (v) =>
+                                    (v == null || !v.contains('@'))
+                                    ? 'Valid email required'
+                                    : null,
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+                            _ContactField(
+                              controller: _subject,
+                              label: 'Subject',
+                              icon: Icons.subject_rounded,
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'Subject required'
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _message,
+                              maxLines: 5,
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'Message required'
+                                  : null,
+                              decoration: InputDecoration(
+                                hintText: 'How can we help?',
+                                hintStyle: TextStyle(
+                                  fontFamily: FigmaTokens.fontFamilyUiSans,
+                                  fontSize: 14,
+                                  color: figma.textMuted,
+                                ),
+                                filled: true,
+                                fillColor: figma.surfaceBackground,
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: figma.borderHairline,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(
+                                    color: figma.accentGoldAmber,
+                                  ),
+                                ),
+                              ),
+                              style: TextStyle(
+                                fontFamily: FigmaTokens.fontFamilyUiSans,
+                                fontSize: 14.5,
+                                color: figma.textHeading,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: _sent
+                                  ? const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.check_circle_rounded,
+                                          color: FigmaTokens.brandMidGreen,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Message sent! We will get back to you soon.',
+                                          style: TextStyle(
+                                            fontFamily:
+                                                FigmaTokens.fontFamilyUiSans,
+                                            fontSize: 13,
+                                            color: FigmaTokens.brandMidGreen,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : WebButton(
+                                      label: 'Send Message',
+                                      icon: Icons.send_rounded,
+                                      loading: _sending,
+                                      onPressed: _submit,
+                                    ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
-                  ],
-                );
-              },
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        ],
-      ),
-    ),
-  ),
       ],
     );
   }
