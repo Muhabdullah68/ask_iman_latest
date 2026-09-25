@@ -14,8 +14,11 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../core/services/quran_audio_service.dart';
+import '../../../features/quran/data/surahs_data.dart';
 import '../../web_origin.dart';
 import '../../widgets/web_footer.dart';
+import '../../widgets/web_ornaments.dart';
+import 'quran_reading_state.dart';
 
 /// Bounded scrollable wrapper for standalone tab panes (e.g. Hadith, Juzz,
 /// Daily Ayah) that are rendered outside the main Quran page. Always ends
