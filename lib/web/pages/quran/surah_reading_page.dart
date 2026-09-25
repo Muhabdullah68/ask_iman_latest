@@ -4,6 +4,7 @@
 //
 // Full-page surah reader for deep links like /quran/surah/2. Includes a slim
 // back-nav bar, the reading pane, and a sticky audio bar at the bottom.
+// Deep links may carry an ayat (?ayah=N or #ayah-N) that the pane scrolls to.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
@@ -12,19 +13,33 @@ import '../../../core/theme/figma_tokens.dart';
 import '../../../core/utils/seo_meta.dart';
 import '../../../features/quran/data/surahs_data.dart';
 import 'audio_bar_web.dart';
+import 'quran_reading_state.dart';
 import 'surah_explorer_web.dart';
 
-class SurahReadingPage extends StatelessWidget {
+class SurahReadingPage extends StatefulWidget {
   final int surahNum;
-  const SurahReadingPage({super.key, required this.surahNum});
+  final int? initialAyah;
+  const SurahReadingPage({super.key, required this.surahNum, this.initialAyah});
+
+  @override
+  State<SurahReadingPage> createState() => _SurahReadingPageState();
+}
+
+class _SurahReadingPageState extends State<SurahReadingPage> {
+  @override
+  void initState() {
+    super.initState();
+    final a = widget.initialAyah;
+    if (a != null && a >= 1) {
+      QuranReadingState.instance.selectAyah(widget.surahNum, a);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final n = surahNum.clamp(1, SurahsData.surahs.length);
+    final n = widget.surahNum.clamp(1, SurahsData.surahs.length);
     final meta = SurahsData.surahs[n - 1];
-    setPageTitle(
-      'Surah ${meta['name']} — ${meta['arabic']} · Ask Iman',
-    );
+    setPageTitle('Surah ${meta['name']} — ${meta['arabic']} · Ask Iman');
     return Container(
       color: FigmaTokens.surfaceBackground,
       child: Column(
@@ -79,7 +94,10 @@ class SurahReadingPage extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: SurahReadingPane(surahNum: n),
+            child: SurahReadingPane(
+              surahNum: n,
+              initialAyah: widget.initialAyah,
+            ),
           ),
           const QuranAudioBar(),
         ],

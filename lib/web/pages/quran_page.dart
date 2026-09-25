@@ -312,7 +312,7 @@ class _SubNavBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () => context.go('${WebRoutes.quran}/settings'),
                   icon: const Icon(
                     Icons.settings_rounded,
                     size: 20,

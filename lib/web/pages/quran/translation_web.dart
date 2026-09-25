@@ -17,6 +17,7 @@ import '../../../core/theme/figma_tokens.dart';
 import '../../../features/quran/data/quran_api_service.dart';
 import '../../../features/quran/data/surahs_data.dart';
 import '../../widgets/web_animations.dart';
+import 'quran_reading_state.dart';
 import 'quran_web_widgets.dart';
 
 class TranslationWeb extends StatefulWidget {
@@ -36,6 +37,7 @@ class _TranslationWebState extends State<TranslationWeb> {
   @override
   void initState() {
     super.initState();
+    _selected = QuranReadingState.instance.surahNum.clamp(1, 114);
     _load();
   }
 
@@ -56,14 +58,15 @@ class _TranslationWebState extends State<TranslationWeb> {
   void _select(int num) {
     if (num == _selected) return;
     setState(() => _selected = num);
+    QuranReadingState.instance.setSurah(num);
     _load();
   }
 
   void _copy(String text) {
     Clipboard.setData(ClipboardData(text: text));
-    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(content: Text('Copied to clipboard.')),
-    );
+    ScaffoldMessenger.maybeOf(
+      context,
+    )?.showSnackBar(const SnackBar(content: Text('Copied to clipboard.')));
   }
 
   @override
@@ -84,16 +87,19 @@ class _TranslationWebState extends State<TranslationWeb> {
             translation: daily['translation'] ?? '',
             reference: daily['reference'] ?? '',
             onPlay: () {
-              final parts =
-                  (daily['reference'] ?? '').trim().split(' ').last.split(':');
+              final parts = (daily['reference'] ?? '')
+                  .trim()
+                  .split(' ')
+                  .last
+                  .split(':');
               final s = int.tryParse(parts.first);
-              final a =
-                  parts.length > 1 ? int.tryParse(parts[1].split('-').first) : null;
+              final a = parts.length > 1
+                  ? int.tryParse(parts[1].split('-').first)
+                  : null;
               if (s != null && a != null) audio.playAyah(s, a);
             },
-            onCopy: () => _copy(
-              '${daily['translation']}\n(${daily['reference']})',
-            ),
+            onCopy: () =>
+                _copy('${daily['translation']}\n(${daily['reference']})'),
           ),
           const SizedBox(height: 24),
           _TabIntro(
@@ -120,17 +126,17 @@ class _TranslationWebState extends State<TranslationWeb> {
                     isExpanded: true,
                     items: [
                       for (final s in SurahsData.surahs)
-                          DropdownMenuItem(
-                            value: s['num'] as int,
-                            child: Text(
-                              '${s['num']}. ${s['name']}',
-                              style: TextStyle(
-                                fontFamily: FigmaTokens.fontFamilyUiSans,
-                                fontSize: 14,
-                                color: figma.textHeading,
-                              ),
+                        DropdownMenuItem(
+                          value: s['num'] as int,
+                          child: Text(
+                            '${s['num']}. ${s['name']}',
+                            style: TextStyle(
+                              fontFamily: FigmaTokens.fontFamilyUiSans,
+                              fontSize: 14,
+                              color: figma.textHeading,
                             ),
                           ),
+                        ),
                     ],
                     onChanged: (v) {
                       if (v != null) _select(v);
@@ -291,8 +297,7 @@ class _DailyInspirationBanner extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: figma.accentGoldAmber,
-                    borderRadius:
-                        BorderRadius.circular(FigmaTokens.radiusPill),
+                    borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
                   ),
                   child: const Text(
                     'DAILY INSPIRATION',
@@ -490,7 +495,9 @@ class _LangToggle extends StatelessWidget {
             fontFamily: FigmaTokens.fontFamilyUiSans,
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: selected ? FigmaTokens.textOnDark : FigmaTokens.brandMidGreen,
+            color: selected
+                ? FigmaTokens.textOnDark
+                : FigmaTokens.brandMidGreen,
           ),
         ),
       ),
@@ -514,15 +521,15 @@ class _ModeToggle extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
-            color: lineForLine
-                ? figma.accentGoldAmber
-                : figma.surfacePanelMint,
+            color: lineForLine ? figma.accentGoldAmber : figma.surfacePanelMint,
             borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
           ),
           child: Icon(
             lineForLine ? Icons.view_agenda_rounded : Icons.view_stream_rounded,
             size: 16,
-            color: lineForLine ? FigmaTokens.textOnDark : FigmaTokens.brandMidGreen,
+            color: lineForLine
+                ? FigmaTokens.textOnDark
+                : FigmaTokens.brandMidGreen,
           ),
         ),
       ),
@@ -545,8 +552,7 @@ class _NoData extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Icons.cloud_off_rounded,
-              size: 40, color: figma.textMuted),
+          Icon(Icons.cloud_off_rounded, size: 40, color: figma.textMuted),
           const SizedBox(height: 12),
           Text(
             message,

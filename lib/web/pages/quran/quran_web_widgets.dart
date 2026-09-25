@@ -14,46 +14,8 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../core/services/quran_audio_service.dart';
-import '../../../features/quran/data/surahs_data.dart';
 import '../../web_origin.dart';
 import '../../widgets/web_footer.dart';
-import '../../widgets/web_ornaments.dart';
-import 'quran_reading_state.dart';
-
-/// Bounded scrollable wrapper for standalone tab panes (e.g. Hadith, Juzz,
-/// Daily Ayah) that are rendered outside the main Quran page. Always ends
-/// with a full-width site footer and leaves bottom padding so the sticky
-/// [QuranAudioBar] never covers content. Never nests an unbounded scrollable
-/// (web blank-page rule).
-class QuranPaneScaffold extends StatelessWidget {
-  final Widget child;
-  const QuranPaneScaffold({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomPad = MediaQuery.sizeOf(context).width < 600 ? 80.0 : 132.0;
-    return SingleChildScrollView(
-      physics: webScrollPhysics,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(24, 28, 24, 0),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1180),
-                child: child,
-              ),
-            ),
-          ),
-          const SizedBox(height: 44),
-          const WebFooter(),
-          SizedBox(height: bottomPad),
-        ],
-      ),
-    );
-  }
-}
 
 /// Centered, internally-scrollable content wrapper used for the four tab
 /// panes *inside* the main [QuranPage]. The QuranPage provides the unified

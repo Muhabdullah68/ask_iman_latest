@@ -22,6 +22,39 @@ import '../../widgets/web_ornaments.dart';
 import 'quran_reading_state.dart';
 import 'quran_web_widgets.dart';
 
+const List<(int, int)> _juzStartAyat = [
+  (1, 1),
+  (2, 142),
+  (2, 253),
+  (3, 93),
+  (4, 24),
+  (4, 148),
+  (5, 82),
+  (6, 111),
+  (7, 88),
+  (8, 41),
+  (9, 93),
+  (11, 6),
+  (12, 53),
+  (15, 1),
+  (17, 1),
+  (18, 75),
+  (21, 1),
+  (23, 1),
+  (25, 21),
+  (27, 56),
+  (29, 46),
+  (33, 31),
+  (36, 28),
+  (39, 32),
+  (41, 47),
+  (46, 1),
+  (51, 31),
+  (58, 1),
+  (67, 1),
+  (78, 1),
+];
+
 class SurahExplorerWeb extends StatefulWidget {
   final bool juzMode;
   final VoidCallback onToggleJuz;
@@ -41,6 +74,7 @@ class SurahExplorerWeb extends StatefulWidget {
 
 class _SurahExplorerWebState extends State<SurahExplorerWeb> {
   late int _selected;
+  int? _jumpAyah;
   String _query = '';
 
   @override
@@ -67,8 +101,20 @@ class _SurahExplorerWebState extends State<SurahExplorerWeb> {
   }
 
   void _selectSurah(int n) {
-    setState(() => _selected = n);
+    setState(() {
+      _selected = n;
+      _jumpAyah = null;
+    });
     QuranReadingState.instance.setSurah(n);
+    if (widget.drawerOpen) widget.onToggleDrawer();
+  }
+
+  void _selectJuz(int surah, int ayah) {
+    setState(() {
+      _selected = surah;
+      _jumpAyah = ayah;
+    });
+    QuranReadingState.instance.selectAyah(surah, ayah);
     if (widget.drawerOpen) widget.onToggleDrawer();
   }
 
@@ -80,7 +126,7 @@ class _SurahExplorerWebState extends State<SurahExplorerWeb> {
         final wide = constraints.maxWidth >= 960;
 
         final sidebarContent = widget.juzMode
-            ? _JuzSidebar(onSelectSurah: _selectSurah, selectedSurah: _selected)
+            ? _JuzSidebar(onSelectJuz: _selectJuz)
             : _Sidebar(
                 surahs: _filtered,
                 selected: _selected,
@@ -91,10 +137,14 @@ class _SurahExplorerWebState extends State<SurahExplorerWeb> {
 
         final reading = SurahReadingPane(
           surahNum: _selected,
+          initialAyah: _jumpAyah,
           onNextSurah: () {
             if (_selected < 114) {
               final next = _selected + 1;
-              setState(() => _selected = next);
+              setState(() {
+                _selected = next;
+                _jumpAyah = null;
+              });
               QuranReadingState.instance.setSurah(next);
             }
           },
@@ -149,9 +199,8 @@ class _SurahExplorerWebState extends State<SurahExplorerWeb> {
 
 // ── Juz sidebar (shown when JUZ toggle is active) ────────────────────────────
 class _JuzSidebar extends StatelessWidget {
-  final ValueChanged<int> onSelectSurah;
-  final int selectedSurah;
-  const _JuzSidebar({required this.onSelectSurah, required this.selectedSurah});
+  final void Function(int surah, int ayah) onSelectJuz;
+  const _JuzSidebar({required this.onSelectJuz});
 
   @override
   Widget build(BuildContext context) {
@@ -183,97 +232,73 @@ class _JuzSidebar extends StatelessWidget {
                 crossAxisSpacing: 8,
                 childAspectRatio: 1.0,
               ),
-              itemBuilder: (context, i) => Material(
-                color: figma.surfacePanelMint,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
-                  onTap: () {
-                    // Navigate to first surah in this juz
-                    final firstSurah = _surahForJuz(i + 1);
-                    if (firstSurah > 0) onSelectSurah(firstSurah);
-                  },
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          alignment: Alignment.center,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: FigmaTokens.primaryButtonGradient,
-                          ),
-                          child: Text(
-                            '${i + 1}',
-                            style: TextStyle(
-                              fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              color: figma.accentGoldLight,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Juz ${i + 1}',
-                          style: TextStyle(
-                            fontFamily: FigmaTokens.fontFamilyUiSans,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: figma.textBody,
-                          ),
-                        ),
-                      ],
+              itemBuilder: (context, i) {
+                final start = _juzStartAyat[i];
+                return Material(
+                  color: figma.surfacePanelMint,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      FigmaTokens.radiusButton,
                     ),
                   ),
-                ),
-              ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(
+                      FigmaTokens.radiusButton,
+                    ),
+                    onTap: () => onSelectJuz(start.$1, start.$2),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            alignment: Alignment.center,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: FigmaTokens.primaryButtonGradient,
+                            ),
+                            child: Text(
+                              '${i + 1}',
+                              style: TextStyle(
+                                fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                                color: figma.accentGoldLight,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Juz ${i + 1}',
+                            style: TextStyle(
+                              fontFamily: FigmaTokens.fontFamilyUiSans,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: figma.textBody,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${start.$1}:${start.$2}',
+                            style: TextStyle(
+                              fontFamily: FigmaTokens.fontFamilyUiSans,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: figma.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],
       ),
     );
-  }
-
-  int _surahForJuz(int juz) {
-    const juzStarts = [
-      1,
-      2,
-      3,
-      4,
-      5,
-      7,
-      8,
-      9,
-      10,
-      11,
-      12,
-      13,
-      14,
-      15,
-      16,
-      17,
-      18,
-      20,
-      21,
-      22,
-      23,
-      24,
-      25,
-      25,
-      26,
-      27,
-      28,
-      28,
-      29,
-      30,
-    ];
-    if (juz >= 1 && juz <= 30) return juzStarts[juz - 1];
-    return 1;
   }
 }
 
@@ -486,11 +511,13 @@ class _SurahTile extends StatelessWidget {
 // ── Reading pane ─────────────────────────────────────────────────────────────
 class SurahReadingPane extends StatefulWidget {
   final int surahNum;
+  final int? initialAyah;
   final VoidCallback? onNextSurah;
   final void Function(int surah, int ayah)? onAyahTapped;
   const SurahReadingPane({
     super.key,
     required this.surahNum,
+    this.initialAyah,
     this.onNextSurah,
     this.onAyahTapped,
   });
@@ -504,6 +531,7 @@ class _SurahReadingPaneState extends State<SurahReadingPane> {
   bool _loading = false;
   String? _error;
   bool _urdu = false;
+  final ScrollController _scroll = ScrollController();
 
   @override
   void initState() {
@@ -512,9 +540,21 @@ class _SurahReadingPaneState extends State<SurahReadingPane> {
   }
 
   @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
   void didUpdateWidget(covariant SurahReadingPane oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.surahNum != widget.surahNum) _load();
+    final surahChanged = oldWidget.surahNum != widget.surahNum;
+    if (surahChanged) {
+      _load();
+    } else if (widget.initialAyah != null &&
+        oldWidget.initialAyah != widget.initialAyah) {
+      _scheduleJump();
+    }
   }
 
   Future<void> _load() async {
@@ -532,6 +572,35 @@ class _SurahReadingPaneState extends State<SurahReadingPane> {
       _error = data == null
           ? 'Could not load Surah ${widget.surahNum}. Check your connection and try again.'
           : null;
+    });
+    if (widget.initialAyah != null && data != null) _scheduleJump();
+  }
+
+  void _scheduleJump() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToAyah());
+  }
+
+  void _jumpToAyah() {
+    if (!mounted || !_scroll.hasClients) return;
+    final target = widget.initialAyah;
+    final ayahs = _ayahs;
+    if (target == null ||
+        target < 1 ||
+        ayahs == null ||
+        target > ayahs.length) {
+      return;
+    }
+    final index = _showBasmala ? target : target - 1;
+    _applyJump(index * 150.0);
+  }
+
+  void _applyJump(double offset) {
+    if (_scroll.hasClients) {
+      _scroll.jumpTo(offset.clamp(0.0, _scroll.position.maxScrollExtent));
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      _scroll.jumpTo(offset.clamp(0.0, _scroll.position.maxScrollExtent));
     });
   }
 
@@ -575,6 +644,7 @@ class _SurahReadingPaneState extends State<SurahReadingPane> {
                 : _error != null
                 ? _ErrorRetry(message: _error!, onRetry: _load)
                 : _AyahScrollView(
+                    controller: _scroll,
                     surahNum: widget.surahNum,
                     ayahs: _ayahs!,
                     urdu: _urdu,
@@ -591,6 +661,7 @@ class _SurahReadingPaneState extends State<SurahReadingPane> {
 
 // ── Ayah scroll view (fills viewport; short surahs get a filler banner) ──────
 class _AyahScrollView extends StatelessWidget {
+  final ScrollController? controller;
   final int surahNum;
   final List<Map<String, String>> ayahs;
   final bool urdu;
@@ -598,6 +669,7 @@ class _AyahScrollView extends StatelessWidget {
   final void Function(int surah, int ayah)? onAyahTapped;
   final VoidCallback? onNextSurah;
   const _AyahScrollView({
+    this.controller,
     required this.surahNum,
     required this.ayahs,
     required this.urdu,
@@ -610,6 +682,7 @@ class _AyahScrollView extends StatelessWidget {
   Widget build(BuildContext context) {
     final shortSurah = ayahs.length <= 6;
     return CustomScrollView(
+      controller: controller,
       slivers: [
         SliverList(
           delegate: SliverChildBuilderDelegate((context, i) {

@@ -10,13 +10,10 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../features/quran/data/quran_api_service.dart';
 import '../../../features/quran/data/surahs_data.dart';
+import 'quran_reading_state.dart';
 import 'quran_web_widgets.dart';
 
-const List<String> _sources = [
-  'Ibn Kathir',
-  "Ma'ariful Quran",
-  'Al-Jalalayn',
-];
+const List<String> _sources = ['Ibn Kathir', "Ma'ariful Quran", 'Al-Jalalayn'];
 
 class TafseerWeb extends StatefulWidget {
   const TafseerWeb({super.key});
@@ -36,6 +33,7 @@ class _TafseerWebState extends State<TafseerWeb> {
   @override
   void initState() {
     super.initState();
+    _surah = QuranReadingState.instance.surahNum.clamp(1, 114);
     _load();
   }
 
@@ -48,8 +46,9 @@ class _TafseerWebState extends State<TafseerWeb> {
     });
     // Load tafseer and ayahs in parallel
     final chapterFuture = QuranApiService.fetchChapterTafseer(_surah, _source);
-    final ayahFuture = QuranApiService.fetchSurah(_surah)
-        .then((d) async => d ?? await QuranApiService.getLocalAyahs(_surah));
+    final ayahFuture = QuranApiService.fetchSurah(
+      _surah,
+    ).then((d) async => d ?? await QuranApiService.getLocalAyahs(_surah));
     final chapter = await chapterFuture;
     final ayahData = await ayahFuture;
     if (!mounted) return;
@@ -79,6 +78,7 @@ class _TafseerWebState extends State<TafseerWeb> {
   void _setSurah(int n) {
     if (n == _surah) return;
     setState(() => _surah = n);
+    QuranReadingState.instance.setSurah(n);
     _load();
   }
 
@@ -96,87 +96,87 @@ class _TafseerWebState extends State<TafseerWeb> {
               fontSize: 30,
               fontWeight: FontWeight.w900,
               color: figma.textHeading,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Scholarly commentary \u2014 Arabic text, translation, and explanation side by side.',
+            style: TextStyle(
+              fontFamily: FigmaTokens.fontFamilyUiSans,
+              fontSize: 14.5,
+              color: figma.textBody,
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Surah selector + source pills
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: figma.surfaceCard,
+              borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
+              border: Border.all(color: figma.borderHairline),
+            ),
+            child: Row(
+              children: [
+                Flexible(
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      for (final s in _sources)
+                        _SourcePill(
+                          label: s,
+                          selected: s == _source,
+                          onTap: () => _setSource(s),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Scholarly commentary \u2014 Arabic text, translation, and explanation side by side.',
-                style: TextStyle(
-                  fontFamily: FigmaTokens.fontFamilyUiSans,
-                  fontSize: 14.5,
-                  color: figma.textBody,
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Surah selector + source pills
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: figma.surfaceCard,
-                  borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-                  border: Border.all(color: figma.borderHairline),
-                ),
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          for (final s in _sources)
-                            _SourcePill(
-                              label: s,
-                              selected: s == _source,
-                              onTap: () => _setSource(s),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: DropdownButton<int>(
+                    value: _surah,
+                    underline: const SizedBox.shrink(),
+                    borderRadius: BorderRadius.circular(12),
+                    isDense: true,
+                    isExpanded: true,
+                    items: [
+                      for (final s in SurahsData.surahs)
+                        DropdownMenuItem(
+                          value: s['num'] as int,
+                          child: Text(
+                            '${s['num']}. ${s['name']}',
+                            style: TextStyle(
+                              fontFamily: FigmaTokens.fontFamilyUiSans,
+                              fontSize: 14,
+                              color: figma.textHeading,
                             ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Flexible(
-                      child: DropdownButton<int>(
-                        value: _surah,
-                        underline: const SizedBox.shrink(),
-                        borderRadius: BorderRadius.circular(12),
-                        isDense: true,
-                        isExpanded: true,
-                        items: [
-                          for (final s in SurahsData.surahs)
-                            DropdownMenuItem(
-                              value: s['num'] as int,
-                              child: Text(
-                                '${s['num']}. ${s['name']}',
-                                style: TextStyle(
-                                  fontFamily: FigmaTokens.fontFamilyUiSans,
-                                  fontSize: 14,
-                                  color: figma.textHeading,
-                                ),
-                              ),
-                            ),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) _setSurah(v);
-                        },
-                      ),
-                    ),
-                  ],
+                          ),
+                        ),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) _setSurah(v);
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: 22),
-              // 3-column or vertical layout
-              if (_loading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 60),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else
-                _TafseerContent(
-                  entries: _entries,
-                  fallback: _fallback,
-                  ayahs: _ayahs,
-                  surahNum: _surah,
-                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+          // 3-column or vertical layout
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 60),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            _TafseerContent(
+              entries: _entries,
+              fallback: _fallback,
+              ayahs: _ayahs,
+              surahNum: _surah,
+            ),
         ],
       ),
     );
@@ -212,22 +212,13 @@ class _TafseerContent extends StatelessWidget {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                flex: 4,
-                child: _ArabicTranslationColumn(ayahs: ayahs),
-              ),
+              Expanded(flex: 4, child: _ArabicTranslationColumn(ayahs: ayahs)),
+              const SizedBox(width: 16),
+              Expanded(flex: 3, child: _CommentaryColumn(entries: entries!)),
               const SizedBox(width: 16),
               Expanded(
                 flex: 3,
-                child: _CommentaryColumn(entries: entries!),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 3,
-                child: _NotesColumn(
-                  entries: entries!,
-                  surahNum: surahNum,
-                ),
+                child: _NotesColumn(entries: entries!, surahNum: surahNum),
               ),
             ],
           );
@@ -330,8 +321,7 @@ class _ArabicTranslationColumn extends StatelessWidget {
                         fontFamily: FigmaTokens.fontFamilyUiSans,
                         fontSize: 13,
                         height: 1.55,
-                        color:
-                            figma.textBody.withValues(alpha: 0.9),
+                        color: figma.textBody.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -507,14 +497,10 @@ class _SourcePill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected
-              ? FigmaTokens.brandMidGreen
-              : figma.surfaceBackground,
+          color: selected ? FigmaTokens.brandMidGreen : figma.surfaceBackground,
           borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
           border: Border.all(
-            color: selected
-                ? FigmaTokens.brandMidGreen
-                : figma.borderHairline,
+            color: selected ? FigmaTokens.brandMidGreen : figma.borderHairline,
           ),
         ),
         child: Text(

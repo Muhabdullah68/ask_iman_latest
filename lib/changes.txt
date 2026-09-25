@@ -641,3 +641,37 @@ flutter test 87 pass + 2 pre-existing splash golden failures (6 new
 responsive tests all green); flutter build web --release OK + local
 http-server smoke test (index, main.dart.js, flutter_bootstrap serve 200).
 No deploy performed.
+FIX 22 - QURAN SCREEN FUNCTIONAL PASS: JUZ ACCURACY + AYAT JUMP + DEEP LINKS (25 SEP 2026)
+
+Context: A half-applied WEB-6 redesign was sitting uncommitted in the working
+tree (3 files: quran_page, quran_web_widgets, surah_explorer_web) and did not
+compile (17 analyze errors). Per direction, it was reverted to the last
+committed baseline (b13194e) and the Quran screen was made correct and fully
+functional on that baseline, with the full redesign to be redone deliberately
+afterward.
+
+* Juz reading fixed: replaced the wrong "first surah" table (which mapped juz
+  ~= surah and opened the wrong surah for most juz) with an authoritative
+  30-row (surah, ayah) start table for every juz, e.g. juz 2 -> 2:142, juz 6
+  -> 4:148, juz 18 -> 23:1, juz 30 -> 78:1. Each juz tile now shows its start
+  reference and tapping it opens that surah AND scrolls the reading pane to
+  the juz's starting ayah; QuranReadingState.selectAyah keeps the Share tab
+  in sync.
+* Verse deep links: the dedicated reader route /quran/surah/:id now accepts
+  ?ayah=N or #ayah-N and scrolls to that verse on load; SurahReadingPage
+  seeds QuranReadingState with the target ayah, and SurahReadingPane gained
+  initialAyah support (ScrollController + deferred jump) used by both the juz
+  grid and the deep-link page.
+* Tarjuma + Tafseer dropdown surah picks now sync into QuranReadingState, so
+  the Share tab / audio bar always reflect the surah currently open; Tarjuma
+  and Tafseer panes also open on the surah already being read in Talawat.
+* Settings gear in the Quran sub-nav (was a no-op) now routes to
+  /quran/settings.
+* Removed web-unnecessary dead code: standalone juzz_web.dart,
+  daily_ayah_web.dart, hadith_web.dart (unused; routes already redirected)
+  and the now-unused QuranPaneScaffold wrapper; dropped 3 unused imports
+  left over in quran_web_widgets.dart.
+
+Verification: flutter analyze 57 issues (all pre-existing, 0 errors);
+flutter test 87 pass + 2 pre-existing splash golden failures;
+flutter build web --release OK. No deploy performed.

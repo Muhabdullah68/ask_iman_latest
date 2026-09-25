@@ -56,6 +56,15 @@ class WebRoutes {
   static const adminDashboard = '/secret-admin-dashboard';
 }
 
+String? _ayahFromFragment(String fragment) {
+  const prefix = 'ayah-';
+  if (fragment.startsWith(prefix)) {
+    final body = fragment.substring(prefix.length);
+    return RegExp(r'^\d+$').hasMatch(body) ? body : null;
+  }
+  return null;
+}
+
 Widget _slideFadeTransition(Widget child, Animation<double> animation) {
   final curved = CurvedAnimation(
     parent: animation,
@@ -148,15 +157,20 @@ final router = GoRouter(
         GoRoute(
           path: 'surah/:id',
           name: 'quranSurah',
-          pageBuilder: (context, state) => _buildPage(
-            WebShell(
-              child: SurahReadingPage(
-                surahNum:
-                    int.tryParse(state.pathParameters['id'] ?? '') ?? 1,
+          pageBuilder: (context, state) {
+            final params = state.uri.queryParameters;
+            final ayahStr =
+                params['ayah'] ?? _ayahFromFragment(state.uri.fragment);
+            return _buildPage(
+              WebShell(
+                child: SurahReadingPage(
+                  surahNum: int.tryParse(state.pathParameters['id'] ?? '') ?? 1,
+                  initialAyah: int.tryParse(ayahStr ?? ''),
+                ),
               ),
-            ),
-            state,
-          ),
+              state,
+            );
+          },
         ),
         // Legacy route redirects
         GoRoute(
@@ -288,7 +302,6 @@ final router = GoRouter(
           _buildPage(const WebShell(child: ProfilePage()), state),
     ),
   ],
-  errorBuilder: (context, state) => WebShell(
-    child: ComingSoonPage(title: 'Page Not Found'),
-  ),
+  errorBuilder: (context, state) =>
+      WebShell(child: ComingSoonPage(title: 'Page Not Found')),
 );
