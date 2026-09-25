@@ -50,21 +50,27 @@ class QuranPaneScaffold extends StatelessWidget {
   }
 }
 
-/// Non-scrolling, footer-less content wrapper used for the five tab panes
-/// *inside* the main [QuranPage]. The QuranPage provides the unified outer
-/// scroll and the single shared [WebFooter] at the very bottom of the page.
+/// Centered, internally-scrollable content wrapper used for the four tab
+/// panes *inside* the main [QuranPage]. The QuranPage provides the unified
+/// outer chrome and the single shared [WebFooter] at the very bottom of the
+/// page. Scrolls internally (never nests an unbounded scrollable) and leaves
+/// a small bottom pad so the sticky [QuranAudioBar] never covers content.
 class QuranPaneContent extends StatelessWidget {
   final Widget child;
   const QuranPaneContent({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1180),
-          child: child,
+    return SingleChildScrollView(
+      physics: webScrollPhysics,
+      padding: const EdgeInsets.only(bottom: 64),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1180),
+            child: child,
+          ),
         ),
       ),
     );
@@ -106,11 +112,7 @@ class VerseDivider extends StatelessWidget {
     final figma = context.figma;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 22),
-      child: Divider(
-        height: 1,
-        thickness: 0.8,
-        color: figma.borderHairline,
-      ),
+      child: Divider(height: 1, thickness: 0.8, color: figma.borderHairline),
     );
   }
 }
@@ -177,6 +179,10 @@ class AyahCard extends StatelessWidget {
                       arabic,
                       textAlign: TextAlign.right,
                       softWrap: true,
+                      textHeightBehavior: const TextHeightBehavior(
+                        applyHeightToFirstAscent: false,
+                        applyHeightToLastDescent: false,
+                      ),
                       style: TextStyle(
                         fontFamily: FigmaTokens.fontFamilyArabicMushaf,
                         fontSize: 24,
@@ -330,9 +336,7 @@ class _VerseContextMenu extends StatelessWidget {
             label: 'Share',
             onTap: () {
               Navigator.pop(context);
-              final url = Uri.parse(
-                '$origin/quran/surah/$surahNum',
-              );
+              final url = Uri.parse('$origin/quran/surah/$surahNum');
               launchUrl(url, mode: LaunchMode.platformDefault);
             },
           ),
@@ -439,9 +443,7 @@ class _PlayAyahButtonState extends State<_PlayAyahButton> {
                       : FigmaTokens.brandDeepGreen.withValues(alpha: 0.06),
                 ),
                 child: Icon(
-                  active
-                      ? Icons.volume_up_rounded
-                      : Icons.volume_up_outlined,
+                  active ? Icons.volume_up_rounded : Icons.volume_up_outlined,
                   size: 19,
                   color: active
                       ? FigmaTokens.textOnDark

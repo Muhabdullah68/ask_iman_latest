@@ -556,3 +556,50 @@ Implemented:
 Verification: flutter analyze 63 issues (all pre-existing, baseline 64,
 0 errors); flutter test 81 pass + 2 pre-existing splash golden
 failures. No build/deploy performed — commit + push only.
+FIX 20 — WEB 3D MODELS + QURAN HEIGHT/ROUTING/ARABIC OVERLAP + HOME 3D TILT (25 SEP 2026)
+======================================================================================
+Root cause: After FIX 19 the Quran page still showed a huge empty gap above
+the footer (dead scroll), the explorer header/tile/card Arabic text could
+overlap the English titles, the deliberate "Another Surah" link routed to a
+non-existent /home route (404), and the home bismillah medallion auto-rotated
+(sacred text, poor execution). Separately the user provided GLB 3D models in
+assets/3D/ to be used on the web.
+
+Implemented (all web-only):
+  * Quran height fix: removed outer CustomScrollView + fixed-height
+    _TalawatBounded (vh*0.72 clamp 520-960) that forced IndexedStack to the
+    tallest tab + removed the 132px audioPad spacer. New body:
+    Column[_QuranHero, _SubNavBar, _ControlBar, _PillTabBar,
+    Expanded(IndexedStack(panes))]. Each pane scrolls internally
+    (QuranPaneContent SingleChildScrollView + 64 bottom padding; ayah list
+    trailing 72px spacer) so the footer is always reachable at page bottom
+    with no dead scroll.
+  * Routing fix: quran_page context.go('/home') -> context.go(WebRoutes.home);
+    swept all web navbar/footer/other links (valid, /home was the only miss).
+  * Arabic overlap fix (explorer text): _PaneHeader arabic now a Flexible +
+    right-aligned, soft-wrapped, TextHeightBehavior height 1.45 column beside
+    the English title; _SurahTile arabic height 1.35 + TextHeightBehavior;
+    AyahCard arabic TextHeightBehavior. Translation/tafseer blocks deliberately
+    untouched.
+  * New lib/web/widgets/web_model3d.dart Model3D widget: embeds a GLB via
+    model_viewer_plus 1.10.0 (web-only; kIsWeb fallback = static gold
+    medallion). Auto-rotates at 18deg/s (4deg/s for reduce-motion users),
+    camera controls, neutral environment, gold glow frame.
+  * Home: Daily Inspiration ornament is now the interactive open-Quran-on-
+    rehal model (open_quran_rehal_polished.glb) in a gold-ring medallion —
+    rotating bismillah medallion removed entirely. New web_tilt3d.dart
+    Tilt3D adds hover-follow perspective tilt + gold glow to feature tiles
+    and leather book covers (idle = static; respects reduce-motion).
+  * Community page: full web-native hero band — deep-green gradient, gold
+    eyebrow, headline + sub-copy, Explore/Support CTA buttons, and the
+    interactive Ka'aba model (kaaba_polished_detailed.glb) — above the
+    embedded app CommunityScreen. CharityPage header upgraded to matching
+    ornament (eyebrow + GoldRule).
+  * pubspec: +model_viewer_plus ^1.4.0 (resolved 1.10.0), +assets/3D/
+    (kaaba_polished_detailed 335KB, open_quran_rehal_polished 200KB used;
+    New_Project_9252026 9.6MB AI-sculpt and kaaba_3d skipped).
+
+Verification: flutter analyze 65 issues (63 baseline + 2 fixed during pass
+-> 63 pre-existing, 0 errors); dart analyze on all 7 changed files clean;
+flutter test 81 pass + 2 pre-existing splash golden failures. No
+build/deploy performed — commit + push only.

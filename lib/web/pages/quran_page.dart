@@ -20,7 +20,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/seo_meta.dart';
 import '../web_router.dart' show WebRoutes;
-import '../widgets/web_animations.dart';
 import 'quran/audio_bar_web.dart';
 import 'quran/quran_reading_state.dart';
 import 'quran/settings_web.dart';
@@ -112,7 +111,6 @@ class _QuranPageState extends State<QuranPage> {
   @override
   Widget build(BuildContext context) {
     final figma = context.figma;
-    final audioPad = MediaQuery.sizeOf(context).width < 600 ? 80.0 : 132.0;
     setPageTitle('Quran Explorer — Talawat, Tarjuma, Tafseer · Ask Iman');
     return Stack(
       children: [
@@ -121,38 +119,29 @@ class _QuranPageState extends State<QuranPage> {
           bottom: false,
           child: Container(
             color: figma.surfaceBackground,
-            child: CustomScrollView(
-              physics: webScrollPhysics,
-              slivers: [
-                const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                SliverToBoxAdapter(child: const _QuranHero()),
-                SliverToBoxAdapter(
-                  child: _SubNavBar(
-                    indexDrawerOpen: _indexDrawerOpen,
-                    onToggleIndex: _toggleIndexDrawer,
-                  ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 8),
+                const _QuranHero(),
+                _SubNavBar(
+                  indexDrawerOpen: _indexDrawerOpen,
+                  onToggleIndex: _toggleIndexDrawer,
                 ),
-                SliverToBoxAdapter(
-                  child: _ControlBar(
-                    juzMode: _juzMode,
-                    onToggleJuz: _toggleJuz,
-                    indexDrawerOpen: _indexDrawerOpen,
-                    onToggleIndex: _toggleIndexDrawer,
-                  ),
+                _ControlBar(
+                  juzMode: _juzMode,
+                  onToggleJuz: _toggleJuz,
+                  indexDrawerOpen: _indexDrawerOpen,
+                  onToggleIndex: _toggleIndexDrawer,
                 ),
-                SliverToBoxAdapter(
-                  child: _PillTabBar(
-                    current: _tabIndex,
-                    onSelect: _select,
-                  ),
-                ),
-                SliverToBoxAdapter(
+                _PillTabBar(current: _tabIndex, onSelect: _select),
+                Expanded(
                   child: IndexedStack(
                     index: _tabIndex,
                     children: [
                       for (var i = 0; i < WebQuranTab.values.length; i++)
                         i == 0
-                            ? _TalawatBounded(child: _pane(i))
+                            ? _pane(i)
                             : _pane(i)
                                   .animate(key: ValueKey(i))
                                   .fadeIn(
@@ -162,32 +151,12 @@ class _QuranPageState extends State<QuranPage> {
                     ],
                   ),
                 ),
-                SliverToBoxAdapter(child: SizedBox(height: audioPad)),
               ],
             ),
           ),
         ),
-        const Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: QuranAudioBar(),
-        ),
+        const Positioned(left: 0, right: 0, bottom: 0, child: QuranAudioBar()),
       ],
-    );
-  }
-}
-
-class _TalawatBounded extends StatelessWidget {
-  final Widget child;
-  const _TalawatBounded({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final minH = (MediaQuery.sizeOf(context).height * 0.72).clamp(520.0, 960.0);
-    return SizedBox(
-      height: minH,
-      child: child,
     );
   }
 }
@@ -213,66 +182,64 @@ class _QuranHero extends StatelessWidget {
                 Container(
                   width: 88,
                   height: 88,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: figma.accentGoldAmber.withValues(alpha: 0.55),
-                    width: 1.5,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: figma.accentGoldAmber.withValues(alpha: 0.55),
+                      width: 1.5,
+                    ),
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
-                  color: Colors.white.withValues(alpha: 0.05),
-                ),
-                child: Text(
-                  '﴿﷽﴾',
-                  style: TextStyle(
-                    fontFamily: FigmaTokens.fontFamilyArabicSerif,
-                    fontSize: 30,
-                    height: 1,
-                    color: figma.accentGoldLight,
+                  child: Text(
+                    '﴿﷽﴾',
+                    style: TextStyle(
+                      fontFamily: FigmaTokens.fontFamilyArabicSerif,
+                      fontSize: 30,
+                      height: 1,
+                      color: figma.accentGoldLight,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'AL-QUR\'ĀN AL-KARĪM',
-                      style: TextStyle(
-                        fontFamily: FigmaTokens.fontFamilyUiSans,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2.4,
-                        color: figma.accentGoldLight.withValues(
-                          alpha: 0.85,
+                const SizedBox(width: 24),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AL-QUR\'ĀN AL-KARĪM',
+                        style: TextStyle(
+                          fontFamily: FigmaTokens.fontFamilyUiSans,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 2.4,
+                          color: figma.accentGoldLight.withValues(alpha: 0.85),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Quran Explorer',
-                      style: TextStyle(
-                        fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        color: FigmaTokens.textOnDark,
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Quran Explorer',
+                        style: TextStyle(
+                          fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: FigmaTokens.textOnDark,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Talawat · Tarjuma · Tafseer · Settings · Share',
-                      style: TextStyle(
-                        fontFamily: FigmaTokens.fontFamilyUiSans,
-                        fontSize: 13.5,
-                        color: Colors.white.withValues(alpha: 0.72),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Talawat · Tarjuma · Tafseer · Settings · Share',
+                        style: TextStyle(
+                          fontFamily: FigmaTokens.fontFamilyUiSans,
+                          fontSize: 13.5,
+                          color: Colors.white.withValues(alpha: 0.72),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           ),
         ),
       ),
@@ -311,11 +278,15 @@ class _SubNavBar extends StatelessWidget {
             child: Row(
               children: [
                 InkWell(
-                  onTap: () => context.go('/home'),
+                  onTap: () => context.go(WebRoutes.home),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.arrow_back_rounded, size: 17, color: figma.accentGoldLight),
+                      Icon(
+                        Icons.arrow_back_rounded,
+                        size: 17,
+                        color: figma.accentGoldLight,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Back to Library',
@@ -332,19 +303,31 @@ class _SubNavBar extends StatelessWidget {
                 const Spacer(),
                 IconButton(
                   onPressed: () => context.go('/search'),
-                  icon: const Icon(Icons.search_rounded, size: 20, color: FigmaTokens.textOnDark),
+                  icon: const Icon(
+                    Icons.search_rounded,
+                    size: 20,
+                    color: FigmaTokens.textOnDark,
+                  ),
                   tooltip: 'Search',
                 ),
                 const SizedBox(width: 4),
                 IconButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.settings_rounded, size: 20, color: FigmaTokens.textOnDark),
+                  icon: const Icon(
+                    Icons.settings_rounded,
+                    size: 20,
+                    color: FigmaTokens.textOnDark,
+                  ),
                   tooltip: 'Settings',
                 ),
                 const SizedBox(width: 4),
                 IconButton(
                   onPressed: () => context.go('/profile'),
-                  icon: const Icon(Icons.person_outline_rounded, size: 20, color: FigmaTokens.textOnDark),
+                  icon: const Icon(
+                    Icons.person_outline_rounded,
+                    size: 20,
+                    color: FigmaTokens.textOnDark,
+                  ),
                   tooltip: 'Profile',
                 ),
               ],
@@ -398,7 +381,10 @@ class _ControlBar extends StatelessWidget {
                   onTap: onToggleIndex,
                   borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -458,16 +444,8 @@ class _SegmentedToggle extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _SegPill(
-            label: left,
-            selected: leftSelected,
-            onTap: onTap,
-          ),
-          _SegPill(
-            label: right,
-            selected: !leftSelected,
-            onTap: onTap,
-          ),
+          _SegPill(label: left, selected: leftSelected, onTap: onTap),
+          _SegPill(label: right, selected: !leftSelected, onTap: onTap),
         ],
       ),
     );
@@ -585,9 +563,7 @@ class _TabPill extends StatelessWidget {
                 Icon(
                   tab.icon,
                   size: 17,
-                  color: selected
-                      ? figma.accentGoldLight
-                      : figma.textMuted,
+                  color: selected ? figma.accentGoldLight : figma.textMuted,
                 ),
                 const SizedBox(width: 7),
                 Text(
@@ -596,9 +572,7 @@ class _TabPill extends StatelessWidget {
                     fontFamily: FigmaTokens.fontFamilyUiSans,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
-                    color: selected
-                        ? FigmaTokens.textOnDark
-                        : figma.textBody,
+                    color: selected ? FigmaTokens.textOnDark : figma.textBody,
                   ),
                 ),
               ],

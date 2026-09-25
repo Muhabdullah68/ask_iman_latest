@@ -22,6 +22,8 @@ import '../../features/quran/data/ahadees_data.dart';
 import '../widgets/web_widgets.dart';
 import '../widgets/web_animations.dart';
 import '../widgets/web_ornaments.dart';
+import '../widgets/web_tilt3d.dart';
+import '../widgets/web_model3d.dart';
 import '../web_router.dart' show WebRoutes;
 
 class HomePage extends StatelessWidget {
@@ -81,8 +83,7 @@ class _SlideData {
 const List<_SlideData> _slides = [
   _SlideData(
     arabic: 'لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا',
-    translation:
-        'Allah does not burden a soul beyond that it can bear.',
+    translation: 'Allah does not burden a soul beyond that it can bear.',
     reference: 'Al-Baqarah 2:286',
     accent: Color(0xFF0C3A2C),
   ),
@@ -257,8 +258,9 @@ class _AyatSliderState extends State<_AyatSlider> {
                               child: IgnorePointer(
                                 child: CustomPaint(
                                   painter: _OrnamentPainter(
-                                    color: FigmaTokens.ornamentGold
-                                        .withValues(alpha: 0.10),
+                                    color: FigmaTokens.ornamentGold.withValues(
+                                      alpha: 0.10,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -285,8 +287,10 @@ class _AyatSliderState extends State<_AyatSlider> {
                       transitionBuilder: (child, anim) => FadeTransition(
                         opacity: anim,
                         child: ScaleTransition(
-                          scale: Tween<double>(begin: 0.985, end: 1.0)
-                              .animate(anim),
+                          scale: Tween<double>(
+                            begin: 0.985,
+                            end: 1.0,
+                          ).animate(anim),
                           child: child,
                         ),
                       ),
@@ -419,8 +423,8 @@ class _AyatSliderState extends State<_AyatSlider> {
                                       border: InputBorder.none,
                                       contentPadding:
                                           const EdgeInsets.symmetric(
-                                        vertical: 16,
-                                      ),
+                                            vertical: 16,
+                                          ),
                                     ),
                                   ),
                                 ),
@@ -432,19 +436,19 @@ class _AyatSliderState extends State<_AyatSlider> {
                                   child: ElevatedButton.icon(
                                     onPressed: _submitSearch,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor:
-                                          figma.accentGoldAmber,
+                                      backgroundColor: figma.accentGoldAmber,
                                       foregroundColor: FigmaTokens.textOnDark,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(16),
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 22,
                                       ),
                                     ),
-                                    icon: const Icon(Icons.search_rounded,
-                                        size: 18),
+                                    icon: const Icon(
+                                      Icons.search_rounded,
+                                      size: 18,
+                                    ),
                                     label: const Text(
                                       'Search',
                                       style: TextStyle(
@@ -465,8 +469,7 @@ class _AyatSliderState extends State<_AyatSlider> {
                               for (var i = 0; i < _slides.length; i++) ...[
                                 if (i > 0) const SizedBox(width: 7),
                                 AnimatedContainer(
-                                  duration:
-                                      const Duration(milliseconds: 300),
+                                  duration: const Duration(milliseconds: 300),
                                   width: i == _index ? 30 : 8,
                                   height: 8,
                                   decoration: BoxDecoration(
@@ -612,12 +615,12 @@ class _FeatureTiles extends StatelessWidget {
               itemBuilder: (_, i) {
                 final t = _tiles[i];
                 return _ImageFeatureTile(
-                  icon: t.icon,
-                  label: t.label,
-                  subtitle: t.subtitle,
-                  image: t.image,
-                  onTap: () => context.go(t.route),
-                )
+                      icon: t.icon,
+                      label: t.label,
+                      subtitle: t.subtitle,
+                      image: t.image,
+                      onTap: () => context.go(t.route),
+                    )
                     .animate(delay: Duration(milliseconds: 100 + i * 80))
                     .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
                     .slideY(
@@ -676,79 +679,88 @@ class _ImageFeatureTileState extends State<_ImageFeatureTile> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.asset(
-                    widget.image,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                      color: figma.surfacePanelMint,
-                      child: Icon(widget.icon,
-                          size: 40, color: FigmaTokens.brandMidGreen),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          FigmaTokens.brandDeepGreen.withValues(alpha: 0.35),
-                        ],
+              child: Tilt3D(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      widget.image,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                        color: figma.surfacePanelMint,
+                        child: Icon(
+                          widget.icon,
+                          size: 40,
+                          color: FigmaTokens.brandMidGreen,
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    left: 14,
-                    bottom: 12,
-                    child: Container(
-                      width: 42,
-                      height: 42,
+                    Container(
                       decoration: BoxDecoration(
-                        color: figma.surfaceCard,
-                        borderRadius: BorderRadius.circular(13),
-                        boxShadow: figma.cardShadows,
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            FigmaTokens.brandDeepGreen.withValues(alpha: 0.35),
+                          ],
+                        ),
                       ),
-                      child: Icon(widget.icon,
-                          color: FigmaTokens.brandDeepGreen, size: 21),
                     ),
-                  ),
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Padding(
-                        padding: const EdgeInsets.all(6),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: FigmaTokens.ornamentGold.withValues(
-                                alpha: 0.30,
+                    Positioned(
+                      left: 14,
+                      bottom: 12,
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: figma.surfaceCard,
+                          borderRadius: BorderRadius.circular(13),
+                          boxShadow: figma.cardShadows,
+                        ),
+                        child: Icon(
+                          widget.icon,
+                          color: FigmaTokens.brandDeepGreen,
+                          size: 21,
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: FigmaTokens.ornamentGold.withValues(
+                                  alpha: 0.30,
+                                ),
+                                width: 1.5,
                               ),
-                              width: 1.5,
+                              borderRadius: BorderRadius.circular(
+                                FigmaTokens.radiusCard,
+                              ),
                             ),
-                            borderRadius:
-                                BorderRadius.circular(FigmaTokens.radiusCard),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: AnimatedOpacity(
-                      opacity: _hovered ? 1 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOut,
-                      child: const KhatamOrnament(
-                        size: 18,
-                        alpha: 0.85,
-                        strokeWidth: 1.2,
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: AnimatedOpacity(
+                        opacity: _hovered ? 1 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                        child: const KhatamOrnament(
+                          size: 18,
+                          alpha: 0.85,
+                          strokeWidth: 1.2,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             Padding(
@@ -824,9 +836,8 @@ class _DailyInspiration extends StatelessWidget {
             child: Image.asset(
               'assets/images/mosque interior.png',
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                color: figma.surfacePanelMint,
-              ),
+              errorBuilder: (_, _, _) =>
+                  Container(color: figma.surfacePanelMint),
             ),
           ),
           Positioned.fill(
@@ -948,8 +959,7 @@ class _DailyInspiration extends StatelessWidget {
                     WebButton(
                       label: 'View Tafseer',
                       outlined: true,
-                      onPressed: () =>
-                          context.go('${WebRoutes.quran}/tafseer'),
+                      onPressed: () => context.go('${WebRoutes.quran}/tafseer'),
                     ),
                   ],
                 ),
@@ -961,48 +971,60 @@ class _DailyInspiration extends StatelessWidget {
     );
 
     final ornament = Center(
-      child: SizedBox(
-        width: 220,
-        height: 220,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            const KhatamOrnament(
-              size: 256,
-              alpha: 0.5,
-              strokeWidth: 1.2,
-              crescent: true,
-            ),
-            const ArabicRoundel(size: 220, glow: 0.22),
-            Positioned(
-              top: 14,
-              right: 26,
-              child: KhatamOrnament(
-                size: 22,
-                alpha: 0.7,
-                strokeWidth: 1.1,
-                color: figma.accentGoldAmber,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: SizedBox(
+          width: 264,
+          height: 264,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: FigmaTokens.ornamentGold.withValues(alpha: 0.45),
+                      width: 1.5,
+                    ),
+                    gradient: RadialGradient(
+                      colors: [
+                        FigmaTokens.ornamentGold.withValues(alpha: 0.20),
+                        FigmaTokens.ornamentGold.withValues(alpha: 0.02),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: const Model3D(
+                    src: 'assets/3D/open_quran_rehal_polished.glb',
+                    borderRadius: BorderRadius.all(Radius.circular(112)),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 10,
+                right: 16,
+                child: KhatamOrnament(
+                  size: 20,
+                  alpha: 0.75,
+                  strokeWidth: 1.1,
+                  color: figma.accentGoldAmber,
+                ),
+              ),
+            ],
+          ),
         ),
-      ).animate(
-        onPlay: (controller) => controller.repeat(reverse: false),
-      ).rotate(
-        begin: 0,
-        end: 1,
-        duration: const Duration(seconds: 60),
-        curve: Curves.linear,
       ),
     );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const WebSectionHeader(
-          eyebrow: 'Reflect',
-          title: 'Daily Inspiration',
-        ),
+        const WebSectionHeader(eyebrow: 'Reflect', title: 'Daily Inspiration'),
         const SizedBox(height: 24),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -1059,9 +1081,8 @@ class _SacredCollections extends StatelessWidget {
                 child: Image.asset(
                   'assets/images/bgcolor.png',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    color: figma.surfacePanelMint,
-                  ),
+                  errorBuilder: (_, _, _) =>
+                      Container(color: figma.surfacePanelMint),
                 ),
               ),
               Positioned.fill(
@@ -1106,12 +1127,14 @@ class _SacredCollections extends StatelessWidget {
                           width: 46,
                           height: 46,
                           decoration: BoxDecoration(
-                            color: figma.accentGoldAmber
-                                .withValues(alpha: 0.15),
+                            color: figma.accentGoldAmber.withValues(
+                              alpha: 0.15,
+                            ),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: figma.accentGoldAmber
-                                  .withValues(alpha: 0.4),
+                              color: figma.accentGoldAmber.withValues(
+                                alpha: 0.4,
+                              ),
                             ),
                           ),
                           child: Icon(
@@ -1143,9 +1166,7 @@ class _SacredCollections extends StatelessWidget {
                             ? row
                             : Column(
                                 children: [
-                                  for (var i = 0;
-                                      i < books.length;
-                                      i++) ...[
+                                  for (var i = 0; i < books.length; i++) ...[
                                     if (i > 0) const SizedBox(height: 16),
                                     _BookCard(book: books[i], index: i),
                                   ],
@@ -1192,84 +1213,90 @@ class _BookCard extends StatelessWidget {
         child: Row(
           children: [
             // Book cover
-            Container(
-              width: 62,
-              height: 88,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: cover,
-                ),
-                border: Border.all(
-                  color: figma.accentGoldAmber.withValues(alpha: 0.55),
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black38,
-                    blurRadius: 8,
-                    offset: Offset(2, 3),
+            Tilt3D(
+              maxAngle: 12,
+              perspective: 0.0018,
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                width: 62,
+                height: 88,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: cover,
                   ),
-                ],
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(3),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: FigmaTokens.ornamentGold
-                              .withValues(alpha: 0.45),
-                          width: 0.8,
+                  border: Border.all(
+                    color: figma.accentGoldAmber.withValues(alpha: 0.55),
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black38,
+                      blurRadius: 8,
+                      offset: Offset(2, 3),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(3),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: FigmaTokens.ornamentGold.withValues(
+                              alpha: 0.45,
+                            ),
+                            width: 0.8,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const CrescentOrnament(size: 12, alpha: 0.95),
-                      const SizedBox(height: 7),
-                      Icon(
-                        Icons.menu_book_rounded,
-                        color: figma.accentGoldLight,
-                        size: 18,
-                      ),
-                    ],
-                  ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          const KhatamOrnament(
-                            size: 18,
-                            alpha: 0.85,
-                            strokeWidth: 1.0,
-                          ),
-                          Text(
-                            '${index + 1}',
-                            style: TextStyle(
-                              fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-                              fontSize: 8.5,
-                              fontWeight: FontWeight.w900,
-                              color: FigmaTokens.textOnDark,
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CrescentOrnament(size: 12, alpha: 0.95),
+                        const SizedBox(height: 7),
+                        Icon(
+                          Icons.menu_book_rounded,
+                          color: figma.accentGoldLight,
+                          size: 18,
+                        ),
+                      ],
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const KhatamOrnament(
+                              size: 18,
+                              alpha: 0.85,
+                              strokeWidth: 1.0,
                             ),
-                          ),
-                        ],
+                            Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w900,
+                                color: FigmaTokens.textOnDark,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(width: 14),

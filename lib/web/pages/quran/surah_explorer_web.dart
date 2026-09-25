@@ -79,10 +79,7 @@ class _SurahExplorerWebState extends State<SurahExplorerWeb> {
         final wide = constraints.maxWidth >= 960;
 
         final sidebarContent = widget.juzMode
-            ? _JuzSidebar(
-                onSelectSurah: _selectSurah,
-                selectedSurah: _selected,
-              )
+            ? _JuzSidebar(onSelectSurah: _selectSurah, selectedSurah: _selected)
             : _Sidebar(
                 surahs: _filtered,
                 selected: _selected,
@@ -135,10 +132,7 @@ class _SurahExplorerWebState extends State<SurahExplorerWeb> {
                         child: SizedBox(
                           width: 320,
                           height: double.infinity,
-                          child: Material(
-                            elevation: 8,
-                            child: sidebarContent,
-                          ),
+                          child: Material(elevation: 8, child: sidebarContent),
                         ),
                       ),
                     ),
@@ -246,8 +240,36 @@ class _JuzSidebar extends StatelessWidget {
 
   int _surahForJuz(int juz) {
     const juzStarts = [
-      1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20,
-      21, 22, 23, 24, 25, 25, 26, 27, 28, 28, 29, 30,
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      25,
+      26,
+      27,
+      28,
+      28,
+      29,
+      30,
     ];
     if (juz >= 1 && juz <= 30) return juzStarts[juz - 1];
     return 1;
@@ -338,7 +360,11 @@ class _Sidebar extends StatelessWidget {
                       return tile
                           .animate(delay: Duration(milliseconds: i * 30))
                           .fadeIn(duration: 300.ms, curve: Curves.easeOut)
-                          .slideX(begin: -0.05, duration: 300.ms, curve: Curves.easeOut);
+                          .slideX(
+                            begin: -0.05,
+                            duration: 300.ms,
+                            curve: Curves.easeOut,
+                          );
                     },
                   ),
           ),
@@ -434,9 +460,14 @@ class _SurahTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textDirection: TextDirection.rtl,
+                  textHeightBehavior: const TextHeightBehavior(
+                    applyHeightToFirstAscent: false,
+                    applyHeightToLastDescent: false,
+                  ),
                   style: TextStyle(
                     fontFamily: FigmaTokens.fontFamilyArabicSerif,
                     fontSize: 16,
+                    height: 1.35,
                     color: selected
                         ? FigmaTokens.textOnDark
                         : FigmaTokens.brandDeepGreen,
@@ -541,15 +572,15 @@ class _SurahReadingPaneState extends State<SurahReadingPane> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? _ErrorRetry(message: _error!, onRetry: _load)
-                    : _AyahScrollView(
-                        surahNum: widget.surahNum,
-                        ayahs: _ayahs!,
-                        urdu: _urdu,
-                        showBasmala: _showBasmala,
-                        onAyahTapped: widget.onAyahTapped,
-                        onNextSurah: widget.onNextSurah,
-                      ),
+                ? _ErrorRetry(message: _error!, onRetry: _load)
+                : _AyahScrollView(
+                    surahNum: widget.surahNum,
+                    ayahs: _ayahs!,
+                    urdu: _urdu,
+                    showBasmala: _showBasmala,
+                    onAyahTapped: widget.onAyahTapped,
+                    onNextSurah: widget.onNextSurah,
+                  ),
           ),
         ],
       ),
@@ -580,35 +611,32 @@ class _AyahScrollView extends StatelessWidget {
     return CustomScrollView(
       slivers: [
         SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, i) {
-              if (showBasmala && i == 0) {
-                return const Padding(
-                  padding: EdgeInsets.fromLTRB(24, 22, 24, 0),
-                  child: BasmalaWidget(),
-                );
-              }
-              final ayahIndex = showBasmala ? i - 1 : i;
-              final a = ayahs[ayahIndex];
-              final ayahNum = int.parse(a['num']!);
-              return Column(
-                children: [
-                  AyahCard(
-                    surahNum: surahNum,
-                    ayahNum: ayahNum,
-                    arabic: a['a']!,
-                    translation: urdu ? (a['tu'] ?? a['t']!) : a['t']!,
-                    urdu: urdu,
-                    onAyahTapped: onAyahTapped == null
-                        ? null
-                        : () => onAyahTapped!(surahNum, ayahNum),
-                  ),
-                  const VerseDivider(),
-                ],
+          delegate: SliverChildBuilderDelegate((context, i) {
+            if (showBasmala && i == 0) {
+              return const Padding(
+                padding: EdgeInsets.fromLTRB(24, 22, 24, 0),
+                child: BasmalaWidget(),
               );
-            },
-            childCount: ayahs.length + (showBasmala ? 1 : 0),
-          ),
+            }
+            final ayahIndex = showBasmala ? i - 1 : i;
+            final a = ayahs[ayahIndex];
+            final ayahNum = int.parse(a['num']!);
+            return Column(
+              children: [
+                AyahCard(
+                  surahNum: surahNum,
+                  ayahNum: ayahNum,
+                  arabic: a['a']!,
+                  translation: urdu ? (a['tu'] ?? a['t']!) : a['t']!,
+                  urdu: urdu,
+                  onAyahTapped: onAyahTapped == null
+                      ? null
+                      : () => onAyahTapped!(surahNum, ayahNum),
+                ),
+                const VerseDivider(),
+              ],
+            );
+          }, childCount: ayahs.length + (showBasmala ? 1 : 0)),
         ),
         if (shortSurah)
           SliverFillRemaining(
@@ -624,6 +652,7 @@ class _AyahScrollView extends StatelessWidget {
               ),
             ),
           ),
+        const SliverToBoxAdapter(child: SizedBox(height: 72)),
       ],
     );
   }
@@ -693,11 +722,9 @@ class _ContinueBanner extends StatelessWidget {
               ),
               child: InkWell(
                 onTap: onNextSurah,
-                borderRadius:
-                    BorderRadius.circular(FigmaTokens.radiusPill),
+                borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
                 child: const Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -730,8 +757,36 @@ class _ContinueBanner extends StatelessWidget {
 
 int _juzForSurah(int surahNum) {
   const juzStarts = [
-    1, 2, 2, 3, 4, 4, 5, 6, 7, 8, 9, 11, 12, 14, 16, 17, 18, 21, 23, 25, 27,
-    29, 33, 36, 39, 41, 45, 48, 49, 58,
+    1,
+    2,
+    2,
+    3,
+    4,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    11,
+    12,
+    14,
+    16,
+    17,
+    18,
+    21,
+    23,
+    25,
+    27,
+    29,
+    33,
+    36,
+    39,
+    41,
+    45,
+    48,
+    49,
+    58,
   ];
   for (var i = juzStarts.length - 1; i >= 0; i--) {
     if (surahNum >= juzStarts[i]) return i + 1;
@@ -771,9 +826,7 @@ class _PaneHeader extends StatelessWidget {
     final figma = context.figma;
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 22, 24, 18),
-      decoration: const BoxDecoration(
-        gradient: FigmaTokens.heroGradientLight,
-      ),
+      decoration: const BoxDecoration(gradient: FigmaTokens.heroGradientLight),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -798,9 +851,7 @@ class _PaneHeader extends StatelessWidget {
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 4,
-                        children: [
-                          _Chip(label: '$ayahs \u0101y\u0101t'),
-                        ],
+                        children: [_Chip(label: '$ayahs \u0101y\u0101t')],
                       ),
                     ),
                   ],
@@ -835,13 +886,24 @@ class _PaneHeader extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Text(
-                      arabic,
-                      style: const TextStyle(
-                        fontFamily: FigmaTokens.fontFamilyArabicSerif,
-                        fontSize: 26,
-                        height: 1.3,
-                        color: FigmaTokens.brandDeepGreen,
+                    Flexible(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: Text(
+                          arabic,
+                          textAlign: TextAlign.right,
+                          softWrap: true,
+                          textHeightBehavior: const TextHeightBehavior(
+                            applyHeightToFirstAscent: false,
+                            applyHeightToLastDescent: false,
+                          ),
+                          style: const TextStyle(
+                            fontFamily: FigmaTokens.fontFamilyArabicSerif,
+                            fontSize: 26,
+                            height: 1.45,
+                            color: FigmaTokens.brandDeepGreen,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -923,8 +985,7 @@ class _PillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        filled ? FigmaTokens.textOnDark : FigmaTokens.brandMidGreen;
+    final color = filled ? FigmaTokens.textOnDark : FigmaTokens.brandMidGreen;
     final bg = filled ? FigmaTokens.brandMidGreen : Colors.transparent;
     final border = filled
         ? BorderSide.none
@@ -979,11 +1040,7 @@ class _ErrorRetry extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.cloud_off_rounded,
-              size: 44,
-              color: figma.textMuted,
-            ),
+            Icon(Icons.cloud_off_rounded, size: 44, color: figma.textMuted),
             const SizedBox(height: 14),
             Text(
               message,
@@ -1003,8 +1060,7 @@ class _ErrorRetry extends StatelessWidget {
                 backgroundColor: FigmaTokens.brandMidGreen,
                 foregroundColor: FigmaTokens.textOnDark,
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(FigmaTokens.radiusButton),
+                  borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
                 ),
               ),
             ),
