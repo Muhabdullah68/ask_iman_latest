@@ -228,28 +228,34 @@ class _AyatSliderState extends State<_AyatSlider> {
                         borderRadius: BorderRadius.circular(28),
                         child: Stack(
                           children: [
-                            const Positioned(
+                            Positioned(
                               top: -70,
                               right: -50,
-                              child: MihrabOrnament(
-                                size: 360,
-                                outerAlpha: 0.20,
-                                innerAlpha: 0.40,
-                                strokeWidth: 1.8,
+                              child: ParallaxScroll(
+                                factor: 0.22,
+                                child: const MihrabOrnament(
+                                  size: 360,
+                                  outerAlpha: 0.20,
+                                  innerAlpha: 0.40,
+                                  strokeWidth: 1.8,
+                                ),
                               ),
                             ),
                             Positioned(
                               bottom: -90,
                               left: -70,
-                              child: RotatedBox(
-                                quarterTurns: 2,
-                                child: const Opacity(
-                                  opacity: 0.4,
-                                  child: MihrabOrnament(
-                                    size: 240,
-                                    outerAlpha: 0.16,
-                                    innerAlpha: 0.32,
-                                    strokeWidth: 1.6,
+                              child: ParallaxScroll(
+                                factor: 0.18,
+                                child: RotatedBox(
+                                  quarterTurns: 2,
+                                  child: const Opacity(
+                                    opacity: 0.4,
+                                    child: MihrabOrnament(
+                                      size: 240,
+                                      outerAlpha: 0.16,
+                                      innerAlpha: 0.32,
+                                      strokeWidth: 1.6,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1003,11 +1009,14 @@ class _DailyInspiration extends StatelessWidget {
               Positioned.fill(
                 child: Padding(
                   padding: const EdgeInsets.all(18),
-                  child: const Model3D(
-                    src: 'assets/3D/open_quran_rehal_polished.glb',
-                    borderRadius: BorderRadius.all(Radius.circular(112)),
-                    cameraOrbit: '0deg 85deg auto',
-                    shadowIntensity: 0,
+                  child: ParallaxScroll(
+                    factor: 0.14,
+                    child: const Model3D(
+                      src: 'assets/3D/open_quran_rehal_polished.glb',
+                      borderRadius: BorderRadius.all(Radius.circular(112)),
+                      cameraOrbit: '0deg 85deg auto',
+                      shadowIntensity: 0,
+                    ),
                   ),
                 ),
               ),

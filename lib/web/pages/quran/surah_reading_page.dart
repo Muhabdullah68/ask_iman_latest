@@ -19,7 +19,13 @@ import 'surah_explorer_web.dart';
 class SurahReadingPage extends StatefulWidget {
   final int surahNum;
   final int? initialAyah;
-  const SurahReadingPage({super.key, required this.surahNum, this.initialAyah});
+  final bool tarjuma;
+  const SurahReadingPage({
+    super.key,
+    required this.surahNum,
+    this.initialAyah,
+    this.tarjuma = false,
+  });
 
   @override
   State<SurahReadingPage> createState() => _SurahReadingPageState();
@@ -39,7 +45,9 @@ class _SurahReadingPageState extends State<SurahReadingPage> {
   Widget build(BuildContext context) {
     final n = widget.surahNum.clamp(1, SurahsData.surahs.length);
     final meta = SurahsData.surahs[n - 1];
-    setPageTitle('Surah ${meta['name']} — ${meta['arabic']} · Ask Iman');
+    setPageTitle(
+      '${widget.tarjuma ? 'Tarjuma' : 'Surah'} ${meta['name']} — ${meta['arabic']} · Ask Iman',
+    );
     return Container(
       color: FigmaTokens.surfaceBackground,
       child: Column(
@@ -55,7 +63,7 @@ class _SurahReadingPageState extends State<SurahReadingPage> {
                   child: Row(
                     children: [
                       InkWell(
-                        onTap: () => context.go('/quran'),
+                        onTap: () => context.go('/quran/tarjuma'),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -97,6 +105,7 @@ class _SurahReadingPageState extends State<SurahReadingPage> {
             child: SurahReadingPane(
               surahNum: n,
               initialAyah: widget.initialAyah,
+              tarjuma: widget.tarjuma,
             ),
           ),
           const QuranAudioBar(),

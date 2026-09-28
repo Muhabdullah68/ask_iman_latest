@@ -101,6 +101,7 @@ class AyahCard extends StatelessWidget {
   final String arabic;
   final String translation;
   final bool urdu;
+  final bool tarjuma;
   final bool showBasmala;
   final VoidCallback? onAyahTapped;
 
@@ -111,6 +112,7 @@ class AyahCard extends StatelessWidget {
     required this.arabic,
     required this.translation,
     this.urdu = false,
+    this.tarjuma = false,
     this.showBasmala = false,
     this.onAyahTapped,
   });
@@ -160,9 +162,11 @@ class AyahCard extends StatelessWidget {
                       ),
                       style: TextStyle(
                         fontFamily: FigmaTokens.fontFamilyArabicMushaf,
-                        fontSize: 24,
+                        fontSize: tarjuma ? 19 : 24,
                         height: 1.95,
-                        color: figma.textHeading,
+                        color: tarjuma
+                            ? figma.textBody.withValues(alpha: 0.72)
+                            : figma.textHeading,
                       ),
                     ),
                   ),
@@ -171,9 +175,12 @@ class AyahCard extends StatelessWidget {
                     translation,
                     style: TextStyle(
                       fontFamily: FigmaTokens.fontFamilyUiSans,
-                      fontSize: 14.5,
+                      fontSize: tarjuma ? 16.5 : 14.5,
+                      fontWeight: tarjuma ? FontWeight.w600 : FontWeight.w400,
                       height: 1.6,
-                      color: figma.textBody.withValues(alpha: 0.92),
+                      color: tarjuma
+                          ? figma.textHeading
+                          : figma.textBody.withValues(alpha: 0.92),
                     ),
                   ),
                 ],

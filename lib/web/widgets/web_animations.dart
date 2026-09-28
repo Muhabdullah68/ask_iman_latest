@@ -3,14 +3,13 @@
 // ASK IMAN WEBSITE — Animation utilities
 //
 // Reusable animation widgets and extensions for the Islamic website.
-// Uses flutter_animate for declarative animations + custom widgets
-// for scroll-triggered reveals, shimmer loading, and micro-interactions.
+// Custom widgets for scroll-triggered reveals, parallax, shimmer loading,
+// and micro-interactions.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/theme/figma_tokens.dart';
 
@@ -66,10 +65,13 @@ class _ScrollRevealState extends State<ScrollReveal>
       return FadeTransition(
         opacity: CurvedAnimation(parent: _controller, curve: Curves.easeOut),
         child: SlideTransition(
-          position: Tween<Offset>(
-            begin: widget.slideOffset,
-            end: Offset.zero,
-          ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic)),
+          position: Tween<Offset>(begin: widget.slideOffset, end: Offset.zero)
+              .animate(
+                CurvedAnimation(
+                  parent: _controller,
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
           child: widget.child,
         ),
       );
@@ -112,6 +114,87 @@ class _ScrollRevealState extends State<ScrollReveal>
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// PARALLAX SCROLL — child drifts slower than the page as it scrolls
+// ══════════════════════════════════════════════════════════════════════════════
+
+class ParallaxScroll extends StatefulWidget {
+  final Widget child;
+
+  /// Drift strength (0 = static, ~0.2–0.35 = subtle, 0.5+ = strong).
+  final double factor;
+
+  /// Max travel, in fraction of the viewport height, applied on each side.
+  final double maxTravel;
+
+  const ParallaxScroll({
+    super.key,
+    required this.child,
+    this.factor = 0.2,
+    this.maxTravel = 1.0,
+  });
+
+  @override
+  State<ParallaxScroll> createState() => _ParallaxScrollState();
+}
+
+class _ParallaxScrollState extends State<ParallaxScroll> {
+  double _progress = 0;
+  bool _init = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    if (reduceMotion) return widget.child;
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is ScrollUpdateNotification ||
+            notification is ScrollEndNotification) {
+          _update();
+        }
+        return false;
+      },
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (!_init) {
+            _init = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) => _update());
+          }
+          return ClipRect(
+            child: Transform.translate(
+              offset: Offset(0, _offset),
+              child: widget.child,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  double get _offset {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final travel = screenHeight * widget.factor;
+    return -_progress * travel * widget.maxTravel;
+  }
+
+  void _update() {
+    if (!mounted) return;
+    final box = context.findRenderObject();
+    if (box == null || box is! RenderBox) return;
+    final position = box.localToGlobal(Offset.zero);
+    final height = box.size.height;
+    final screenHeight = MediaQuery.of(context).size.height;
+    if (screenHeight <= 0) return;
+    final center = position.dy + height / 2;
+    final progress = ((screenHeight / 2 - center) / (screenHeight / 2)).clamp(
+      -1.0,
+      1.0,
+    );
+    if ((progress - _progress).abs() < 0.001) return;
+    setState(() => _progress = progress);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // STAGGERED GRID — children entrance with incremental delays
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -135,7 +218,9 @@ class StaggeredEntrance extends StatelessWidget {
   Widget build(BuildContext context) {
     return ScrollReveal(
       duration: Duration(
-        milliseconds: childDuration.inMilliseconds + children.length * staggerDelay.inMilliseconds,
+        milliseconds:
+            childDuration.inMilliseconds +
+            children.length * staggerDelay.inMilliseconds,
       ),
       slideOffset: Offset.zero,
       child: _StaggeredBody(
@@ -176,10 +261,13 @@ class _StaggeredBodyState extends State<_StaggeredBody>
   @override
   void initState() {
     super.initState();
-    final totalDuration = widget.children.length * widget.staggerDelay.inMilliseconds;
+    final totalDuration =
+        widget.children.length * widget.staggerDelay.inMilliseconds;
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: totalDuration + widget.childDuration.inMilliseconds),
+      duration: Duration(
+        milliseconds: totalDuration + widget.childDuration.inMilliseconds,
+      ),
     );
   }
 
@@ -204,27 +292,43 @@ class _StaggeredBodyState extends State<_StaggeredBody>
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: List.generate(widget.children.length, (i) {
-              return Expanded(child: _buildAnimatedChild(i, widget.children[i]));
+              return Expanded(
+                child: _buildAnimatedChild(i, widget.children[i]),
+              );
             }),
           );
   }
 
   Widget _buildAnimatedChild(int index, Widget child) {
-    final start = index * widget.staggerDelay.inMilliseconds / _controller.duration!.inMilliseconds;
-    final end = math.min((index * widget.staggerDelay.inMilliseconds + widget.childDuration.inMilliseconds) / _controller.duration!.inMilliseconds, 1.0);
-    final interval = Interval(start, end.clamp(0.0, 1.0), curve: Curves.easeOut);
+    final start =
+        index *
+        widget.staggerDelay.inMilliseconds /
+        _controller.duration!.inMilliseconds;
+    final end = math.min(
+      (index * widget.staggerDelay.inMilliseconds +
+              widget.childDuration.inMilliseconds) /
+          _controller.duration!.inMilliseconds,
+      1.0,
+    );
+    final interval = Interval(
+      start,
+      end.clamp(0.0, 1.0),
+      curve: Curves.easeOut,
+    );
     return FadeTransition(
-      opacity: CurvedAnimation(
-        parent: _controller,
-        curve: interval,
-      ),
+      opacity: CurvedAnimation(parent: _controller, curve: interval),
       child: SlideTransition(
-        position: Tween<Offset>(begin: widget.slideOffset, end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: Interval(start, end.clamp(0.0, 1.0), curve: Curves.easeOutCubic),
-          ),
-        ),
+        position: Tween<Offset>(begin: widget.slideOffset, end: Offset.zero)
+            .animate(
+              CurvedAnimation(
+                parent: _controller,
+                curve: Interval(
+                  start,
+                  end.clamp(0.0, 1.0),
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
+            ),
         child: child,
       ),
     );
@@ -236,7 +340,8 @@ class _StaggeredBodyState extends State<_StaggeredBody>
     if (box == null || box is! RenderBox) return;
     final position = box.localToGlobal(Offset.zero);
     final screenHeight = MediaQuery.of(context).size.height;
-    if (position.dy < screenHeight * 0.85 && position.dy + box.size.height > 0) {
+    if (position.dy < screenHeight * 0.85 &&
+        position.dy + box.size.height > 0) {
       _hasAnimated = true;
       _controller.forward();
     }
@@ -262,7 +367,9 @@ class ShimmerBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor = isDark ? FigmaTokens.darkCard : FigmaTokens.surfacePanelMint;
+    final baseColor = isDark
+        ? FigmaTokens.darkCard
+        : FigmaTokens.surfacePanelMint;
     final highlightColor = isDark
         ? FigmaTokens.darkSurface
         : FigmaTokens.surfaceBackgroundAlt;
@@ -302,7 +409,9 @@ class ShimmerLines extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(lineCount, (i) {
-        final w = widths != null && i < widths!.length ? widths![i] : double.infinity;
+        final w = widths != null && i < widths!.length
+            ? widths![i]
+            : double.infinity;
         return Padding(
           padding: EdgeInsets.only(bottom: i < lineCount - 1 ? spacing : 0),
           child: ShimmerBox(width: w, height: lineHeight),
@@ -356,7 +465,9 @@ class _GoldRevealState extends State<GoldReveal>
     return LayoutBuilder(
       builder: (context, constraints) {
         if (!_hasAnimated) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => _checkVisibility());
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _checkVisibility(),
+          );
         }
         return AnimatedBuilder(
           animation: _controller,
@@ -422,9 +533,10 @@ class _AnimatedCounterState extends State<AnimatedCounter>
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _animation = Tween<double>(begin: 0, end: widget.target.toDouble()).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _animation = Tween<double>(
+      begin: 0,
+      end: widget.target.toDouble(),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
   }
 
   @override
@@ -556,12 +668,14 @@ class _PulseGlowState extends State<PulseGlow>
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
-    _glowOpacity = Tween<double>(begin: 0.5, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.08,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    _glowOpacity = Tween<double>(
+      begin: 0.5,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
   }
 
   @override
@@ -587,7 +701,9 @@ class _PulseGlowState extends State<PulseGlow>
               borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
               boxShadow: [
                 BoxShadow(
-                  color: FigmaTokens.accentGoldAmber.withOpacity(_glowOpacity.value),
+                  color: FigmaTokens.accentGoldAmber.withOpacity(
+                    _glowOpacity.value,
+                  ),
                   blurRadius: 16 * _glowOpacity.value + 4,
                   spreadRadius: 2 * _glowOpacity.value,
                 ),
@@ -606,7 +722,10 @@ class _PulseGlowState extends State<PulseGlow>
 // ══════════════════════════════════════════════════════════════════════════════
 
 class WebPageTransition {
-  static PageRouteBuilder<T> slideFade<T>({required Widget page, Duration? duration}) {
+  static PageRouteBuilder<T> slideFade<T>({
+    required Widget page,
+    Duration? duration,
+  }) {
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionDuration: duration ?? const Duration(milliseconds: 250),

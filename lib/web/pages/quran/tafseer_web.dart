@@ -1,17 +1,20 @@
 // lib/web/pages/quran/tafseer_web.dart
 // ─────────────────────────────────────────────────────────────────────────────
-// ASK IMAN WEBSITE — QURAN · TAFSEER (3-COLUMN LAYOUT)
+// ASK IMAN WEBSITE — QURAN · TAFSEER (LIST NAVIGATOR)
 //
-// Spec: 3-column layout — Left (Arabic + Translation), Middle (commentary),
-// Right (source selector + notes). On screens <1200px, stacks vertically.
+// The Tafseer sub-tab is a list-first reader: pick "By Juzz" to browse the
+// 30 supara, or "By Surah" to walk the 114 surahs — then the commentary for
+// that surah renders beside the list (or below it on narrow screens) with a
+// source selector (Ibn Kathir / Ma'ariful Quran / Al-Jalalayn).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
 import '../../../core/theme/figma_tokens.dart';
 import '../../../features/quran/data/quran_api_service.dart';
 import '../../../features/quran/data/surahs_data.dart';
+import '../../widgets/web_widgets.dart';
+import 'juz_data.dart';
 import 'quran_reading_state.dart';
-import 'quran_web_widgets.dart';
 
 const List<String> _sources = ['Ibn Kathir', "Ma'ariful Quran", 'Al-Jalalayn'];
 
@@ -24,11 +27,14 @@ class TafseerWeb extends StatefulWidget {
 
 class _TafseerWebState extends State<TafseerWeb> {
   String _source = _sources.first;
+  bool _byJuzz = true;
+  int _selectedJuz = 1;
   int _surah = 1;
   List<Map<String, dynamic>>? _entries;
   List<Map<String, String>>? _ayahs;
   String? _fallback;
   bool _loading = false;
+  final GlobalKey _readingKey = GlobalKey();
 
   @override
   void initState() {
@@ -67,6 +73,9 @@ class _TafseerWebState extends State<TafseerWeb> {
       _fallback = local;
       _ayahs = ayahData;
     });
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _ensureReadingVisible(),
+    );
   }
 
   void _setSource(String s) {
@@ -76,113 +85,411 @@ class _TafseerWebState extends State<TafseerWeb> {
   }
 
   void _setSurah(int n) {
-    if (n == _surah) return;
-    setState(() => _surah = n);
+    final changed = n != _surah;
+    setState(() {
+      _surah = n;
+      _selectedJuz = _juzForSurah(n);
+    });
     QuranReadingState.instance.setSurah(n);
-    _load();
+    if (changed) {
+      _load();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _ensureReadingVisible(),
+      );
+    }
+  }
+
+  void _selectJuzz(int n) {
+    final targetSurah = juzStartSurah(n);
+    setState(() {
+      _byJuzz = true;
+      _selectedJuz = n;
+    });
+    _setSurah(targetSurah);
+  }
+
+  void _selectSurah(int n) {
+    setState(() => _byJuzz = false);
+    _setSurah(n);
+  }
+
+  void _ensureReadingVisible() {
+    final ctx = _readingKey.currentContext;
+    if (ctx != null && mounted) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+        alignment: 0.15,
+      );
+    }
+  }
+
+  int _juzForSurah(int n) {
+    for (var i = juzStartAyat.length - 1; i >= 0; i--) {
+      if (n >= juzStartSurah(i + 1)) return i + 1;
+    }
+    return 1;
   }
 
   @override
   Widget build(BuildContext context) {
     final figma = context.figma;
-    return QuranPaneContent(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    final meta = SurahsData.surahs[_surah - 1];
+
+    final list = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ModeToggle(
+          byJuzz: _byJuzz,
+          onChanged: (byJuzz) {
+            setState(() => _byJuzz = byJuzz);
+          },
+        ),
+        const SizedBox(height: 16),
+        _TafseerList(
+          byJuzz: _byJuzz,
+          selectedJuz: _selectedJuz,
+          selectedSurah: _surah,
+          onSelectJuzz: _selectJuzz,
+          onSelectSurah: _selectSurah,
+        ),
+      ],
+    );
+
+    final reading = Column(
+      key: _readingKey,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: figma.surfaceCard,
+            borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
+            border: Border.all(color: figma.borderHairline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _byJuzz
+                    ? 'Juz ${arabicNumeral(_selectedJuz)} — ${meta['name']}'
+                    : 'Surah ${meta['name']}',
+                style: TextStyle(
+                  fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: figma.textHeading,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${meta['arabic']} · ${meta['meaning']}',
+                style: TextStyle(
+                  fontFamily: FigmaTokens.fontFamilyUiSans,
+                  fontSize: 13,
+                  color: figma.textBody,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final s in _sources)
+                    _SourcePill(
+                      label: s,
+                      selected: s == _source,
+                      onTap: () => _setSource(s),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 60),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else
+          _TafseerContent(
+            entries: _entries,
+            fallback: _fallback,
+            ayahs: _ayahs,
+            surahNum: _surah,
+          ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 1000;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const WebSectionHeader(
+              eyebrow: 'Tafseer',
+              title: 'Commentary at a Glance',
+              subtitle:
+                  "Browse the Qur'an by juz or by surah and read scholarly "
+                  'commentary beside the verses.',
+            ),
+            const SizedBox(height: 26),
+            if (wide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(width: 360, child: list),
+                  const SizedBox(width: 24),
+                  Expanded(child: reading),
+                ],
+              )
+            else ...[
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [list, const SizedBox(height: 28), reading],
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ── By Juzz / By Surah segmented toggle ──────────────────────────────────────
+class _ModeToggle extends StatelessWidget {
+  final bool byJuzz;
+  final ValueChanged<bool> onChanged;
+  const _ModeToggle({required this.byJuzz, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final figma = context.figma;
+    return Container(
+      decoration: BoxDecoration(
+        color: figma.surfaceBackground,
+        borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
+        border: Border.all(color: figma.borderHairline),
+      ),
+      padding: const EdgeInsets.all(3),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Tafseer',
-            style: TextStyle(
-              fontFamily: FigmaTokens.fontFamilyDisplaySerif,
-              fontSize: 30,
-              fontWeight: FontWeight.w900,
-              color: figma.textHeading,
-            ),
+          _ModePill(
+            label: 'By Juzz',
+            selected: byJuzz,
+            onTap: () => onChanged(true),
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Scholarly commentary \u2014 Arabic text, translation, and explanation side by side.',
-            style: TextStyle(
-              fontFamily: FigmaTokens.fontFamilyUiSans,
-              fontSize: 14.5,
-              color: figma.textBody,
-            ),
+          _ModePill(
+            label: 'By Surah',
+            selected: !byJuzz,
+            onTap: () => onChanged(false),
           ),
-          const SizedBox(height: 20),
-          // Surah selector + source pills
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: figma.surfaceCard,
-              borderRadius: BorderRadius.circular(FigmaTokens.radiusCard),
-              border: Border.all(color: figma.borderHairline),
-            ),
-            child: Row(
-              children: [
-                Flexible(
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      for (final s in _sources)
-                        _SourcePill(
-                          label: s,
-                          selected: s == _source,
-                          onTap: () => _setSource(s),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: DropdownButton<int>(
-                    value: _surah,
-                    underline: const SizedBox.shrink(),
-                    borderRadius: BorderRadius.circular(12),
-                    isDense: true,
-                    isExpanded: true,
-                    items: [
-                      for (final s in SurahsData.surahs)
-                        DropdownMenuItem(
-                          value: s['num'] as int,
-                          child: Text(
-                            '${s['num']}. ${s['name']}',
-                            style: TextStyle(
-                              fontFamily: FigmaTokens.fontFamilyUiSans,
-                              fontSize: 14,
-                              color: figma.textHeading,
-                            ),
-                          ),
-                        ),
-                    ],
-                    onChanged: (v) {
-                      if (v != null) _setSurah(v);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 22),
-          // 3-column or vertical layout
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 60),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            _TafseerContent(
-              entries: _entries,
-              fallback: _fallback,
-              ayahs: _ayahs,
-              surahNum: _surah,
-            ),
         ],
       ),
     );
   }
 }
 
+class _ModePill extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ModePill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? FigmaTokens.brandMidGreen : Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: FigmaTokens.fontFamilyUiSans,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w800,
+              color: selected ? FigmaTokens.textOnDark : FigmaTokens.textBody,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── List of 30 juzz or 114 surahs ────────────────────────────────────────────
+class _TafseerList extends StatelessWidget {
+  final bool byJuzz;
+  final int selectedJuz;
+  final int selectedSurah;
+  final ValueChanged<int> onSelectJuzz;
+  final ValueChanged<int> onSelectSurah;
+
+  const _TafseerList({
+    required this.byJuzz,
+    required this.selectedJuz,
+    required this.selectedSurah,
+    required this.onSelectJuzz,
+    required this.onSelectSurah,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (byJuzz) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var n = 1; n <= 30; n++)
+            _RowListItem(
+              key: ValueKey('juz-$n'),
+              leading: arabicNumeral(n),
+              title: 'Juz ${arabicNumeral(n)}',
+              subtitle: _juzLabel(n),
+              selected: n == selectedJuz,
+              onTap: () => onSelectJuzz(n),
+            ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final s in SurahsData.surahs)
+          _RowListItem(
+            key: ValueKey<String>('surah-${s['num']}'),
+            leading: '${s['num']}',
+            title: s['name'] as String,
+            subtitle:
+                '${s['arabic']} · ${s['meaning']} — '
+                '${s['ayahs']} \u0101y\u0101t',
+            selected: (s['num'] as int) == selectedSurah,
+            onTap: () => onSelectSurah(s['num'] as int),
+          ),
+      ],
+    );
+  }
+
+  String _juzLabel(int n) {
+    final meta = SurahsData.surahs[juzStartSurah(n) - 1];
+    final end = n < juzStartAyat.length ? juzStartSurah(n + 1) - 1 : 114;
+    final endMeta = SurahsData.surahs[end - 1];
+    return '${meta['arabic']} — starts ${juzStartSurah(n)}:${juzStartAyah(n)}'
+        ' · through ${endMeta['name']}';
+  }
+}
+
+class _RowListItem extends StatelessWidget {
+  final String leading;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RowListItem({
+    super.key,
+    required this.leading,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final figma = context.figma;
+    return Material(
+      color: selected ? FigmaTokens.brandMidGreen : Colors.transparent,
+      borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
+        hoverColor: selected
+            ? FigmaTokens.brandMidGreen
+            : figma.surfacePanelMint,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected
+                      ? figma.accentGoldAmber
+                      : figma.accentGoldSurface,
+                ),
+                child: Text(
+                  leading,
+                  style: TextStyle(
+                    fontFamily: FigmaTokens.fontFamilyDisplaySerif,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: selected
+                        ? FigmaTokens.textOnDark
+                        : figma.accentGoldAmber,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyUiSans,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: selected
+                            ? FigmaTokens.textOnDark
+                            : figma.textHeading,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: FigmaTokens.fontFamilyUiSans,
+                        fontSize: 11,
+                        color: selected
+                            ? FigmaTokens.accentGoldLight.withValues(alpha: 0.9)
+                            : figma.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Tafseer reading content (3-column or stacked) ────────────────────────────
 class _TafseerContent extends StatelessWidget {
   final List<Map<String, dynamic>>? entries;
   final String? fallback;
@@ -424,7 +731,8 @@ class _NotesColumn extends StatelessWidget {
               borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
             ),
             child: Text(
-              'Tap any verse in the Arabic column to see its commentary highlighted.',
+              'Select another juz or surah from the list to jump straight '
+              'to its commentary.',
               style: TextStyle(
                 fontFamily: FigmaTokens.fontFamilyUiSans,
                 fontSize: 12,

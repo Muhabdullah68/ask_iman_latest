@@ -1,17 +1,17 @@
 // lib/web/pages/quran_page.dart
 // ─────────────────────────────────────────────────────────────────────────────
-// ASK IMAN WEBSITE — PAGE 2 · QURAN EXPLORER (WEB-NATIVE)
+// ASK IMAN WEBSITE — PAGE 2 · QURAN EXPLORER (DOCUMENT SCROLL)
 //
-// Desktop-first Quran explorer per the Figma spec: dark hero band with the
-// bismillah ornament, a slim sub-nav bar (Back to Library, Search, Settings,
-// Profile), Surah/Juz toggle pill, segmented pill tab bar synced to real URLs
-// under /quran, and five bounded tab panes (Talawat, Tarjuma, Tafseer,
-// Settings, Share). A sticky audio bar driven by the shared QuranAudioService
-// appears at the bottom whenever recitation is playing.
+// The Quran Explorer is a normal scrolling document, not a fixed app shell:
+// the hero band, sub-nav and pill tab bar sit in-flow at the top and scroll
+// away as you read, exactly like a web page. Three sub-tabs live under /quran
+// — Talawat (recitation), Tarjuma (translation) and Tafseer (commentary) —
+// each with its own dedicated UI. A sticky audio bar stays pinned at the
+// bottom whenever recitation is playing.
 //
-// Layout rule: every pane is height-bounded (Expanded), scrolls internally and
-// never nests an unbounded scrollable — this structurally prevents the blank
-// page / RenderFlex overflow seen with the old embedded mobile screen.
+// Layout rule: every pane is self-sizing content laid out in the page flow —
+// no nested unbounded scrollables. The shared footer appears once at the end
+// of the whole scroll.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
@@ -20,25 +20,16 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/figma_tokens.dart';
 import '../../core/utils/seo_meta.dart';
 import '../web_router.dart' show WebRoutes;
+import '../widgets/web_animations.dart';
+import '../widgets/web_footer.dart';
 import 'quran/audio_bar_web.dart';
-import 'quran/quran_reading_state.dart';
-import 'quran/settings_web.dart';
-import 'quran/share_web.dart';
-import 'quran/surah_explorer_web.dart';
+import 'quran/quran_tabs_web.dart';
 import 'quran/tafseer_web.dart';
-import 'quran/translation_web.dart';
 import 'quran/web_quran_tab.dart';
 
 class QuranPage extends StatefulWidget {
   final int tab;
-  final int? initialSurah;
-  final int? initialAyah;
-  const QuranPage({
-    super.key,
-    this.tab = 0,
-    this.initialSurah,
-    this.initialAyah,
-  });
+  const QuranPage({super.key, this.tab = 0});
 
   @override
   State<QuranPage> createState() => _QuranPageState();
@@ -47,22 +38,6 @@ class QuranPage extends StatefulWidget {
 class _QuranPageState extends State<QuranPage> {
   late int _tabIndex = widget.tab.clamp(0, WebQuranTab.values.length - 1);
   final Map<int, Widget> _built = {};
-  bool _juzMode = false;
-  bool _indexDrawerOpen = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final s = widget.initialSurah;
-    if (s != null && s >= 1 && s <= 114) {
-      final a = widget.initialAyah;
-      if (a != null && a >= 1) {
-        QuranReadingState.instance.selectAyah(s, a);
-      } else {
-        QuranReadingState.instance.setSurah(s);
-      }
-    }
-  }
 
   @override
   void didUpdateWidget(covariant QuranPage oldWidget) {
@@ -81,29 +56,15 @@ class _QuranPageState extends State<QuranPage> {
     context.go('${WebRoutes.quran}${WebQuranTab.values[index].path}');
   }
 
-  void _toggleJuz() => setState(() => _juzMode = !_juzMode);
-
-  void _toggleIndexDrawer() =>
-      setState(() => _indexDrawerOpen = !_indexDrawerOpen);
-
   Widget _pane(int i) {
     return _built.putIfAbsent(i, () {
       switch (WebQuranTab.values[i]) {
         case WebQuranTab.talawat:
-          return SurahExplorerWeb(
-            juzMode: _juzMode,
-            onToggleJuz: _toggleJuz,
-            drawerOpen: _indexDrawerOpen,
-            onToggleDrawer: _toggleIndexDrawer,
-          );
+          return const TalawatTabWeb();
         case WebQuranTab.tarjuma:
-          return const TranslationWeb();
+          return const TarjumaTabWeb();
         case WebQuranTab.tafseer:
           return const TafseerWeb();
-        case WebQuranTab.settings:
-          return const QuranSettingsWeb();
-        case WebQuranTab.share:
-          return const QuranShareWeb();
       }
     });
   }
@@ -114,45 +75,44 @@ class _QuranPageState extends State<QuranPage> {
     setPageTitle('Quran Explorer — Talawat, Tarjuma, Tafseer · Ask Iman');
     return Stack(
       children: [
-        SafeArea(
-          top: false,
-          bottom: false,
-          child: Container(
-            color: figma.surfaceBackground,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 8),
-                const _QuranHero(),
-                _SubNavBar(
-                  indexDrawerOpen: _indexDrawerOpen,
-                  onToggleIndex: _toggleIndexDrawer,
-                ),
-                _ControlBar(
-                  juzMode: _juzMode,
-                  onToggleJuz: _toggleJuz,
-                  indexDrawerOpen: _indexDrawerOpen,
-                  onToggleIndex: _toggleIndexDrawer,
-                ),
-                _PillTabBar(current: _tabIndex, onSelect: _select),
-                Expanded(
-                  child: IndexedStack(
-                    index: _tabIndex,
+        Container(
+          color: figma.surfaceBackground,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: webScrollPhysics,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      for (var i = 0; i < WebQuranTab.values.length; i++)
-                        i == 0
-                            ? _pane(i)
-                            : _pane(i)
-                                  .animate(key: ValueKey(i))
-                                  .fadeIn(
-                                    duration: 300.ms,
-                                    curve: Curves.easeOut,
-                                  ),
+                      const SizedBox(height: 8),
+                      const _QuranHero(),
+                      const _SubNavBar(),
+                      _PillTabBar(current: _tabIndex, onSelect: _select),
+                      const SizedBox(height: 28),
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1180),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: _pane(_tabIndex)
+                                .animate(key: ValueKey<int>(_tabIndex))
+                                .fadeIn(
+                                  duration: 300.ms,
+                                  curve: Curves.easeOut,
+                                ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 56),
+                      const WebFooter(),
+                      const SizedBox(height: 72),
                     ],
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ),
         const Positioned(left: 0, right: 0, bottom: 0, child: QuranAudioBar()),
@@ -228,7 +188,7 @@ class _QuranHero extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Talawat · Tarjuma · Tafseer · Settings · Share',
+                        'Talawat · Tarjuma · Tafseer',
                         style: TextStyle(
                           fontFamily: FigmaTokens.fontFamilyUiSans,
                           fontSize: 13.5,
@@ -247,14 +207,9 @@ class _QuranHero extends StatelessWidget {
   }
 }
 
-// ── Sub-nav bar: Back to Library, Search, Settings, Profile ──────────────────
+// ── Sub-nav bar: Back to Library, Search, Profile ────────────────────────────
 class _SubNavBar extends StatelessWidget {
-  final bool indexDrawerOpen;
-  final VoidCallback onToggleIndex;
-  const _SubNavBar({
-    required this.indexDrawerOpen,
-    required this.onToggleIndex,
-  });
+  const _SubNavBar();
 
   @override
   Widget build(BuildContext context) {
@@ -312,16 +267,6 @@ class _SubNavBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 IconButton(
-                  onPressed: () => context.go('${WebRoutes.quran}/settings'),
-                  icon: const Icon(
-                    Icons.settings_rounded,
-                    size: 20,
-                    color: FigmaTokens.textOnDark,
-                  ),
-                  tooltip: 'Settings',
-                ),
-                const SizedBox(width: 4),
-                IconButton(
                   onPressed: () => context.go('/profile'),
                   icon: const Icon(
                     Icons.person_outline_rounded,
@@ -331,158 +276,6 @@ class _SubNavBar extends StatelessWidget {
                   tooltip: 'Profile',
                 ),
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Control bar: Surah/Juz toggle + Index button ─────────────────────────────
-class _ControlBar extends StatelessWidget {
-  final bool juzMode;
-  final VoidCallback onToggleJuz;
-  final bool indexDrawerOpen;
-  final VoidCallback onToggleIndex;
-  const _ControlBar({
-    required this.juzMode,
-    required this.onToggleJuz,
-    required this.indexDrawerOpen,
-    required this.onToggleIndex,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final figma = context.figma;
-    return Container(
-      color: figma.surfaceCard,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1180),
-          child: Row(
-            children: [
-              _SegmentedToggle(
-                left: 'QURAN',
-                right: 'JUZ',
-                leftSelected: !juzMode,
-                onTap: onToggleJuz,
-              ),
-              const SizedBox(width: 12),
-              Material(
-                color: indexDrawerOpen
-                    ? FigmaTokens.brandMidGreen
-                    : figma.surfacePanelMint,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
-                ),
-                child: InkWell(
-                  onTap: onToggleIndex,
-                  borderRadius: BorderRadius.circular(FigmaTokens.radiusButton),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.menu_rounded,
-                          size: 17,
-                          color: indexDrawerOpen
-                              ? FigmaTokens.textOnDark
-                              : FigmaTokens.brandMidGreen,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Index',
-                          style: TextStyle(
-                            fontFamily: FigmaTokens.fontFamilyUiSans,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: indexDrawerOpen
-                                ? FigmaTokens.textOnDark
-                                : FigmaTokens.brandMidGreen,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SegmentedToggle extends StatelessWidget {
-  final String left;
-  final String right;
-  final bool leftSelected;
-  final VoidCallback onTap;
-  const _SegmentedToggle({
-    required this.left,
-    required this.right,
-    required this.leftSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final figma = context.figma;
-    return Container(
-      decoration: BoxDecoration(
-        color: figma.surfaceBackground,
-        borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
-      ),
-      padding: const EdgeInsets.all(3),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _SegPill(label: left, selected: leftSelected, onTap: onTap),
-          _SegPill(label: right, selected: !leftSelected, onTap: onTap),
-        ],
-      ),
-    );
-  }
-}
-
-class _SegPill extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  const _SegPill({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final figma = context.figma;
-    return Material(
-      color: selected ? FigmaTokens.brandMidGreen : Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(FigmaTokens.radiusPill),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: FigmaTokens.fontFamilyUiSans,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-              color: selected ? FigmaTokens.textOnDark : figma.textMuted,
             ),
           ),
         ),

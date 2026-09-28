@@ -6,11 +6,11 @@
 //   /                          Home
 //   /quran                     Quran Explorer (tabs)
 //   /quran/talawat             Quran → Talawat tab
-//   /quran/translation         Quran → Tarjuma tab
-//   /quran/hadith              Quran → Ahadith tab
-//   /quran/juzz                Quran → Juzz tab
-//   /quran/ayah                Quran → Daily Ayah tab
-//   /quran/tafseer             Tafseer reader
+//   /quran/tarjuma             Quran → Tarjuma tab
+//   /quran/tafseer             Quran → Tafseer tab
+//   /quran/surah/:id           Surah reader (?ayah=N / ?mode=tarjuma)
+//   /quran/hadith              Ahadith library (6 books)
+//   /quran/hadith/:slug        Ahadith → book reader
 //   /calendar-tools            Calendar & Tools (Ibadah)
 //   /calendar-tools/99-names   99 Names explorer
 //   /calendar-tools/tasbeeh    Tasbeeh counter
@@ -36,6 +36,7 @@ import 'pages/community_page.dart';
 import 'pages/home_page.dart';
 import 'pages/names_of_allah_page.dart';
 import 'pages/profile_page.dart';
+import 'pages/quran/hadith_web.dart';
 import 'pages/quran/surah_reading_page.dart';
 import 'pages/quran_page.dart';
 import 'pages/search_page.dart';
@@ -133,25 +134,22 @@ final router = GoRouter(
         ),
         GoRoute(
           path: 'settings',
-          name: 'quranSettings',
-          pageBuilder: (context, state) =>
-              _buildPage(WebShell(child: const QuranPage(tab: 3)), state),
+          name: 'quranSettingsLegacy',
+          redirect: (_, _) => '/quran/talawat',
         ),
         GoRoute(
           path: 'share',
-          name: 'quranShare',
-          pageBuilder: (context, state) {
+          name: 'quranShareLegacy',
+          redirect: (context, state) {
             final params = state.uri.queryParameters;
-            return _buildPage(
-              WebShell(
-                child: QuranPage(
-                  tab: 4,
-                  initialSurah: int.tryParse(params['surah'] ?? ''),
-                  initialAyah: int.tryParse(params['ayah'] ?? ''),
-                ),
-              ),
-              state,
-            );
+            final surah = params['surah'];
+            final surahNum = int.tryParse(surah ?? '');
+            if (surahNum != null && surahNum >= 1 && surahNum <= 114) {
+              final ayah = params['ayah'];
+              return '/quran/surah/$surahNum'
+                  '${ayah != null ? '?ayah=$ayah' : ''}';
+            }
+            return '/quran/talawat';
           },
         ),
         GoRoute(
@@ -166,21 +164,36 @@ final router = GoRouter(
                 child: SurahReadingPage(
                   surahNum: int.tryParse(state.pathParameters['id'] ?? '') ?? 1,
                   initialAyah: int.tryParse(ayahStr ?? ''),
+                  tarjuma: params['mode'] == 'tarjuma',
                 ),
               ),
               state,
             );
           },
         ),
+        GoRoute(
+          path: 'hadith',
+          name: 'quranHadith',
+          pageBuilder: (context, state) =>
+              _buildPage(const WebShell(child: HadithLibraryPage()), state),
+          routes: [
+            GoRoute(
+              path: ':slug',
+              name: 'quranHadithBook',
+              pageBuilder: (context, state) {
+                final slug = state.pathParameters['slug'] ?? 'bukhari';
+                return _buildPage(
+                  WebShell(child: HadithBookPage(slug: slug)),
+                  state,
+                );
+              },
+            ),
+          ],
+        ),
         // Legacy route redirects
         GoRoute(
           path: 'translation',
           name: 'quranTranslationLegacy',
-          redirect: (_, _) => '/quran/tarjuma',
-        ),
-        GoRoute(
-          path: 'hadith',
-          name: 'quranHadithLegacy',
           redirect: (_, _) => '/quran/tarjuma',
         ),
         GoRoute(
@@ -191,7 +204,7 @@ final router = GoRouter(
         GoRoute(
           path: 'ayah',
           name: 'quranAyahLegacy',
-          redirect: (_, _) => '/quran/tarjuma',
+          redirect: (_, _) => '/quran/talawat',
         ),
       ],
     ),
