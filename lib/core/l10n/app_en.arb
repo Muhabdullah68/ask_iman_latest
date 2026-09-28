@@ -210,4 +210,12 @@
   "tutFamilyDesc": "Connect with your loved ones and build a community together",
   "tutHomeStreaksTitle": "Current Streak",
   "tutHomeStreaksDesc": "Track your daily consistency and keep your streak alive!"
+,
+  "aiMadhhabTitle": "School of thought",
+  "aiMadhhabNone": "None (balanced)",
+  "aiMadhhabHanafi": "Hanafi",
+  "aiMadhhabShafi": "Shafi'i",
+  "aiMadhhabMaliki": "Maliki",
+  "aiMadhhabHanbali": "Hanbali",
+  "aiMadhhabHelp": "Optional: lean AI answers toward one school of thought where classical scholarship differs. 'None' keeps the balanced default."
 }

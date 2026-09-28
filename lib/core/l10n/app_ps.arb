@@ -165,4 +165,12 @@
   "everyDay": "هره ورځ",
   "tapToChange": "د بدلولو لپاره ټایپ کړئ",
   "soundNumber": "غږ $number"
+,
+  "aiMadhhabTitle": "د فقه مکتب",
+  "aiMadhhabNone": "هیڅ (متوازن)",
+  "aiMadhhabHanafi": "حنفي",
+  "aiMadhhabShafi": "شافعي",
+  "aiMadhhabMaliki": "مالکي",
+  "aiMadhhabHanbali": "حنبلۍ",
+  "aiMadhhabHelp": "اختیاري: چیرته چې د پخوانیو عالمانو اختلاف شته، ځوابونه د یو مکتب پر لور وګرځوئ. 'هیڅ' معمولي متوازن حالت ساتي."
 }

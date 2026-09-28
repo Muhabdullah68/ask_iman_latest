@@ -165,4 +165,12 @@
   "everyDay": "ہر روز",
   "tapToChange": "تبدیل کرنے کے لیے تھپتھپائیں",
   "soundNumber": "آواز $number"
+,
+  "aiMadhhabTitle": "فقہی مکتبِ فکر",
+  "aiMadhhabNone": "کوئی نہیں (متوازن)",
+  "aiMadhhabHanafi": "حنفی",
+  "aiMadhhabShafi": "شافعی",
+  "aiMadhhabMaliki": "مالکی",
+  "aiMadhhabHanbali": "حنبلی",
+  "aiMadhhabHelp": "اختیاری: جہاں کلاسیکی علماء میں اختلاف ہو، وہاں جوابات کو ایک مکتبِ فکر کی طرف مائل کریں۔ 'کوئی نہیں' معمول کا متوازن طریقہ رکھتا ہے۔"
 }

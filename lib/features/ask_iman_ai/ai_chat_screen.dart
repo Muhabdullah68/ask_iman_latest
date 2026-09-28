@@ -1,4 +1,4 @@
-﻿// lib/features/ask_iman_ai/ai_chat_screen.dart
+// lib/features/ask_iman_ai/ai_chat_screen.dart
 import 'dart:async';
 import 'dart:io';
 
@@ -31,11 +31,14 @@ class _ChatMessage {
   final String errorCode;
   final List<AskAICitation> citations;
   final int ts;
+
   /// OCR'd text from a photo message (ayah/hadith); null for typed messages.
   final String? ocrText;
+
   /// Path to the recorded voice note (.m4a) this message was spoken from; the
   /// transcript lives in [text]. Null for typed / photo messages.
   final String? audioPath;
+
   /// Playback length of the recorded voice note.
   final int audioDurationMs;
 
@@ -56,39 +59,43 @@ class _ChatMessage {
 
   bool get isRetryable {
     const nonRetryable = {
-      'daily_limit', 'ai_not_configured', 'empty_input', 'too_long', 'ocr_failed',
+      'daily_limit',
+      'ai_not_configured',
+      'empty_input',
+      'too_long',
+      'ocr_failed',
     };
     return errorCode.isNotEmpty && !nonRetryable.contains(errorCode);
   }
 
   factory _ChatMessage.fromJson(Map<String, dynamic> j) => _ChatMessage(
-        role: j['role'] as String? ?? 'ai',
-        text: j['text'] as String? ?? '',
-        verdict: j['verdict'] as String? ?? '',
-        type: j['type'] as String? ?? '',
-        errorCode: j['errorCode'] as String? ?? '',
-        citations: ((j['citations'] as List?) ?? [])
-            .whereType<Map>()
-            .map((e) => AskAICitation.fromJson(Map<String, dynamic>.from(e)))
-            .toList(),
-        ts: j['ts'] as int? ?? 0,
-        ocrText: j['ocrText'] as String?,
-        audioPath: j['audioPath'] as String?,
-        audioDurationMs: j['audioDurationMs'] as int? ?? 0,
-      );
+    role: j['role'] as String? ?? 'ai',
+    text: j['text'] as String? ?? '',
+    verdict: j['verdict'] as String? ?? '',
+    type: j['type'] as String? ?? '',
+    errorCode: j['errorCode'] as String? ?? '',
+    citations: ((j['citations'] as List?) ?? [])
+        .whereType<Map>()
+        .map((e) => AskAICitation.fromJson(Map<String, dynamic>.from(e)))
+        .toList(),
+    ts: j['ts'] as int? ?? 0,
+    ocrText: j['ocrText'] as String?,
+    audioPath: j['audioPath'] as String?,
+    audioDurationMs: j['audioDurationMs'] as int? ?? 0,
+  );
 
   Map<String, dynamic> toJson() => {
-        'role': role,
-        'text': text,
-        'verdict': verdict,
-        'type': type,
-        'errorCode': errorCode,
-        'citations': citations.map((c) => c.toJson()).toList(),
-        'ts': ts,
-        'ocrText': ocrText,
-        'audioPath': audioPath,
-        'audioDurationMs': audioDurationMs,
-      };
+    'role': role,
+    'text': text,
+    'verdict': verdict,
+    'type': type,
+    'errorCode': errorCode,
+    'citations': citations.map((c) => c.toJson()).toList(),
+    'ts': ts,
+    'ocrText': ocrText,
+    'audioPath': audioPath,
+    'audioDurationMs': audioDurationMs,
+  };
 }
 
 class _AiChatScreenState extends State<AiChatScreen> {
@@ -97,15 +104,21 @@ class _AiChatScreenState extends State<AiChatScreen> {
   final FocusNode _focusNode = FocusNode();
 
   late String _lang;
+
+  /// Selected school of thought for AI answers ('none' | 'hanafi' | 'shafi' |
+  /// 'maliki' | 'hanbali'); persisted device-side by the service.
+  String _madhhab = 'none';
   final List<_ChatMessage> _messages = [];
   bool _busy = false;
   bool _transcribing = false;
   AiPhase? _phase;
   int _generation = 0;
+
   /// Set by the stop button; the in-flight round unwinds at the next safe
   /// stage boundary (after OCR / transcription / answer) and the pending
   /// answer is discarded.
   bool _stopRequested = false;
+
   /// Image staged in the composer; it is sent together with the typed text and
   /// OCR'd in the background on send (ChatGPT-style, no preview step).
   XFile? _attachedImage;
@@ -124,6 +137,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
         ? widget.initialLang!
         : 'en';
     _loadHistory();
+    _loadMadhhab();
   }
 
   @override
@@ -164,11 +178,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   void _persist() {
     try {
-      unawaited(AskImanAiService.saveHistory(
-              _messages.map((m) => m.toJson()).toList())
-          .catchError((e) {
-        debugPrint('AI: history save failed: $e');
-      }));
+      unawaited(
+        AskImanAiService.saveHistory(
+          _messages.map((m) => m.toJson()).toList(),
+        ).catchError((e) {
+          debugPrint('AI: history save failed: $e');
+        }),
+      );
     } catch (e) {
       debugPrint('AI: history encode failed: $e');
     }
@@ -196,11 +212,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
     final image = _attachedImage;
     if ((text.isEmpty && image == null) || _busy) return;
     setState(() {
-      _messages.add(_ChatMessage(
-        role: 'user',
-        text: text.isEmpty ? '[Photo]' : text,
-        ts: _now(),
-      ));
+      _messages.add(
+        _ChatMessage(
+          role: 'user',
+          text: text.isEmpty ? '[Photo]' : text,
+          ts: _now(),
+        ),
+      );
       _busy = true;
     });
     _controller.clear();
@@ -256,8 +274,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
     await _runAnswer(question, ocrText: userMsg.ocrText, generation: gen);
   }
 
-  Future<void> _runAnswer(String text,
-      {String? ocrText, XFile? imageFile, String? audioPath, int? generation}) async {
+  Future<void> _runAnswer(
+    String text, {
+    String? ocrText,
+    XFile? imageFile,
+    String? audioPath,
+    int? generation,
+  }) async {
     // A newer round took over: this (older) one must not mutate the chat.
     bool stale() => generation != null && generation != _generation;
     // A fresh round clears any pending stop request.
@@ -268,8 +291,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
       // answer is grounded on it. Retries skip this (ocrText already saved).
       if (imageFile != null && ocrText == null) {
         if (mounted && !stale()) setState(() => _phase = AiPhase.reading);
-        final extracted =
-            (await AskImanAiService.extractTextFromImage(imageFile)).trim();
+        final extracted = (await AskImanAiService.extractTextFromImage(
+          imageFile,
+        )).trim();
         if (!mounted || stale()) return;
         if (_stopRequested) {
           _addStoppedNotice();
@@ -286,14 +310,16 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 ts: last.ts,
               );
             }
-            _messages.add(_ChatMessage(
-              role: 'ai',
-              text: AppLocalizations.of(context).translate('aiOcrFailed'),
-              verdict: 'refused',
-              type: 'general_qna',
-              errorCode: 'ocr_failed',
-              ts: _now(),
-            ));
+            _messages.add(
+              _ChatMessage(
+                role: 'ai',
+                text: AppLocalizations.of(context).translate('aiOcrFailed'),
+                verdict: 'refused',
+                type: 'general_qna',
+                errorCode: 'ocr_failed',
+                ts: _now(),
+              ),
+            );
             _busy = false;
             _phase = null;
           });
@@ -320,8 +346,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
       String effectiveText = text;
       if (audioPath != null && audioPath.isNotEmpty) {
         if (mounted && !stale()) setState(() => _phase = AiPhase.transcribing);
-        final transcript =
-            (await AskImanAiService.transcribeAudio(audioPath)).trim();
+        final transcript = (await AskImanAiService.transcribeAudio(
+          audioPath,
+        )).trim();
         if (!mounted || stale()) return;
         if (_stopRequested) {
           _addStoppedNotice();
@@ -330,14 +357,16 @@ class _AiChatScreenState extends State<AiChatScreen> {
         final last = _messages.isNotEmpty ? _messages.last : null;
         if (transcript.isEmpty) {
           setState(() {
-            _messages.add(_ChatMessage(
-              role: 'ai',
-              text: AppLocalizations.of(context).translate('aiAudioFailed'),
-              verdict: 'refused',
-              type: 'general_qna',
-              errorCode: 'audio_failed',
-              ts: _now(),
-            ));
+            _messages.add(
+              _ChatMessage(
+                role: 'ai',
+                text: AppLocalizations.of(context).translate('aiAudioFailed'),
+                verdict: 'refused',
+                type: 'general_qna',
+                errorCode: 'audio_failed',
+                ts: _now(),
+              ),
+            );
             _busy = false;
             _phase = null;
           });
@@ -364,6 +393,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       final resp = await AskImanAiService.ask(
         text: effectiveText,
         lang: _lang,
+        madhhab: _madhhab,
         ocrText: ocrText,
         // Live progress: the typing row switches between read/corpus/verify/
         // think labels so a long retrieval never looks like a frozen app.
@@ -380,28 +410,32 @@ class _AiChatScreenState extends State<AiChatScreen> {
         return;
       }
       setState(() {
-        _messages.add(_ChatMessage(
-          role: 'ai',
-          text: resp.answer,
-          verdict: resp.verdict,
-          type: resp.type,
-          errorCode: resp.errorCode ?? '',
-          citations: resp.citations,
-          ts: _now(),
-        ));
+        _messages.add(
+          _ChatMessage(
+            role: 'ai',
+            text: resp.answer,
+            verdict: resp.verdict,
+            type: resp.type,
+            errorCode: resp.errorCode ?? '',
+            citations: resp.citations,
+            ts: _now(),
+          ),
+        );
       });
     } catch (e, st) {
       debugPrint('AI: _runAnswer error: $e\n$st');
       if (!mounted || stale()) return;
       setState(() {
-        _messages.add(_ChatMessage(
-          role: 'ai',
-          text: AppLocalizations.of(context).translate('aiGenericError'),
-          verdict: 'refused',
-          type: 'general_qna',
-          errorCode: 'ai_error',
-          ts: _now(),
-        ));
+        _messages.add(
+          _ChatMessage(
+            role: 'ai',
+            text: AppLocalizations.of(context).translate('aiGenericError'),
+            verdict: 'refused',
+            type: 'general_qna',
+            errorCode: 'ai_error',
+            ts: _now(),
+          ),
+        );
       });
     } finally {
       if (mounted && !stale()) {
@@ -432,14 +466,16 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   void _addStoppedNotice() {
     setState(() {
-      _messages.add(_ChatMessage(
-        role: 'ai',
-        text: AppLocalizations.of(context).translate('aiStopped'),
-        verdict: 'refused',
-        type: 'general_qna',
-        errorCode: 'stopped',
-        ts: _now(),
-      ));
+      _messages.add(
+        _ChatMessage(
+          role: 'ai',
+          text: AppLocalizations.of(context).translate('aiStopped'),
+          verdict: 'refused',
+          type: 'general_qna',
+          errorCode: 'stopped',
+          ts: _now(),
+        ),
+      );
     });
     _persist();
     _scrollToBottom();
@@ -466,8 +502,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)
-                .translate('aiImagePickError')),
+            content: Text(
+              AppLocalizations.of(context).translate('aiImagePickError'),
+            ),
             backgroundColor: AppColors.primaryDarkest,
             behavior: SnackBarBehavior.floating,
           ),
@@ -487,17 +524,21 @@ class _AiChatScreenState extends State<AiChatScreen> {
       final recorder = AudioRecorder();
       if (!await recorder.hasPermission()) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(AppLocalizations.of(context)
-                .translate('aiMicPermission')),
-            backgroundColor: AppColors.primaryDarkest,
-            behavior: SnackBarBehavior.floating,
-          ));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).translate('aiMicPermission'),
+              ),
+              backgroundColor: AppColors.primaryDarkest,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
         return;
       }
       final dir = await AskImanAiService.ensureVoiceNotesDir();
-      final path = '$dir${Platform.pathSeparator}voice_'
+      final path =
+          '$dir${Platform.pathSeparator}voice_'
           '${DateTime.now().millisecondsSinceEpoch}.m4a';
       await recorder.start(
         const RecordConfig(
@@ -534,12 +575,15 @@ class _AiChatScreenState extends State<AiChatScreen> {
     } catch (e) {
       debugPrint('AI: mic start error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(AppLocalizations.of(context)
-              .translate('aiMicStartError')),
-          backgroundColor: AppColors.primaryDarkest,
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).translate('aiMicStartError'),
+            ),
+            backgroundColor: AppColors.primaryDarkest,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
@@ -582,19 +626,111 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Future<void> _sendVoice(String path, Duration duration) async {
     if (_busy) return;
     setState(() {
-      _messages.add(_ChatMessage(
-        role: 'user',
-        text: '[Voice note]',
-        audioPath: path,
-        audioDurationMs: duration.inMilliseconds,
-        ts: _now(),
-      ));
+      _messages.add(
+        _ChatMessage(
+          role: 'user',
+          text: '[Voice note]',
+          audioPath: path,
+          audioDurationMs: duration.inMilliseconds,
+          ts: _now(),
+        ),
+      );
       _busy = true;
     });
     _persist();
     _scrollToBottom();
     final gen = ++_generation;
     await _runAnswer('', audioPath: path, generation: gen);
+  }
+
+  Future<void> _loadMadhhab() async {
+    final m = await AskImanAiService.madhhab();
+    if (mounted && m != _madhhab) setState(() => _madhhab = m);
+  }
+
+  /// Bottom-sheet picker for the scholarly-tradition preference. The choice is
+  /// passed to ask(); cached answers are keyed per school so switching schools
+  /// never mixes answers.
+  Future<void> _pickMadhhab() async {
+    final loc = AppLocalizations.of(context);
+    const options = <(String, String)>[
+      ('none', 'aiMadhhabNone'),
+      ('hanafi', 'aiMadhhabHanafi'),
+      ('shafi', 'aiMadhhabShafi'),
+      ('maliki', 'aiMadhhabMaliki'),
+      ('hanbali', 'aiMadhhabHanbali'),
+    ];
+    final m = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.bgWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 16, 12, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                child: Text(
+                  loc.translate('aiMadhhabTitle'),
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ),
+              for (final (id, labelKey) in options)
+                ListTile(
+                  leading: Icon(
+                    _madhhab == id
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                    color: _madhhab == id
+                        ? AppColors.goldDark
+                        : AppColors.borderLight,
+                  ),
+                  title: Text(
+                    loc.translate(labelKey),
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                  onTap: () => Navigator.pop(sheetCtx, id),
+                ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  loc.translate('aiMadhhabHelp'),
+                  style: const TextStyle(
+                    fontFamily: 'Cairo',
+                    fontSize: 12,
+                    color: AppColors.textLightGrey,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (m == null || m == _madhhab) return;
+    await AskImanAiService.setMadhhab(m);
+    if (!mounted) return;
+    setState(() => _madhhab = m);
   }
 
   /// Long-press action: live dictation straight into the composer.
@@ -633,8 +769,18 @@ class _AiChatScreenState extends State<AiChatScreen> {
         title: loc.translate('aiTitle'),
         showBackButton: true,
         actions: [
+          IconButton(
+            onPressed: _pickMadhhab,
+            tooltip: loc.translate('aiMadhhabTitle'),
+            icon: Icon(
+              _madhhab == 'none' ? Icons.school_outlined : Icons.school,
+              color: AppColors.goldDark,
+              size: 20,
+            ),
+          ),
           TextButton(
-            onPressed: () => setState(() => _lang = _lang == 'ur' ? 'en' : 'ur'),
+            onPressed: () =>
+                setState(() => _lang = _lang == 'ur' ? 'en' : 'ur'),
             style: TextButton.styleFrom(
               foregroundColor: AppColors.gold,
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -708,12 +854,14 @@ class _AiChatScreenState extends State<AiChatScreen> {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(const SnackBar(
-        content: Text('Copied!'),
-        backgroundColor: AppColors.primaryDarkest,
-        duration: Duration(milliseconds: 900),
-        behavior: SnackBarBehavior.floating,
-      ));
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Copied!'),
+          backgroundColor: AppColors.primaryDarkest,
+          duration: Duration(milliseconds: 900),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   Widget _buildInputBar(AppLocalizations loc) {
@@ -735,171 +883,184 @@ class _AiChatScreenState extends State<AiChatScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (_recording) ...[
-            Expanded(
-              child: Row(
-                children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => _stopRecording(send: false),
+                        behavior: HitTestBehavior.opaque,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 8,
+                          ),
+                          child: Icon(
+                            Icons.close,
+                            color: AppColors.textDark,
+                            size: 26,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Flexible(
+                              child: Text(
+                                AskImanAiService.formatDuration(_recElapsed),
+                                style: const TextStyle(
+                                  fontFamily: 'Cairo',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                loc.translate('aiRecording'),
+                                style: const TextStyle(
+                                  fontFamily: 'Cairo',
+                                  fontSize: 13,
+                                  color: AppColors.textGrey,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => _stopRecording(send: true),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [AppColors.primaryDark, AppColors.primaryMid],
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: AppColors.textWhite,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ] else ...[
+                GestureDetector(
+                  onTap: _handleMic,
+                  onLongPress: _handleDictate,
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: 10,
+                      left: 4,
+                      right: 4,
+                    ),
+                    child: Icon(
+                      _transcribing ? Icons.graphic_eq : Icons.mic_none,
+                      color: AppColors.textDark,
+                      size: 26,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    minLines: 1,
+                    maxLines: 4,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      hintText: loc.translate('aiTypeMessage'),
+                      hintStyle: const TextStyle(
+                        fontFamily: 'Cairo',
+                        fontSize: 13,
+                        color: AppColors.textLightGrey,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.bgCream,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(22),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    style: const TextStyle(
+                      fontFamily: 'Cairo',
+                      fontSize: 14,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ),
+                _InputIcon(
+                  icon: Icons.photo_library_outlined,
+                  onTap: () => _handleImage(ImageSource.gallery),
+                ),
+                _InputIcon(
+                  icon: Icons.photo_camera_outlined,
+                  onTap: () => _handleImage(ImageSource.camera),
+                ),
+                const SizedBox(width: 2),
+                if (_busy)
                   GestureDetector(
-                    onTap: () => _stopRecording(send: false),
-                    behavior: HitTestBehavior.opaque,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                      child: Icon(Icons.close, color: AppColors.textDark, size: 26),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.only(right: 6),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
+                    onTap: _stopGeneration,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [AppColors.primaryDark, AppColors.primaryMid],
                         ),
-                        Flexible(
-                          child: Text(
-                            AskImanAiService.formatDuration(_recElapsed),
-                            style: const TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textDark,
-                            ),
-                          ),
+                      ),
+                      child: const Icon(
+                        Icons.stop_rounded,
+                        color: AppColors.textWhite,
+                        size: 24,
+                      ),
+                    ),
+                  )
+                else
+                  GestureDetector(
+                    onTap: () => _send(_controller.text),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [AppColors.primaryDark, AppColors.primaryMid],
                         ),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            loc.translate('aiRecording'),
-                            style: const TextStyle(
-                              fontFamily: 'Cairo',
-                              fontSize: 13,
-                              color: AppColors.textGrey,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
+                      child: const Icon(
+                        Icons.arrow_upward_rounded,
+                        color: AppColors.textWhite,
+                        size: 22,
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: () => _stopRecording(send: true),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [AppColors.primaryDark, AppColors.primaryMid],
-                  ),
-                ),
-                child: const Icon(
-                  Icons.check,
-                  color: AppColors.textWhite,
-                  size: 24,
-                ),
-              ),
-            ),
-          ] else ...[
-            GestureDetector(
-              onTap: _handleMic,
-              onLongPress: _handleDictate,
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 10, left: 4, right: 4),
-                child: Icon(
-                  _transcribing ? Icons.graphic_eq : Icons.mic_none,
-                  color: AppColors.textDark,
-                  size: 26,
-                ),
-              ),
-            ),
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                minLines: 1,
-                maxLines: 4,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  hintText: loc.translate('aiTypeMessage'),
-                  hintStyle: const TextStyle(
-                    fontFamily: 'Cairo',
-                    fontSize: 13,
-                    color: AppColors.textLightGrey,
-                  ),
-                  filled: true,
-                  fillColor: AppColors.bgCream,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(22),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                style: const TextStyle(
-                  fontFamily: 'Cairo',
-                  fontSize: 14,
-                  color: AppColors.textDark,
-                ),
-              ),
-            ),
-            _InputIcon(
-              icon: Icons.photo_library_outlined,
-              onTap: () => _handleImage(ImageSource.gallery),
-            ),
-            _InputIcon(
-              icon: Icons.photo_camera_outlined,
-              onTap: () => _handleImage(ImageSource.camera),
-            ),
-            const SizedBox(width: 2),
-            if (_busy)
-              GestureDetector(
-                onTap: _stopGeneration,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [AppColors.primaryDark, AppColors.primaryMid],
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.stop_rounded,
-                    color: AppColors.textWhite,
-                    size: 24,
-                  ),
-                ),
-              )
-            else
-              GestureDetector(
-                onTap: () => _send(_controller.text),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [AppColors.primaryDark, AppColors.primaryMid],
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_upward_rounded,
-                    color: AppColors.textWhite,
-                    size: 22,
-                  ),
-                ),
-              ),
+              ],
             ],
-          ],
-        ),
+          ),
         ],
       ),
     );
@@ -922,7 +1083,11 @@ class _DisclaimerStrip extends StatelessWidget {
         children: [
           const Padding(
             padding: EdgeInsets.only(top: 1),
-            child: Icon(Icons.info_outline, color: AppColors.goldDark, size: 15),
+            child: Icon(
+              Icons.info_outline,
+              color: AppColors.goldDark,
+              size: 15,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1008,8 +1173,11 @@ class _WelcomeView extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline,
-                      color: AppColors.warning, size: 18),
+                  const Icon(
+                    Icons.info_outline,
+                    color: AppColors.warning,
+                    size: 18,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -1038,12 +1206,17 @@ class _WelcomeView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 onTap: () => onSuggestion(s),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.help_outline,
-                          color: AppColors.primaryMid, size: 18),
+                      const Icon(
+                        Icons.help_outline,
+                        color: AppColors.primaryMid,
+                        size: 18,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -1074,19 +1247,20 @@ class _TypeIndicator extends StatelessWidget {
 
   const _TypeIndicator({this.phase});
 
-String? _label(BuildContext context) => switch (phase) {
-        AiPhase.reading =>
-          AppLocalizations.of(context).translate('aiPhaseReading'),
-        AiPhase.transcribing =>
-          AppLocalizations.of(context).translate('aiPhaseListening'),
-        AiPhase.corpus =>
-          AppLocalizations.of(context).translate('aiPhaseCorpus'),
-        AiPhase.verifying =>
-          AppLocalizations.of(context).translate('aiPhaseVerifying'),
-        AiPhase.thinking =>
-          AppLocalizations.of(context).translate('aiPhaseThinking'),
-        null => null,
-      };
+  String? _label(BuildContext context) => switch (phase) {
+    AiPhase.reading => AppLocalizations.of(context).translate('aiPhaseReading'),
+    AiPhase.transcribing => AppLocalizations.of(
+      context,
+    ).translate('aiPhaseListening'),
+    AiPhase.corpus => AppLocalizations.of(context).translate('aiPhaseCorpus'),
+    AiPhase.verifying => AppLocalizations.of(
+      context,
+    ).translate('aiPhaseVerifying'),
+    AiPhase.thinking => AppLocalizations.of(
+      context,
+    ).translate('aiPhaseThinking'),
+    null => null,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -1138,8 +1312,11 @@ class _UserBubble extends StatelessWidget {
   final String text;
   final String? audioPath;
   final int audioDurationMs;
-  const _UserBubble(
-      {required this.text, this.audioPath, this.audioDurationMs = 0});
+  const _UserBubble({
+    required this.text,
+    this.audioPath,
+    this.audioDurationMs = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1299,6 +1476,110 @@ class _VoiceBubbleState extends State<_VoiceBubble> {
   }
 }
 
+/// Renders an AI answer. Fluent prose renders as normal paragraphs; answers
+/// that use "1. ..." numbered steps (procedural questions, offline FAQ steps)
+/// render those steps as a gold ordered list. Falls back to a single [Text]
+/// when there are no step lines, so legacy messages are untouched.
+class _AnswerBody extends StatelessWidget {
+  final String text;
+
+  const _AnswerBody({required this.text});
+
+  static const TextStyle _style = TextStyle(
+    fontFamily: 'Cairo',
+    fontSize: 14,
+    color: AppColors.textDark,
+    height: 1.5,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final segments = _splitAnswer(text);
+    final hasSteps = segments.any((s) => s is List<({int? n, String t})>);
+    if (!hasSteps) {
+      return Text(text, style: _style);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final s in segments)
+          if (s is List<({int? n, String t})>)
+            for (final step in s) _stepRow(step.n, step.t)
+          else
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(s as String, style: _style),
+            ),
+      ],
+    );
+  }
+
+  Widget _stepRow(int? n, String t) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 2, right: 8),
+            width: 20,
+            height: 20,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: Color(0x26C9A84C),
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '${n ?? '•'}',
+              style: const TextStyle(
+                fontFamily: 'Cairo',
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppColors.goldDark,
+              ),
+            ),
+          ),
+          Expanded(child: Text(t, style: _style)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Splits an answer into paragraphs and numbered-step lists. A paragraph is
+/// treated as a step list only when every non-empty line in it starts with a
+/// number + period ("1. ..."); everything else stays a plain paragraph.
+List<Object> _splitAnswer(String text) {
+  final stepLine = RegExp(r'^\s*(\d+)\.\s+(.+?)\s*$');
+  final out = <Object>[];
+  for (final rawPara in text.split(RegExp(r'\n\s*\n'))) {
+    final para = rawPara.trim();
+    if (para.isEmpty) continue;
+    final lines = para
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    final isSteps =
+        lines.isNotEmpty && lines.every((l) => stepLine.hasMatch(l));
+    if (!isSteps) {
+      out.add(rawPara);
+      continue;
+    }
+    final steps = <({int? n, String t})>[];
+    for (final line in lines) {
+      final m = stepLine.firstMatch(line);
+      if (m == null) {
+        steps.add((n: null, t: line));
+      } else {
+        steps.add((n: int.tryParse(m.group(1)!), t: m.group(2)!.trim()));
+      }
+    }
+    out.add(steps);
+  }
+  return out;
+}
+
 class _AiBubble extends StatelessWidget {
   final _ChatMessage message;
   final void Function(String) onCopy;
@@ -1320,19 +1601,14 @@ class _AiBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (message.verdict == 'verified')
-            _VerdictBanner(verified: true, text: message.citations.firstOrNull?.shortLabel ?? '')
+            _VerdictBanner(
+              verified: true,
+              text: message.citations.firstOrNull?.shortLabel ?? '',
+            )
           else if (message.verdict == 'unverified')
             _VerdictBanner(verified: false, text: ''),
           const SizedBox(height: 10),
-          Text(
-            message.text,
-            style: const TextStyle(
-              fontFamily: 'Cairo',
-              fontSize: 14,
-              color: AppColors.textDark,
-              height: 1.5,
-            ),
-          ),
+          _AnswerBody(text: message.text),
           if (message.citations.isNotEmpty) ...[
             const SizedBox(height: 10),
             for (final c in message.citations) _CitationTile(citation: c),
@@ -1399,7 +1675,9 @@ class _VerdictBanner extends StatelessWidget {
               fontFamily: 'Cairo',
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: verified ? const Color(0xFF15803D) : const Color(0xFFB45309),
+              color: verified
+                  ? const Color(0xFF15803D)
+                  : const Color(0xFFB45309),
             ),
           ),
         ),
@@ -1473,7 +1751,9 @@ class _CitationTile extends StatelessWidget {
               ),
             ),
           ],
-          if (!isAyah && citation.grade != null && citation.grade!.isNotEmpty) ...[
+          if (!isAyah &&
+              citation.grade != null &&
+              citation.grade!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
               'Grade: ${citation.grade}',
@@ -1634,9 +1914,11 @@ class CitationDetailsSheet extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      final text = [citation.arabic, citation.text, citation.shortLabel]
-                          .where((e) => e.isNotEmpty)
-                          .join('\n\n');
+                      final text = [
+                        citation.arabic,
+                        citation.text,
+                        citation.shortLabel,
+                      ].where((e) => e.isNotEmpty).join('\n\n');
                       Clipboard.setData(ClipboardData(text: text));
                       Navigator.pop(context);
                     },
@@ -1751,14 +2033,16 @@ class _DateSeparator extends StatelessWidget {
     final loc = AppLocalizations.of(context);
     final now = DateTime.now();
     final d = DateTime.fromMillisecondsSinceEpoch(ts);
-    final diff = DateTime(now.year, now.month, now.day)
-        .difference(DateTime(d.year, d.month, d.day))
-        .inDays;
+    final diff = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).difference(DateTime(d.year, d.month, d.day)).inDays;
     final label = diff == 0
         ? loc.translate('today')
         : diff == 1
-            ? loc.translate('yesterday')
-            : DateFormat('d MMM y').format(d);
+        ? loc.translate('yesterday')
+        : DateFormat('d MMM y').format(d);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Center(
@@ -1798,8 +2082,7 @@ class _TimeLabel extends StatelessWidget {
       child: Align(
         alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
         child: Text(
-          DateFormat('h:mm a')
-              .format(DateTime.fromMillisecondsSinceEpoch(ts)),
+          DateFormat('h:mm a').format(DateTime.fromMillisecondsSinceEpoch(ts)),
           style: const TextStyle(
             fontFamily: 'Cairo',
             fontSize: 10,

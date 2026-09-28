@@ -23,6 +23,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+import '../data/offline_faq.dart';
+
 // ── Configuration ────────────────────────────────────────────────────────────
 // The API key is injected at build time via --dart-define=GEMINI_API_KEY=...
 // When the app is launched without that flag (e.g. Android Studio's Run ▶
@@ -128,17 +130,17 @@ class AskAICitation {
   }
 
   Map<String, dynamic> toJson() => {
-        'kind': kind,
-        'book': book,
-        'surahNumber': surahNumber,
-        'surahName': surahName,
-        'surahArabic': surahArabic,
-        'ayahNumber': ayahNumber,
-        'hadithNumber': hadithNumber,
-        'arabic': arabic,
-        'text': text,
-        'grade': grade,
-      };
+    'kind': kind,
+    'book': book,
+    'surahNumber': surahNumber,
+    'surahName': surahName,
+    'surahArabic': surahArabic,
+    'ayahNumber': ayahNumber,
+    'hadithNumber': hadithNumber,
+    'arabic': arabic,
+    'text': text,
+    'grade': grade,
+  };
 
   String get shortLabel {
     if (kind == 'ayah') {
@@ -183,20 +185,21 @@ class AskAIResponse {
   }
 
   Map<String, dynamic> toJson() => {
-        'verdict': verdict,
-        'type': type,
-        'answer': answer,
-        'citations': citations.map((c) => c.toJson()).toList(),
-        'lang': lang,
-        'errorCode': errorCode,
-      };
+    'verdict': verdict,
+    'type': type,
+    'answer': answer,
+    'citations': citations.map((c) => c.toJson()).toList(),
+    'lang': lang,
+    'errorCode': errorCode,
+  };
 }
 
 // ── Pure matching helpers (ported from functions/ai_tools.js) ───────────────
 // Kept dependency-free so they can be unit tested.
 
-final RegExp _diacritics =
-    RegExp(r'[\u064B-\u065F\u0610-\u061A\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u0640\u0670\u0653-\u0655\u06E0\u06E1\u06E2\u06E3\u06E4\u06E5\u06E6\u06E7\u06E8\u06EC\u06ED]');
+final RegExp _diacritics = RegExp(
+  r'[\u064B-\u065F\u0610-\u061A\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED\u0640\u0670\u0653-\u0655\u06E0\u06E1\u06E2\u06E3\u06E4\u06E5\u06E6\u06E7\u06E8\u06EC\u06ED]',
+);
 final RegExp _alefVariants = RegExp(r'[\u0622\u0623\u0625\u0671]');
 // NOTE: deliberately NOT using \p{L}/\p{N} unicode property escapes — Dart's
 // regex engine is pathologically slow on them when run across the whole corpus
@@ -204,8 +207,9 @@ final RegExp _alefVariants = RegExp(r'[\u0622\u0623\u0625\u0671]');
 // letter/number ranges cover Latin, Cyrillic, Arabic + Arabic Supplement and the
 // Arabic presentation forms, and run orders of magnitude faster.
 final RegExp _nonLetterOrNumber = RegExp(
-    r'[^0-9A-Za-z\u00c0-\u024f\u0400-\u04ff\u0600-\u06ff'
-    r'\u0750-\u077f\ufb50-\ufdff\ufe70-\ufeff\s]');
+  r'[^0-9A-Za-z\u00c0-\u024f\u0400-\u04ff\u0600-\u06ff'
+  r'\u0750-\u077f\ufb50-\ufdff\ufe70-\ufeff\s]',
+);
 
 String _alefFix(String ch) {
   switch (ch) {
@@ -257,14 +261,16 @@ double overlapScore(String aText, String bText) {
 }
 
 ({double score, double containment, double overlap, double lenFactor})
-    rankMatch({required String hayText, required String needleText}) {
+rankMatch({required String hayText, required String needleText}) {
   final c = containmentScore(hayText, needleText);
   final o = overlapScore(hayText, needleText);
   final n = normalizeForMatch(needleText);
   final h = normalizeForMatch(hayText);
   final lenFactor = n.length <= h.length
       ? 1.0
-      : (n.isEmpty ? 0.0 : (1 - (n.length - h.length) / n.length).clamp(0.0, 1.0));
+      : (n.isEmpty
+            ? 0.0
+            : (1 - (n.length - h.length) / n.length).clamp(0.0, 1.0));
   final score = (c > o ? c : o) * lenFactor;
   return (score: score, containment: c, overlap: o, lenFactor: lenFactor);
 }
@@ -277,7 +283,13 @@ class CorpusMatch {
   final double containment;
   final double overlap;
   final double lenFactor;
-  CorpusMatch(this.item, this.score, this.containment, this.overlap, this.lenFactor);
+  CorpusMatch(
+    this.item,
+    this.score,
+    this.containment,
+    this.overlap,
+    this.lenFactor,
+  );
 }
 
 List<CorpusMatch> findMatches(
@@ -291,7 +303,9 @@ List<CorpusMatch> findMatches(
   for (final item in corpusItems) {
     final r = rankMatch(hayText: textOf(item), needleText: needleText);
     if (r.score >= minScore) {
-      out.add(CorpusMatch(item, r.score, r.containment, r.overlap, r.lenFactor));
+      out.add(
+        CorpusMatch(item, r.score, r.containment, r.overlap, r.lenFactor),
+      );
     }
   }
   out.sort((a, b) => b.score.compareTo(a.score));
@@ -311,7 +325,8 @@ List<CorpusMatch> findMatches(
   if (hits.isEmpty) return (ok: false, best: null);
   final top = hits.first;
   final second = hits.length > 1 ? hits[1] : null;
-  final ok = top.score >= strictScore &&
+  final ok =
+      top.score >= strictScore &&
       top.containment >= strictContainment &&
       (second == null || (top.score - second.score) >= gap);
   return (ok: ok, best: ok ? top : null);
@@ -359,8 +374,10 @@ int? _nameMatch(String raw, bool fromStart, Map<String, int> idx) {
 
 /// Extracts a pinned Quran location (surah, verse) from the message, or null.
 (int, int)? parseQuranClaim(String input, Map<String, int> surahIndex) {
-  final t =
-      input.replaceAllMapped(RegExp(r'[٠-٩]'), (m) => _arabicDigit(m[0]!.codeUnitAt(0)));
+  final t = input.replaceAllMapped(
+    RegExp(r'[٠-٩]'),
+    (m) => _arabicDigit(m[0]!.codeUnitAt(0)),
+  );
   final lower = t.toLowerCase();
 
   // "2:255", "2/255", "2-255"
@@ -372,8 +389,9 @@ int? _nameMatch(String raw, bool fromStart, Map<String, int> idx) {
   }
 
   // "surah 2", "surah 18 ayah 10" …
-  final sx = RegExp(r'(?:surah|sura|surat|chapter|سوره)\s+(\d{1,2})(?!\d)')
-      .firstMatch(lower);
+  final sx = RegExp(
+    r'(?:surah|sura|surat|chapter|سوره)\s+(\d{1,2})(?!\d)',
+  ).firstMatch(lower);
   if (sx != null) {
     final s = int.tryParse(sx.group(1)!);
     if (s == null || s < 1 || s > 114) return null;
@@ -393,9 +411,13 @@ int? _nameMatch(String raw, bool fromStart, Map<String, int> idx) {
     final after = lower
         .substring(m.end, end)
         .replaceFirst(
-            RegExp(r'^(?:\s*(?:of|from|in|is|being)\s+)?(?:surah|sura|surat|سورة)\s*'),
-            '');
-    final sNo = _nameMatch(before, false, surahIndex) ??
+          RegExp(
+            r'^(?:\s*(?:of|from|in|is|being)\s+)?(?:surah|sura|surat|سورة)\s*',
+          ),
+          '',
+        );
+    final sNo =
+        _nameMatch(before, false, surahIndex) ??
         _nameMatch(after, true, surahIndex);
     if (sNo != null) return (sNo, v);
   }
@@ -407,8 +429,9 @@ int? _nameMatch(String raw, bool fromStart, Map<String, int> idx) {
   final lower = input.toLowerCase().replaceAll('-', ' ');
   for (final bk in hadithBooks) {
     final slug = bk['slug']!;
-    final m = RegExp('${RegExp.escape(slug)}[^\\d]{0,30}?(\\d{1,5})')
-        .firstMatch(lower);
+    final m = RegExp(
+      '${RegExp.escape(slug)}[^\\d]{0,30}?(\\d{1,5})',
+    ).firstMatch(lower);
     if (m != null) {
       return (slug, int.tryParse(m.group(1)!));
     }
@@ -491,20 +514,107 @@ const List<String> _topicAnchors = [
 /// Weak domain words: mixed with >=2 other tokens they turn a question into an
 /// Islamic-topic one even when no strong anchor matches.
 const List<String> _weakDomainWords = [
-  'islam', 'muslim', 'muslims', 'islamic', 'الله', 'اللہ', 'رسول', 'نبی',
-  'islam ke', 'muslim ke',
+  'islam',
+  'muslim',
+  'muslims',
+  'islamic',
+  'الله',
+  'اللہ',
+  'رسول',
+  'نبی',
+  'islam ke',
+  'muslim ke',
 ];
 
 const List<String> _topicStopWords = [
-  'is', 'of', 'in', 'to', 'a', 'an', 'the', 'and', 'or', 'for', 'about',
-  'with', 'from', 'me', 'my', 'i', 'you', 'your', 'we', 'they', 'do',
-  'does', 'did', 'can', 'could', 'will', 'would', 'should', 'what', 'which',
-  'how', 'why', 'who', 'when', 'where', 'please', 'tell', 'show', 'explain',
-  'meaning', 'some', 'any', 'whats', 'are', 'am', 'be', 'been', 'isn',
-  'was', 'were', 'at', 'on', 'as', 'it', 'its', 'so', 'if', 'than', 'then',
-  'them', 'those', 'this', 'that', 'these', 'there', 'here', 'not', 'no',
-  'hai', 'kya', 'ka', 'ki', 'ke', 'ko', 'aur', 'me', 'mein', 'ہے', 'کیا',
-  'اور', 'کا', 'کی', 'کے', 'کو', 'میں', 'بھی', 'پر', 'سے',
+  'is',
+  'of',
+  'in',
+  'to',
+  'a',
+  'an',
+  'the',
+  'and',
+  'or',
+  'for',
+  'about',
+  'with',
+  'from',
+  'me',
+  'my',
+  'i',
+  'you',
+  'your',
+  'we',
+  'they',
+  'do',
+  'does',
+  'did',
+  'can',
+  'could',
+  'will',
+  'would',
+  'should',
+  'what',
+  'which',
+  'how',
+  'why',
+  'who',
+  'when',
+  'where',
+  'please',
+  'tell',
+  'show',
+  'explain',
+  'meaning',
+  'some',
+  'any',
+  'whats',
+  'are',
+  'am',
+  'be',
+  'been',
+  'isn',
+  'was',
+  'were',
+  'at',
+  'on',
+  'as',
+  'it',
+  'its',
+  'so',
+  'if',
+  'than',
+  'then',
+  'them',
+  'those',
+  'this',
+  'that',
+  'these',
+  'there',
+  'here',
+  'not',
+  'no',
+  'hai',
+  'kya',
+  'ka',
+  'ki',
+  'ke',
+  'ko',
+  'aur',
+  'me',
+  'mein',
+  'ہے',
+  'کیا',
+  'اور',
+  'کا',
+  'کی',
+  'کے',
+  'کو',
+  'میں',
+  'بھی',
+  'پر',
+  'سے',
 ];
 
 bool _isArabicishToken(String t) => RegExp(r'[\u0600-\u06FF]').hasMatch(t);
@@ -514,21 +624,76 @@ bool _isArabicishToken(String t) => RegExp(r'[\u0600-\u06FF]').hasMatch(t);
 /// gets a warm plain answer and never source cards (there is no relevant
 /// ayah/hadith for a greeting).
 const Set<String> _greetingTerms = {
-  'hi', 'hii', 'hello', 'hey', 'hye', 'halo', 'hllo',
-  'salam', 'salaam', 'assalam', 'asalam', 'asslam', 'aslaam',
-  'alaikum', 'alaykum', 'slm', 'muslimun', 'ramadan', 'eid',
-  'السلام', 'عليكم', 'علیکم', 'سلام', 'وعليكم', 'وعلیکم',
+  'hi',
+  'hii',
+  'hello',
+  'hey',
+  'hye',
+  'halo',
+  'hllo',
+  'salam',
+  'salaam',
+  'assalam',
+  'asalam',
+  'asslam',
+  'aslaam',
+  'alaikum',
+  'alaykum',
+  'slm',
+  'muslimun',
+  'ramadan',
+  'eid',
+  'السلام',
+  'عليكم',
+  'علیکم',
+  'سلام',
+  'وعليكم',
+  'وعلیکم',
 };
 
 /// Words that pad a greeting without changing it ("hello there", the "o" in
 /// "assalam o alaikum"). Kept intentionally small: any real content word makes
 /// the message a question, not a greeting.
 const Set<String> _greetingFillers = {
-  'o', 'a', 'the', 'there', 'you', 'all', 'everyone', 'everybody',
-  'brother', 'brothers', 'sister', 'sisters', 'friend', 'friends',
-  'dear', 'dearest', 'to', 'and', 'my', 'ya', 'oh', 'well', 'so',
-  'good', 'morning', 'evening', 'afternoon', 'night', 'day',
-  'how', 'are', 'is', 'am', 'doing', 'up', 'today', 'going', 'was', 'it',
+  'o',
+  'a',
+  'the',
+  'there',
+  'you',
+  'all',
+  'everyone',
+  'everybody',
+  'brother',
+  'brothers',
+  'sister',
+  'sisters',
+  'friend',
+  'friends',
+  'dear',
+  'dearest',
+  'to',
+  'and',
+  'my',
+  'ya',
+  'oh',
+  'well',
+  'so',
+  'good',
+  'morning',
+  'evening',
+  'afternoon',
+  'night',
+  'day',
+  'how',
+  'are',
+  'is',
+  'am',
+  'doing',
+  'up',
+  'today',
+  'going',
+  'was',
+  'it',
 };
 
 /// True when [input] is ONLY greetings/chit-chat, so the plain chat path replies
@@ -561,10 +726,12 @@ bool looksLikeIslamicTopic(String input) {
   // "what does the quran say about X", "ayat related to charity" — always worth
   // grounding with sources.
   final low = input.toLowerCase();
-  if (RegExp(r'\b(quran|quranic|hadith|ayat|ayah|surah|verse|ahadees|ahadith)\b')
-          .hasMatch(low) &&
-      RegExp(r'\b(about|regarding|on|concerning|related\s+to|related\s+with)\b')
-          .hasMatch(low)) {
+  if (RegExp(
+        r'\b(quran|quranic|hadith|ayat|ayah|surah|verse|ahadees|ahadith)\b',
+      ).hasMatch(low) &&
+      RegExp(
+        r'\b(about|regarding|on|concerning|related\s+to|related\s+with)\b',
+      ).hasMatch(low)) {
     return true;
   }
   return false;
@@ -609,7 +776,10 @@ class TopicHit {
 /// idf-weighted ranking of corpus docs against the query terms. Terms already in
 /// the topic-anchor list are double-weighted (they are the strongest signal).
 List<TopicHit> topicRank(
-    Map<String, List<int>> index, int docCount, List<String> terms) {
+  Map<String, List<int>> index,
+  int docCount,
+  List<String> terms,
+) {
   final scored = <int, double>{};
   final cnt = <int, int>{};
   for (final raw in terms.toSet()) {
@@ -624,9 +794,7 @@ List<TopicHit> topicRank(
   }
   final docs = scored.keys.toList()
     ..sort((a, b) => (scored[b] ?? 0).compareTo(scored[a] ?? 0));
-  return [
-    for (final d in docs) TopicHit(d, scored[d] ?? 0, cnt[d] ?? 0),
-  ];
+  return [for (final d in docs) TopicHit(d, scored[d] ?? 0, cnt[d] ?? 0)];
 }
 
 /// Decides whether retrieved evidence is strong enough to attach sources.
@@ -648,19 +816,22 @@ bool topicEvidenceConfident(List<String> terms, Iterable<int> matchedCounts) {
 bool isSimilarFollowUp(String input) {
   final low = input.toLowerCase();
   // Core similarity-request patterns.
-  final core = RegExp(r'\b(similar|closest|nearest|near\s*match|same\s+verse|'
-      r'same\s+ayah|same\s+hadith|correct\s+verse|correct\s+ayah|'
-      r'correct\s+hadith|right\s+verse|right\s+ayah|right\s+hadith|'
-      r'what\s+is\s+the\s+(right|correct|proper|accurate)\b|'
-      r'find\s+(the\s+)?(correct|right|actual|real|'
-      r'actual\s+verse|actual\s+ayah|actual\s+hadith)\b)');
+  final core = RegExp(
+    r'\b(similar|closest|nearest|near\s*match|same\s+verse|'
+    r'same\s+ayah|same\s+hadith|correct\s+verse|correct\s+ayah|'
+    r'correct\s+hadith|right\s+verse|right\s+ayah|right\s+hadith|'
+    r'what\s+is\s+the\s+(right|correct|proper|accurate)\b|'
+    r'find\s+(the\s+)?(correct|right|actual|real|'
+    r'actual\s+verse|actual\s+ayah|actual\s+hadith)\b)',
+  );
   if (core.hasMatch(low)) return true;
   // Broad ask-for-source patterns with reference keywords.
-  final hasRef =
-      RegExp(r'\b(ayat|ayah|verse|quran|hadith|ahadees|ahadith)\b').hasMatch(low);
+  final hasRef = RegExp(
+    r'\b(ayat|ayah|verse|quran|hadith|ahadees|ahadith)\b',
+  ).hasMatch(low);
   final hasAsk = RegExp(
-          r'\b(similar|correct|right|closest|nearest|near|accurate)\b')
-      .hasMatch(low);
+    r'\b(similar|correct|right|closest|nearest|near|accurate)\b',
+  ).hasMatch(low);
   if (hasRef && hasAsk) return true;
   return false;
 }
@@ -687,14 +858,16 @@ String buildSourcedAnswer({
 
   p(verdict);
   if (refs.isNotEmpty) {
-    final refLabels = refs.map((c) {
-      if (c.kind == 'ayah') {
-        return 'Surah ${c.surahName} ${c.surahNumber}:${c.ayahNumber}';
-      }
-      return c.hadithNumber != null
-          ? '${c.book} #${c.hadithNumber}'
-          : c.book;
-    }).join(', ');
+    final refLabels = refs
+        .map((c) {
+          if (c.kind == 'ayah') {
+            return 'Surah ${c.surahName} ${c.surahNumber}:${c.ayahNumber}';
+          }
+          return c.hadithNumber != null
+              ? '${c.book} #${c.hadithNumber}'
+              : c.book;
+        })
+        .join(', ');
     p('\u2014 supported by $refLabels');
   }
   p(explanation);
@@ -709,7 +882,7 @@ String _fallbackSourcedAnswer(List<AskAICitation> refs, String lang) {
   return urdu
       ? 'یہاں چند متعلقہ آیات اور احادیث ہیں۔ تفصیل نیچے کارڈز میں دی گئی ہے۔'
       : 'Here are the most relevant Quran and hadith passages for your '
-          'question. You can read the exact text in the cards below.';
+            'question. You can read the exact text in the cards below.';
 }
 
 // ── Isolate workers (pure, top-level so `compute` can spawn them) ─────────
@@ -817,13 +990,17 @@ class AskImanAiService {
   /// Loads the API key from the git-ignored asset assets/secrets/gemini.key
   /// when no --dart-define key was baked in at build time.
   static Future<void> bootstrap() async {
-    debugPrint('AI: bootstrap() called. _apiKey.isEmpty=${_apiKey.isEmpty}, _runtimeKey=null -> ${_runtimeKey == null}');
+    debugPrint(
+      'AI: bootstrap() called. _apiKey.isEmpty=${_apiKey.isEmpty}, _runtimeKey=null -> ${_runtimeKey == null}',
+    );
     if (_apiKey.isNotEmpty) {
       debugPrint('AI: using --dart-define key (length=${_apiKey.length}).');
       return;
     }
     if (_runtimeKey != null) {
-      debugPrint('AI: _runtimeKey already set (length=${_runtimeKey!.length}).');
+      debugPrint(
+        'AI: _runtimeKey already set (length=${_runtimeKey!.length}).',
+      );
       return;
     }
     try {
@@ -831,10 +1008,14 @@ class AskImanAiService {
       final data = await rootBundle.loadString('assets/secrets/gemini.key');
       debugPrint('AI: asset raw length=${data.length}');
       final key = data.trim();
-      debugPrint('AI: asset trimmed length=${key.length}, startsWith="AQ..."=${key.startsWith('AQ')}');
+      debugPrint(
+        'AI: asset trimmed length=${key.length}, startsWith="AQ..."=${key.startsWith('AQ')}',
+      );
       if (key.isNotEmpty) {
         _runtimeKey = key;
-        debugPrint('AI: _runtimeKey SET successfully (length=${_runtimeKey!.length}).');
+        debugPrint(
+          'AI: _runtimeKey SET successfully (length=${_runtimeKey!.length}).',
+        );
       } else {
         debugPrint('AI: WARNING — asset content after trim() is EMPTY.');
         _runtimeKey = null;
@@ -860,9 +1041,16 @@ class AskImanAiService {
     if (t.length < 30) return false;
     final lower = t.toLowerCase();
     const lowKws = [
-      'quran', 'surah', 'ayah', 'ayat', 'verse',
-      'hadith', 'narrat', 'said the prophet',
-      'قال الله', 'قال رسول',
+      'quran',
+      'surah',
+      'ayah',
+      'ayat',
+      'verse',
+      'hadith',
+      'narrat',
+      'said the prophet',
+      'قال الله',
+      'قال رسول',
     ];
     final hasKws = lowKws.any(lower.contains);
     if (hasKws) {
@@ -904,11 +1092,168 @@ class AskImanAiService {
   static bool possibleQuote(String raw) => _possibleQuote(raw);
   static bool looksLikeHadith(String raw) => _looksLikeHadith(raw);
 
+  // ── Pre-call intent guard ────────────────────────────────────────────────
+  // Unmistakably out-of-scope asks (code, homework math, self-diagnosis,
+  // weather/news, generic "assistant" jobs) are refused at the door so they
+  // never burn a Gemini rate-limited call or the user's quota. Conservative:
+  // only triggers on explicit non-Islamic patterns AND when the input carries
+  // no Islamic-topic signal at all, so a genuine religious question can never
+  // be refused here.
+  static const List<String> _outOfScopePatterns = [
+    // programming / software
+    'write a function', 'function in python', 'python', 'javascript',
+    'typescript', 'programming', 'write code', 'fix my code', 'code snippet',
+    'regex', 'script to', 'program to', 'algorithm to', 'sql', 'html', 'css',
+    'docker', 'api key', 'debug', 'syntax error', 'flutter code', 'kotlin',
+    // schoolwork / math
+    'homework', 'solve this math', 'math problem', 'algebra', 'geometry',
+    'derivative', 'integral', 'multiplication', 'quiz answers', 'exam answers',
+    // medical self-diagnosis
+    'diagnose my', 'how many calories', 'blood pressure', 'sugar level',
+    'prescription', 'side effects of', 'medical advice', 'my headache',
+    // legal / financial / admin
+    'file my taxes', 'tax return', 'legal advice', 'contract clause',
+    'lawsuit', 'court case', 'visa application', 'passport application',
+    // weather / news / sports / entertainment
+    'weather', 'forecast', 'temperature today', 'news today', 'cricket score',
+    'football match', 'world cup', 'stock market', 'share price',
+    'instagram', 'tiktok', 'netflix',
+    // generic assistant tasks
+    'translate this', 'summarize this text', 'summarize this document',
+    'write an email', 'draft a letter', 'compose an email', 'make a resume',
+    'make a website', 'book a flight', 'order food',
+    // urdu / roman urdu
+    'پروگرام بناؤ', 'کوڈ', 'کوڈنگ', 'خبر', 'نیوز', 'موسم',
+    'program banao', 'code likho', 'moosam',
+    // pashto
+    'پروګرام', 'کود', 'اخبار', 'هوا', 'موسم',
+  ];
+
+  static AskAIResponse _outOfScopeResponse(String lang) {
+    final urdu = lang == 'ur' || lang == 'ps';
+    return AskAIResponse(
+      verdict: 'refused',
+      type: 'out_of_scope',
+      answer: urdu
+          ? 'یہ میرے علم کے دائرے سے باہر ہے — میں قرآن، حدیث، عبادات اور اسلامی رہنمائی کے لیے ہوں۔ براہِ کرم کوئی اسلامی سوال پوچھیں۔'
+          : 'That is outside my Islamic knowledge scope. I am here for the Quran, '
+                'hadith, worship and Islamic guidance — please ask about an Islamic '
+                'topic instead.',
+      lang: lang,
+      errorCode: 'out_of_scope',
+    );
+  }
+
+  static AskAIResponse? _scopeGuard(String raw, String lang) {
+    // Never block anything that carries an Islamic-topic signal.
+    if (looksLikeIslamicTopic(raw) || isGreetingOnly(raw)) return null;
+    final low = ' ${raw.toLowerCase().trim()} ';
+    for (final p in _outOfScopePatterns) {
+      if (low.contains(p)) return _outOfScopeResponse(lang);
+    }
+    return null;
+  }
+
+  // ── Offline curated FAQ ──────────────────────────────────────────────────
+  /// Content tokens for FAQ confidence: raw normalized tokens with stopwords
+  /// and pure numbers removed (mirrors the retrieval-side topic query terms).
+  static List<String> _faqContentTokens(String input) {
+    return _tokens(input)
+        .where(
+          (t) => !_topicStopWords.contains(t) && !RegExp(r'^\d+$').hasMatch(t),
+        )
+        .toList();
+  }
+
+  /// Conservative FAQ matcher: an entry only answers when 2+ of its keys hit,
+  /// or a single key hits and the question is a one-content-word question
+  /// (e.g. "what is wudu"). Richer questions fall through to the grounded
+  /// pipeline so a generic FAQ never swallows a real sourced answer.
+  static OfflineFaqEntry? _faqMatch(String raw) {
+    final qAll = _tokens(raw);
+    if (qAll.isEmpty) return null;
+    final qContent = _faqContentTokens(raw);
+    if (qContent.isEmpty) return null;
+    OfflineFaqEntry? best;
+    var bestHits = 0;
+    for (final e in offlineFaq) {
+      if (e.answers['en'] == null) continue;
+      var hits = 0;
+      for (final key in e.keys) {
+        final kt = _tokens(key);
+        if (kt.isNotEmpty && kt.every(qAll.contains)) hits++;
+      }
+      if (hits <= 0) continue;
+      final qualifies = hits >= 2 || (hits >= 1 && qContent.length <= 1);
+      if (qualifies && hits > bestHits) {
+        best = e;
+        bestHits = hits;
+      }
+    }
+    return best;
+  }
+
+  /// Renders an FAQ entry in the user's language (English fallback) with a
+  /// general-guidance closer so it never impersonates a definitive ruling.
+  static String _faqAnswer(OfflineFaqEntry e, String lang) {
+    final raw = e.answers[lang];
+    final body = (raw == null || raw.trim().isEmpty)
+        ? (e.answers['en'] ?? '')
+        : raw;
+    final text = body.trim();
+    if (text.isEmpty) return '';
+    final urdu = lang == 'ur' || lang == 'ps';
+    final close = urdu
+        ? 'عام رہنمائی: آپ کی مخصوص صورتحال کے لیے ہمیشہ کسی مستند عالم سے مشورہ کریں۔'
+        : 'General guidance: for your specific situation, always consult a qualified scholar.';
+    return '$text\n\n$close';
+  }
+
+  /// Q&A cache intent. The madhhab is folded into the key so answers earned
+  /// under one school never leak into another.
+  static String _qnaIntent(String madhhab) => 'qna|$madhhab';
+
+  // ── Madhhab / scholarly-tradition preference (device-side) ───────────────
+  static const String _madhhabKey = 'ai_madhhab_v1';
+  static const List<String> madhhabs = [
+    'none',
+    'hanafi',
+    'shafi',
+    'maliki',
+    'hanbali',
+  ];
+
+  static Future<String> madhhab() async {
+    final prefs = await SharedPreferences.getInstance();
+    final v = prefs.getString(_madhhabKey);
+    return v ?? 'none';
+  }
+
+  static Future<void> setMadhhab(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_madhhabKey, value);
+  }
+
+  /// Test hooks for the new behaviors (offline-friendly, no HTTP).
+  static bool outOfScopeForTest(String raw, {String lang = 'en'}) =>
+      _scopeGuard(raw, lang)?.errorCode == 'out_of_scope';
+  static String? offlineFaqForTest(String raw, String lang) {
+    final f = _faqMatch(raw);
+    return f == null ? null : _faqAnswer(f, lang);
+  }
+
+  static String qnaCacheIntentForTest(String madhhab) => _qnaIntent(madhhab);
+  static String qnaSystemForTest({String madhhab = 'none'}) =>
+      _qnaSystemFor(madhhab);
+  static String sourcedQnaSystemForTest({String madhhab = 'none'}) =>
+      _sourcedQnaSystemFor(madhhab);
+
   /// Test hook only: runs grounded topic-source retrieval for a question so
   /// tests can assert the 2-Quran + 2-hadith contract. Returns null when the
   /// corpus is unreachable (offline) so tests can skip instead of flake.
   static Future<List<AskAICitation>?> retrieveTopicSourcesForTest(
-      String question) async {
+    String question,
+  ) async {
     try {
       return await _retrieveTopicSources(question, 'en');
     } catch (e) {
@@ -927,10 +1272,14 @@ class AskImanAiService {
   /// for the chosen narration or null when the book produced NO topically-
   /// confident hadith (dropped). Offline — corpus is a bundled asset.
   static Future<({int matched, int grade})?> hadithTopicMatchedForTest(
-      String bookSlug, List<String> terms) async {
+    String bookSlug,
+    List<String> terms,
+  ) async {
     try {
-      final r = await _hadithTopicBest(
-          {'slug': bookSlug, 'name': bookSlug}, terms);
+      final r = await _hadithTopicBest({
+        'slug': bookSlug,
+        'name': bookSlug,
+      }, terms);
       return r == null ? null : (matched: r.matched, grade: r.grade);
     } catch (e) {
       debugPrint('AI: hadithTopicMatchedForTest failed (offline?): $e');
@@ -942,30 +1291,36 @@ class AskImanAiService {
   static int gradeQualityForTest(String grade) => _gradeQuality(grade);
 
   static Future<List<Map<String, dynamic>>> loadHadithForTest(
-          String bookSlug, String lang) =>
-      _loadHadith(bookSlug, lang);
+    String bookSlug,
+    String lang,
+  ) => _loadHadith(bookSlug, lang);
 
-  static Future<List<Map<String, dynamic>>?> corpusAssetForTest(String rawKey) =>
-      _loadCorpusAsset(rawKey);
+  static Future<List<Map<String, dynamic>>?> corpusAssetForTest(
+    String rawKey,
+  ) => _loadCorpusAsset(rawKey);
 
   /// Test hooks for the multi-turn context builders.
   static List<({String role, String text})> buildContextTurnsForTest(
-          List<Map<String, dynamic>>? history,
-          {int maxTurns = 8,
-          int maxChars = 3000,
-          int maxPerTurn = 500}) =>
-      _buildContextTurns(history,
-          maxTurns: maxTurns, maxChars: maxChars, maxPerTurn: maxPerTurn);
+    List<Map<String, dynamic>>? history, {
+    int maxTurns = 8,
+    int maxChars = 3000,
+    int maxPerTurn = 500,
+  }) => _buildContextTurns(
+    history,
+    maxTurns: maxTurns,
+    maxChars: maxChars,
+    maxPerTurn: maxPerTurn,
+  );
 
   static List<Map<String, dynamic>> contentsFromTurnsForTest(
-          List<({String role, String text})> turns) =>
-      _contentsFromTurns(turns);
+    List<({String role, String text})> turns,
+  ) => _contentsFromTurns(turns);
 
   /// Test hook for the photo flow: verifies an OCR'd claim exactly as the
   /// photo path does (hadith vs quran classification + corpus verify with the
   /// relaxed OCR bars). Returns null when the corpus is unreachable (offline).
-  static Future<({bool asHadith, List<AskAICitation> refs})?> photoVerifyForTest(
-      String claim) async {
+  static Future<({bool asHadith, List<AskAICitation> refs})?>
+  photoVerifyForTest(String claim) async {
     try {
       final asHadith = _looksLikeHadith(claim);
       final refs = asHadith
@@ -981,14 +1336,14 @@ class AskImanAiService {
   /// Test hook: OCR verification uses relaxed bars so photo text with OCR
   /// noise still reaches strict/adjudicator decisions.
   static ({double strictScore, double strictContainment, double adjudicateMin})
-      ocrBarsForTest(bool arabic,
-              {bool ocrTolerance = false}) =>
-          _ocrBars(arabic, ocrTolerance: ocrTolerance);
+  ocrBarsForTest(bool arabic, {bool ocrTolerance = false}) =>
+      _ocrBars(arabic, ocrTolerance: ocrTolerance);
 
   /// Test hook: exposes the claim-extraction used by the similarity follow-up
   /// path ("what is the correct ayah?") so tests can verify history parsing.
-  static String? extractUnverifiedClaimForTest(List<Map<String, dynamic>> history) =>
-      _extractUnverifiedClaim(history);
+  static String? extractUnverifiedClaimForTest(
+    List<Map<String, dynamic>> history,
+  ) => _extractUnverifiedClaim(history);
 
   /// Test hook: exposes the voice-note duration formatter and the offline
   /// transcription path (returns '' when Gemini is unreachable/not configured).
@@ -1008,17 +1363,20 @@ class AskImanAiService {
   static Future<T> _deadlineOr<T>(Future<T> Function() fn) {
     final completer = Completer<T>();
     var pending = true;
-    fn().then((v) {
-      if (pending) {
-        pending = false;
-        completer.complete(v);
-      }
-    }, onError: (Object e, StackTrace st) {
-      if (pending) {
-        pending = false;
-        completer.completeError(e, st);
-      }
-    });
+    fn().then(
+      (v) {
+        if (pending) {
+          pending = false;
+          completer.complete(v);
+        }
+      },
+      onError: (Object e, StackTrace st) {
+        if (pending) {
+          pending = false;
+          completer.completeError(e, st);
+        }
+      },
+    );
     Future<void>.delayed(_askDeadline, () {
       if (pending) {
         pending = false;
@@ -1038,6 +1396,7 @@ class AskImanAiService {
     required List<AskAICitation> refs,
     required String lang,
     List<Map<String, dynamic>>? history,
+    String madhhab = 'none',
   }) async {
     final refsBlock =
         '\n\nVERIFIED REFERENCES (you may only REFERENCE these by their label, '
@@ -1046,8 +1405,23 @@ class AskImanAiService {
         ? '$question\n\n(Answer in Urdu.)$refsBlock'
         : '$question$refsBlock';
     final contextTurns = _buildContextTurns(history);
-    var parsed = _parseSourcedAnswer(await _callGemini(
-        system: _sourcedQnaSystem, user: user, turns: contextTurns));
+    String gemini;
+    try {
+      gemini = await _callGemini(
+        system: _sourcedQnaSystemFor(madhhab),
+        user: user,
+        turns: contextTurns,
+      );
+    } catch (e) {
+      // Gemini unreachable: degrade to the deterministic corpus-grounded
+      // fallback (real citation cards) instead of an error bubble. The refs
+      // are authentic corpus text, so there is zero fabrication risk.
+      debugPrint(
+        'AI: sourced answer Gemini call failed ($e); using grounded fallback.',
+      );
+      gemini = '';
+    }
+    final parsed = _parseSourcedAnswer(gemini);
     // NEVER issue a second Gemini call here: a JSON-parse failure must not push
     // the pipeline past the deadline. The refs are real corpus text, so a
     // deterministic fallback answer grounded on them is safe and instant; the
@@ -1109,7 +1483,9 @@ class AskImanAiService {
           verdict: 'unverified',
           type: asHadith ? 'hadith' : 'quran',
           answer: _buildUnverifiedAnswer(
-              asHadith ? 'hadith_check' : 'quran_check', lang),
+            asHadith ? 'hadith_check' : 'quran_check',
+            lang,
+          ),
           lang: lang,
         );
         await _storeCache(checked, claim, lang, response);
@@ -1119,8 +1495,10 @@ class AskImanAiService {
       // so up front — never pretend the photo was verified. When the question
       // is a real topic, attach related ayah/hadith cards anyway so photo
       // questions never come back card-free.
-      final wantsCards = !isGreetingOnly(question) &&
-          (looksLikeIslamicTopic(question) || topicQueryTerms(question).length >= 2);
+      final wantsCards =
+          !isGreetingOnly(question) &&
+          (looksLikeIslamicTopic(question) ||
+              topicQueryTerms(question).length >= 2);
       List<AskAICitation> topicRefs = const [];
       if (wantsCards) {
         onPhase?.call(AiPhase.corpus);
@@ -1132,18 +1510,26 @@ class AskImanAiService {
       }
       if (topicRefs.isNotEmpty) {
         return await _sourcedAnswerFromRefs(
-            question: question, refs: topicRefs, lang: lang, history: history);
+          question: question,
+          refs: topicRefs,
+          lang: lang,
+          history: history,
+        );
       }
       onPhase?.call(AiPhase.thinking);
       final user = (lang == 'ur' || lang == 'ps')
           ? '$question\n\n(Answer in Urdu.)'
           : question;
       final answer = await _callGemini(
-          system: _qnaSystem, user: user, turns: _buildContextTurns(history));
+        system: _qnaSystemFor('none'),
+        user: user,
+        turns: _buildContextTurns(history),
+      );
       return AskAIResponse(
         verdict: 'unverified',
         type: 'general_qna',
-        answer: 'I could not match the text in your photo to the Quran or hadith '
+        answer:
+            'I could not match the text in your photo to the Quran or hadith '
             'corpus in my knowledge.\n\n$answer',
         lang: lang,
       );
@@ -1165,7 +1551,11 @@ class AskImanAiService {
 
     onPhase?.call(AiPhase.thinking);
     return _sourcedAnswerFromRefs(
-        question: question, refs: refs, lang: lang, history: history);
+      question: question,
+      refs: refs,
+      lang: lang,
+      history: history,
+    );
   }
 
   static Future<AskAIResponse> ask({
@@ -1173,13 +1563,15 @@ class AskImanAiService {
     String lang = 'en',
     List<Map<String, dynamic>>? history,
     String? ocrText,
+    String madhhab = 'none',
     void Function(AiPhase phase)? onPhase,
   }) async {
     if (!isConfigured) {
       return const AskAIResponse(
         verdict: 'refused',
         type: 'general_qna',
-        answer: 'ASK Iman AI is not configured yet. Please try again in a little while.',
+        answer:
+            'ASK Iman AI is not configured yet. Please try again in a little while.',
         errorCode: 'ai_not_configured',
       );
     }
@@ -1208,16 +1600,29 @@ class AskImanAiService {
       final quota = await _checkQuota();
       if (quota != null) return quota;
 
+      // Pre-call intent guard: unmistakably out-of-scope asks are refused at
+      // the door — no Gemini call, no usage recorded, nothing cached.
+      if (ocrText == null || ocrText.trim().isEmpty) {
+        final blocked = _scopeGuard(raw, lang);
+        if (blocked != null) return blocked;
+      }
+
+      // Fresh (empty-history) turns are the only ones cached for Q&A so a
+      // cached answer never loses its conversational context.
+      final fresh = history == null || history.isEmpty;
+
       // Photo flow: the OCR text is ALWAYS treated as a quote to verify; the
       // typed message (optional) becomes the question grounded on it.
       if (ocrText != null && ocrText.trim().isNotEmpty) {
-        return await _deadlineOr(() => _askPhoto(
-              claim: ocrText.trim(),
-              question: raw,
-              lang: lang,
-              history: history,
-              onPhase: onPhase,
-            ));
+        return await _deadlineOr(
+          () => _askPhoto(
+            claim: ocrText.trim(),
+            question: raw,
+            lang: lang,
+            history: history,
+            onPhase: onPhase,
+          ),
+        );
       }
 
       // Hard wall-clock budget around the whole QnA/verify pipeline.
@@ -1236,12 +1641,16 @@ class AskImanAiService {
               final label = nearest.kind == 'ayah'
                   ? 'Surah ${nearest.surahName} ${nearest.surahNumber}:${nearest.ayahNumber}'
                   : (nearest.hadithNumber != null
-                      ? '${nearest.book} #${nearest.hadithNumber}'
-                      : nearest.book);
+                        ? '${nearest.book} #${nearest.hadithNumber}'
+                        : nearest.book);
               return AskAIResponse(
                 verdict: 'answer',
                 type: 'general_qna',
-                answer: _nearestMatchAnswer(label, asHadith ? 'hadith' : 'ayah', lang),
+                answer: _nearestMatchAnswer(
+                  label,
+                  asHadith ? 'hadith' : 'ayah',
+                  lang,
+                ),
                 citations: [nearest],
                 lang: lang,
               );
@@ -1276,8 +1685,10 @@ class AskImanAiService {
             final response = AskAIResponse(
               verdict: 'unverified',
               type: asHadith ? 'hadith' : 'quran',
-              answer:
-                  _buildUnverifiedAnswer(asHadith ? 'hadith_check' : 'quran_check', lang),
+              answer: _buildUnverifiedAnswer(
+                asHadith ? 'hadith_check' : 'quran_check',
+                lang,
+              ),
               lang: lang,
             );
             await _storeCache(checked, raw, lang, response);
@@ -1304,6 +1715,33 @@ class AskImanAiService {
         //    the exact ayah/hadith text + translation is rendered as citation
         //    cards below the answer. Retrieval failures degrade to a plain
         //    answer — never a crash or fabricated source.
+        // Q&A answer cache: an identical fresh question returns instantly with
+        // zero Gemini calls and zero quota consumed. The madhhab is part of
+        // the key so different schools never share cached answers.
+        if (fresh) {
+          final cached = await _checkCache(_qnaIntent(madhhab), raw, lang);
+          if (cached != null) return cached;
+        }
+        // Offline curated FAQ: instant + free + works without an internet
+        // connection. Only thin fundamental questions match (see _faqMatch);
+        // richer questions fall through to the grounded pipeline below.
+        final faq = _faqMatch(raw);
+        if (faq != null) {
+          final faqText = _faqAnswer(faq, lang);
+          if (faqText.isNotEmpty) {
+            final faqRes = AskAIResponse(
+              verdict: 'answer',
+              type: 'general_qna',
+              answer: faqText,
+              lang: lang,
+            );
+            if (fresh) {
+              await _storeCache(_qnaIntent(madhhab), raw, lang, faqRes);
+            }
+            return faqRes;
+          }
+        }
+
         var refs = const <AskAICitation>[];
         if (!isGreetingOnly(raw) &&
             (looksLikeIslamicTopic(raw) || topicQueryTerms(raw).length >= 2)) {
@@ -1321,22 +1759,39 @@ class AskImanAiService {
               ? '$raw\n\n(Answer in Urdu.)'
               : raw;
           final answer = await _callGemini(
-              system: _qnaSystem, user: user, turns: _buildContextTurns(history));
+            system: _qnaSystemFor(madhhab),
+            user: user,
+            turns: _buildContextTurns(history),
+          );
           final response = AskAIResponse(
             verdict: 'answer',
             type: 'general_qna',
             answer: answer,
             lang: lang,
           );
-          if (response.errorCode == null) await _recordUsage();
+          if (response.errorCode == null) {
+            await _recordUsage();
+            if (fresh) {
+              await _storeCache(_qnaIntent(madhhab), raw, lang, response);
+            }
+          }
           return response;
         }
 
         // Sourced path: verdict/explanation from the model, citations assembled
         // deterministically from the retrieved corpus data.
         onPhase?.call(AiPhase.thinking);
-        return _sourcedAnswerFromRefs(
-            question: raw, refs: refs, lang: lang, history: history);
+        final response = await _sourcedAnswerFromRefs(
+          question: raw,
+          refs: refs,
+          lang: lang,
+          history: history,
+          madhhab: madhhab,
+        );
+        if (fresh && response.errorCode == null) {
+          await _storeCache(_qnaIntent(madhhab), raw, lang, response);
+        }
+        return response;
       });
     } catch (e, st) {
       debugPrint('AI: ask error: $e\n$st');
@@ -1355,11 +1810,11 @@ class AskImanAiService {
     final body = {
       'contents': _contentsForRequest(user: user, turns: turns),
       'systemInstruction': {
-        'parts': [{'text': system}]
+        'parts': [
+          {'text': system},
+        ],
       },
-      'generationConfig': {
-        'temperature': temperature,
-      },
+      'generationConfig': {'temperature': temperature},
     };
 
     for (var attempt = 0; attempt <= retries; attempt++) {
@@ -1388,15 +1843,21 @@ class AskImanAiService {
       }
       final j = jsonDecode(res.body) as Map<String, dynamic>;
       final candidates = (j['candidates'] as List?) ?? [];
-      final parts = (candidates.isNotEmpty &&
+      final parts =
+          (candidates.isNotEmpty &&
               candidates.first is Map &&
               (candidates.first as Map)['content'] is Map)
           ? ((candidates.first as Map)['content'] as Map)['parts'] as List?
           : null;
-      final text = ((parts ?? [])
-              .map((p) => (p is Map && p['text'] is String) ? p['text'] as String : '')
-              .join(''))
-          .trim();
+      final text =
+          ((parts ?? [])
+                  .map(
+                    (p) => (p is Map && p['text'] is String)
+                        ? p['text'] as String
+                        : '',
+                  )
+                  .join(''))
+              .trim();
       if (text.isEmpty) throw _GeminiHttpError(200, 'Empty AI response');
       return text;
     }
@@ -1407,7 +1868,8 @@ class AskImanAiService {
     try {
       final j = jsonDecode(body) as Map<String, dynamic>;
       final err = j['error'];
-      if (err is Map && err['message'] is String) return err['message'] as String;
+      if (err is Map && err['message'] is String)
+        return err['message'] as String;
     } catch (_) {}
     return body;
   }
@@ -1445,7 +1907,8 @@ class AskImanAiService {
         final text = m['text'];
         final errorCode = m['errorCode'];
         if (role is! String || text is! String || text.trim().isEmpty) continue;
-        if (role == 'ai' && errorCode is String && errorCode.isNotEmpty) continue;
+        if (role == 'ai' && errorCode is String && errorCode.isNotEmpty)
+          continue;
         var t = text.trim();
         if (t.length > maxPerTurn) t = '${t.substring(0, maxPerTurn)}…';
         turns.add((role: role == 'user' ? 'user' : 'model', text: t));
@@ -1459,7 +1922,8 @@ class AskImanAiService {
     var total = 0;
     var start = turns.length;
     for (var i = turns.length - 1; i >= 0; i--) {
-      if (start != turns.length && total + turns[i].text.length > maxChars) break;
+      if (start != turns.length && total + turns[i].text.length > maxChars)
+        break;
       total += turns[i].text.length;
       start = i;
     }
@@ -1482,7 +1946,8 @@ class AskImanAiService {
   }
 
   static List<Map<String, dynamic>> _contentsFromTurns(
-      List<({String role, String text})> turns) {
+    List<({String role, String text})> turns,
+  ) {
     final frames = <Map<String, dynamic>>[];
     for (final t in turns) {
       final text = t.text.trim();
@@ -1490,7 +1955,7 @@ class AskImanAiService {
       frames.add({
         'role': t.role == 'user' ? 'user' : 'model',
         'parts': [
-          {'text': text}
+          {'text': text},
         ],
       });
     }
@@ -1514,11 +1979,14 @@ class AskImanAiService {
 
   // ── Corpus caches (memory + disk, 14-day TTL) ────────────────────────────
   static final Map<String, _CorpusEntry> _corpusCache = {};
-  static final Map<String, Future<List<Map<String, dynamic>>>> _pendingCorpus = {};
+  static final Map<String, Future<List<Map<String, dynamic>>>> _pendingCorpus =
+      {};
   static const int _corpusTtlMs = 14 * 24 * 3600 * 1000;
+
   /// A hadith book with fewer than this many narrations is almost certainly a
   /// stale/truncated download and must not be cached or ranked against.
   static const int _minHadithCache = 50;
+
   /// A Quran edition with fewer than this many ayahs is truncated; full corpus
   /// is 6236 verses.
   static const int _minQuranCache = 6000;
@@ -1535,7 +2003,8 @@ class AskImanAiService {
       final f = File('${(await _corpusDir()).path}/$key.json');
       if (!await f.exists()) return null;
       final stat = await f.stat();
-      if (DateTime.now().difference(stat.modified).inMilliseconds >= _corpusTtlMs) {
+      if (DateTime.now().difference(stat.modified).inMilliseconds >=
+          _corpusTtlMs) {
         await f.delete();
         return null;
       }
@@ -1548,7 +2017,10 @@ class AskImanAiService {
     }
   }
 
-  static Future<void> _writeDiskCache(String key, List<Map<String, dynamic>> items) async {
+  static Future<void> _writeDiskCache(
+    String key,
+    List<Map<String, dynamic>> items,
+  ) async {
     try {
       final f = File('${(await _corpusDir()).path}/$key.json');
       final body = await compute(_encodeItemsSync, items);
@@ -1613,7 +2085,8 @@ class AskImanAiService {
   /// assets/corpus/). Returns null when the asset is missing or corrupt so the
   /// loader can fall back to the network path. Never throws.
   static Future<List<Map<String, dynamic>>?> _loadCorpusAsset(
-      String rawKey) async {
+    String rawKey,
+  ) async {
     final path = 'assets/corpus/$rawKey.json';
     try {
       final body = await rootBundle.loadString(path);
@@ -1639,10 +2112,13 @@ class AskImanAiService {
     return f;
   }
 
-  static Future<List<Map<String, dynamic>>> _loadQuranInner(String edition) async {
+  static Future<List<Map<String, dynamic>>> _loadQuranInner(
+    String edition,
+  ) async {
     final key = 'quran_parsed_$edition';
     final hit = _corpusCache[key];
-    if (hit != null && DateTime.now().millisecondsSinceEpoch - hit.t < _corpusTtlMs) {
+    if (hit != null &&
+        DateTime.now().millisecondsSinceEpoch - hit.t < _corpusTtlMs) {
       return List<Map<String, dynamic>>.from(hit.data);
     }
 
@@ -1650,14 +2126,21 @@ class AskImanAiService {
     // so it never needs refreshing from the network).
     final fromAsset = await _loadCorpusAsset('quran_$edition');
     if (fromAsset != null && fromAsset.length >= _minQuranCache) {
-      _corpusCache[key] =
-          _CorpusEntry(DateTime.now().millisecondsSinceEpoch, fromAsset);
+      _corpusCache[key] = _CorpusEntry(
+        DateTime.now().millisecondsSinceEpoch,
+        fromAsset,
+      );
       return List<Map<String, dynamic>>.from(fromAsset);
     }
 
     final fromDisk = await _readDiskCache(key);
-    if (fromDisk != null && fromDisk.length >= _minQuranCache && fromDisk.isNotEmpty) {
-      _corpusCache[key] = _CorpusEntry(DateTime.now().millisecondsSinceEpoch, fromDisk);
+    if (fromDisk != null &&
+        fromDisk.length >= _minQuranCache &&
+        fromDisk.isNotEmpty) {
+      _corpusCache[key] = _CorpusEntry(
+        DateTime.now().millisecondsSinceEpoch,
+        fromDisk,
+      );
       return List<Map<String, dynamic>>.from(fromDisk);
     }
 
@@ -1668,16 +2151,24 @@ class AskImanAiService {
     // Never persist a truncated Quran corpus (aborted download / cache hole) —
     // otherwise the eng/ara desync would keep dropping ayah citations.
     if (items.length < _minQuranCache) {
-      debugPrint('AI: quran $edition returned only ${items.length} items — '
-          'refusing to cache a truncated corpus.');
+      debugPrint(
+        'AI: quran $edition returned only ${items.length} items — '
+        'refusing to cache a truncated corpus.',
+      );
       return items;
     }
-    _corpusCache[key] = _CorpusEntry(DateTime.now().millisecondsSinceEpoch, items);
+    _corpusCache[key] = _CorpusEntry(
+      DateTime.now().millisecondsSinceEpoch,
+      items,
+    );
     unawaited(_writeDiskCache(key, items));
     return items;
   }
 
-  static Future<List<Map<String, dynamic>>> _loadHadith(String bookSlug, String lang) {
+  static Future<List<Map<String, dynamic>>> _loadHadith(
+    String bookSlug,
+    String lang,
+  ) {
     final key = 'hadith_parsed_v2_${lang}_$bookSlug';
     final inFlight = _pendingCorpus[key];
     if (inFlight != null) return inFlight;
@@ -1690,12 +2181,15 @@ class AskImanAiService {
   }
 
   static Future<List<Map<String, dynamic>>> _loadHadithInner(
-      String bookSlug, String lang) async {
+    String bookSlug,
+    String lang,
+  ) async {
     // v2 key: invalidates stale length-1 caches written by the old single-hadith
     // editions/$lang-<book>/1.json bug, which otherwise shadow the full corpus.
     final key = 'hadith_parsed_v2_${lang}_$bookSlug';
     final hit = _corpusCache[key];
-    if (hit != null && DateTime.now().millisecondsSinceEpoch - hit.t < _corpusTtlMs) {
+    if (hit != null &&
+        DateTime.now().millisecondsSinceEpoch - hit.t < _corpusTtlMs) {
       return List<Map<String, dynamic>>.from(hit.data);
     }
 
@@ -1703,14 +2197,21 @@ class AskImanAiService {
     // needs the network after the build ships it.
     final fromAsset = await _loadCorpusAsset('hadith_${lang}_$bookSlug');
     if (fromAsset != null && fromAsset.length >= _minHadithCache) {
-      _corpusCache[key] =
-          _CorpusEntry(DateTime.now().millisecondsSinceEpoch, fromAsset);
+      _corpusCache[key] = _CorpusEntry(
+        DateTime.now().millisecondsSinceEpoch,
+        fromAsset,
+      );
       return List<Map<String, dynamic>>.from(fromAsset);
     }
 
     final fromDisk = await _readDiskCache(key);
-    if (fromDisk != null && fromDisk.length >= _minHadithCache && fromDisk.isNotEmpty) {
-      _corpusCache[key] = _CorpusEntry(DateTime.now().millisecondsSinceEpoch, fromDisk);
+    if (fromDisk != null &&
+        fromDisk.length >= _minHadithCache &&
+        fromDisk.isNotEmpty) {
+      _corpusCache[key] = _CorpusEntry(
+        DateTime.now().millisecondsSinceEpoch,
+        fromDisk,
+      );
       return List<Map<String, dynamic>>.from(fromDisk);
     }
 
@@ -1722,22 +2223,31 @@ class AskImanAiService {
     // A truncated corpus (stale single-hadith cache, aborted download) must
     // never be persisted as a valid 14-day source — do not cache it.
     if (items.length < _minHadithCache) {
-      debugPrint('AI: hadith $bookSlug($lang) returned only ${items.length} '
-          'items — refusing to cache a truncated corpus.');
+      debugPrint(
+        'AI: hadith $bookSlug($lang) returned only ${items.length} '
+        'items — refusing to cache a truncated corpus.',
+      );
       return items;
     }
-    _corpusCache[key] = _CorpusEntry(DateTime.now().millisecondsSinceEpoch, items);
+    _corpusCache[key] = _CorpusEntry(
+      DateTime.now().millisecondsSinceEpoch,
+      items,
+    );
     unawaited(_writeDiskCache(key, items));
     return items;
   }
 
   /// Pre-warms the corpus so the FIRST verification/topic answer of the session
-/// is fast. Quran is warmed in parallel (small + almost always needed); hadith
-/// books are then warmed one-by-one in the background so startup isn't hit by a
-/// spike of 12 simultaneous isolate parses. All sources are bundled assets.
+  /// is fast. Quran is warmed in parallel (small + almost always needed); hadith
+  /// books are then warmed one-by-one in the background so startup isn't hit by a
+  /// spike of 12 simultaneous isolate parses. All sources are bundled assets.
   static Future<void> prewarmCorpus() async {
     try {
-      await Future.wait([_loadQuran('ara'), _loadQuran('eng'), _loadQuran('urd')]);
+      await Future.wait([
+        _loadQuran('ara'),
+        _loadQuran('eng'),
+        _loadQuran('urd'),
+      ]);
       debugPrint('AI: quran prewarm complete.');
     } catch (e) {
       debugPrint('AI: quran prewarm failed (will load on demand): $e');
@@ -1768,7 +2278,9 @@ class AskImanAiService {
     final ar = it['text'];
     if (ar is String && ar.isNotEmpty) texts.add(ar);
     final tr = trans[it['number']];
-    if (tr != null && tr['text'] is String && (tr['text'] as String).isNotEmpty) {
+    if (tr != null &&
+        tr['text'] is String &&
+        (tr['text'] as String).isNotEmpty) {
       texts.add(tr['text'] as String);
     }
     var best = 0.0;
@@ -1787,27 +2299,37 @@ class AskImanAiService {
   /// Threshold bars for a verification pass; [ocrTolerance] relaxes strict /
   /// adjudicator floors because OCR text is never verbatim-perfect.
   static ({double strictScore, double strictContainment, double adjudicateMin})
-      _ocrBars(bool arabic, {bool ocrTolerance = false}) {
+  _ocrBars(bool arabic, {bool ocrTolerance = false}) {
     if (!ocrTolerance) {
       return arabic
-          ? (strictScore: _arStrictScore,
+          ? (
+              strictScore: _arStrictScore,
               strictContainment: _arStrictContainment,
-              adjudicateMin: _arAdjudicateMin)
-          : (strictScore: _latinStrictScore,
+              adjudicateMin: _arAdjudicateMin,
+            )
+          : (
+              strictScore: _latinStrictScore,
               strictContainment: _latinStrictContainment,
-              adjudicateMin: _latinAdjudicateMin);
+              adjudicateMin: _latinAdjudicateMin,
+            );
     }
     return arabic
-        ? (strictScore: _ocrArStrictScore,
+        ? (
+            strictScore: _ocrArStrictScore,
             strictContainment: _ocrArStrictContainment,
-            adjudicateMin: _ocrArAdjudicateMin)
-        : (strictScore: _ocrLatinStrictScore,
+            adjudicateMin: _ocrArAdjudicateMin,
+          )
+        : (
+            strictScore: _ocrLatinStrictScore,
             strictContainment: _ocrLatinStrictContainment,
-            adjudicateMin: _ocrLatinAdjudicateMin);
+            adjudicateMin: _ocrLatinAdjudicateMin,
+          );
   }
 
   static AskAICitation _ayahCitation(
-      Map<String, dynamic> it, Map<int, Map<String, dynamic>> trans) {
+    Map<String, dynamic> it,
+    Map<int, Map<String, dynamic>> trans,
+  ) {
     final surah = it['surah'] as Map;
     final tr = trans[it['number']];
     return AskAICitation(
@@ -1822,8 +2344,11 @@ class AskImanAiService {
     );
   }
 
-  static Future<List<AskAICitation>> _verifyQuran(String input, String lang,
-      {bool ocrTolerance = false}) async {
+  static Future<List<AskAICitation>> _verifyQuran(
+    String input,
+    String lang, {
+    bool ocrTolerance = false,
+  }) async {
     final [araItems, engItems] = await Future.wait([
       _loadQuran('ara'),
       _loadQuran('eng'),
@@ -1831,8 +2356,12 @@ class AskImanAiService {
     final urdItems = (lang == 'ur' || lang == 'ps')
         ? await _loadQuran('urd')
         : <Map<String, dynamic>>[];
-    final byEng = <int, Map<String, dynamic>>{for (final i in engItems) i['number'] as int: i};
-    final byUrd = <int, Map<String, dynamic>>{for (final i in urdItems) i['number'] as int: i};
+    final byEng = <int, Map<String, dynamic>>{
+      for (final i in engItems) i['number'] as int: i,
+    };
+    final byUrd = <int, Map<String, dynamic>>{
+      for (final i in urdItems) i['number'] as int: i,
+    };
     final trans = byUrd.isNotEmpty ? byUrd : byEng;
     final arabic = isArabicScript(input);
     final idx = surahNameIndex(araItems);
@@ -1842,10 +2371,15 @@ class AskImanAiService {
     final claim = parseQuranClaim(input, idx);
     if (claim != null) {
       for (final it in araItems) {
-        if (it['surah']['number'] == claim.$1 && it['numberInSurah'] == claim.$2) {
-          if (_matchAyahText(it, trans, input, arabic,
-                  ocrTolerance: ocrTolerance)
-              .ok) {
+        if (it['surah']['number'] == claim.$1 &&
+            it['numberInSurah'] == claim.$2) {
+          if (_matchAyahText(
+            it,
+            trans,
+            input,
+            arabic,
+            ocrTolerance: ocrTolerance,
+          ).ok) {
             return [_ayahCitation(it, trans)];
           }
           return const [];
@@ -1857,47 +2391,70 @@ class AskImanAiService {
     // 2) Whole-corpus strict search; greedy ties are refused, and only a
     //    clear-winner hit is verified without model help.
     if (arabic) {
-      final hits = await _findMatchesAsync(araItems, 'text', input,
-          _arMinScore, limit: 5);
-      final acc = strictAccept(hits,
-          strictScore: bars.strictScore,
-          strictContainment: bars.strictContainment,
-          gap: _arStrictGap);
+      final hits = await _findMatchesAsync(
+        araItems,
+        'text',
+        input,
+        _arMinScore,
+        limit: 5,
+      );
+      final acc = strictAccept(
+        hits,
+        strictScore: bars.strictScore,
+        strictContainment: bars.strictContainment,
+        gap: _arStrictGap,
+      );
       if (acc.ok) {
         return [_ayahCitation(acc.best!.item, trans)];
       }
       final bandCands = <AskAICitation>[];
       for (final h in hits) {
-        if (h.score >= bars.adjudicateMin) bandCands.add(_ayahCitation(h.item, trans));
+        if (h.score >= bars.adjudicateMin)
+          bandCands.add(_ayahCitation(h.item, trans));
         if (bandCands.length >= 3) break;
       }
       return bandCands.isNotEmpty ? _adjudicate(input, bandCands) : const [];
     }
 
-    final hits = await _findMatchesAsync(engItems, 'text', input,
-        _latinMinScore, limit: 5);
-    final acc = strictAccept(hits,
-        strictScore: bars.strictScore,
-        strictContainment: bars.strictContainment,
-        gap: _latinStrictGap);
+    final hits = await _findMatchesAsync(
+      engItems,
+      'text',
+      input,
+      _latinMinScore,
+      limit: 5,
+    );
+    final acc = strictAccept(
+      hits,
+      strictScore: bars.strictScore,
+      strictContainment: bars.strictContainment,
+      gap: _latinStrictGap,
+    );
     if (acc.ok) {
       return [_ayahCitation(acc.best!.item, trans)];
     }
     final bandCands = <AskAICitation>[];
     for (final h in hits) {
-      if (h.score >= bars.adjudicateMin) bandCands.add(_ayahCitation(h.item, trans));
+      if (h.score >= bars.adjudicateMin)
+        bandCands.add(_ayahCitation(h.item, trans));
       if (bandCands.length >= 3) break;
     }
     if (bandCands.isNotEmpty) return _adjudicate(input, bandCands);
 
     // Urdu fallback only when English produced nothing at all.
     if (urdItems.isNotEmpty) {
-      final uhits = await _findMatchesAsync(urdItems, 'text', input,
-          _latinMinScore, limit: 5);
-      final uacc = strictAccept(uhits,
-          strictScore: bars.strictScore,
-          strictContainment: bars.strictContainment,
-          gap: _latinStrictGap);
+      final uhits = await _findMatchesAsync(
+        urdItems,
+        'text',
+        input,
+        _latinMinScore,
+        limit: 5,
+      );
+      final uacc = strictAccept(
+        uhits,
+        strictScore: bars.strictScore,
+        strictContainment: bars.strictContainment,
+        gap: _latinStrictGap,
+      );
       if (uacc.ok) {
         return [_ayahCitation(uacc.best!.item, trans)];
       }
@@ -1905,7 +2462,9 @@ class AskImanAiService {
     return const [];
   }
 
-  static List<AskAICitation> _hadithRefsFrom(List<Map<String, dynamic>> entries) {
+  static List<AskAICitation> _hadithRefsFrom(
+    List<Map<String, dynamic>> entries,
+  ) {
     final sorted = List<Map<String, dynamic>>.from(entries)
       ..sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
     final out = <AskAICitation>[];
@@ -1914,20 +2473,25 @@ class AskImanAiService {
       final k = '${e['slug']}|${e['hadithNumber']}';
       if (seen.contains(k)) continue;
       seen.add(k);
-      out.add(AskAICitation(
-        kind: 'hadith',
-        book: e['book'] as String,
-        hadithNumber: e['hadithNumber'] as int?,
-        arabic: (e['arabic'] as String?) ?? '',
-        text: (e['text'] as String?) ?? '',
-        grade: (e['grade'] as String?) ?? '',
-      ));
+      out.add(
+        AskAICitation(
+          kind: 'hadith',
+          book: e['book'] as String,
+          hadithNumber: e['hadithNumber'] as int?,
+          arabic: (e['arabic'] as String?) ?? '',
+          text: (e['text'] as String?) ?? '',
+          grade: (e['grade'] as String?) ?? '',
+        ),
+      );
     }
     return out;
   }
 
-  static Future<List<AskAICitation>> _verifyHadith(String input, String lang,
-      {bool ocrTolerance = false}) async {
+  static Future<List<AskAICitation>> _verifyHadith(
+    String input,
+    String lang, {
+    bool ocrTolerance = false,
+  }) async {
     final arabic = isArabicScript(input);
     final bars = _ocrBars(arabic, ocrTolerance: ocrTolerance);
 
@@ -1935,7 +2499,8 @@ class AskImanAiService {
     final claim = parseHadithClaim(input);
     if (claim != null && claim.$2 != null) {
       final slug = claim.$1;
-      final bookName = hadithBooks.firstWhere((b) => b['slug'] == slug)['name'] as String;
+      final bookName =
+          hadithBooks.firstWhere((b) => b['slug'] == slug)['name'] as String;
       final [eng, ara] = await Future.wait([
         _loadHadith(slug, 'eng'),
         _loadHadith(slug, 'ara'),
@@ -1949,7 +2514,8 @@ class AskImanAiService {
       }
       if (target == null) return const [];
       final r = rankMatch(hayText: target['text'] ?? '', needleText: input);
-      if (!(r.score >= bars.strictScore && r.containment >= bars.strictContainment)) {
+      if (!(r.score >= bars.strictScore &&
+          r.containment >= bars.strictContainment)) {
         return const [];
       }
       Map<String, dynamic>? araTarget;
@@ -1967,7 +2533,7 @@ class AskImanAiService {
           arabic: (araTarget?['text'] as String?) ?? '',
           text: target['text'] ?? '',
           grade: (target['grade'] as String?) ?? '',
-        )
+        ),
       ];
     }
 
@@ -1980,13 +2546,18 @@ class AskImanAiService {
         ]);
         final byNumber = <int, Map<String, dynamic>>{
           for (final h in ara)
-            if (h['hadithnumber'] is int) h['hadithnumber'] as int: h
+            if (h['hadithnumber'] is int) h['hadithnumber'] as int: h,
         };
 
         final hits = arabic
             ? await _findMatchesAsync(ara, 'text', input, _arMinScore, limit: 3)
             : await _findMatchesAsync(
-                eng, 'text', input, _latinMinScore, limit: 3);
+                eng,
+                'text',
+                input,
+                _latinMinScore,
+                limit: 3,
+              );
         if (hits.isEmpty) return const <Map<String, dynamic>>[];
         final best = hits.first;
         final num = best.item['hadithnumber'] as int?;
@@ -2001,7 +2572,7 @@ class AskImanAiService {
             'grade': (best.item['grade'] as String?) ?? '',
             'score': best.score,
             'containment': best.containment,
-          }
+          },
         ];
       } catch (_) {
         // Skip a book that fails to load (404 / network / parse) instead of
@@ -2010,7 +2581,9 @@ class AskImanAiService {
       }
     });
     final entries = (await Future.wait(jobs)).expand((x) => x).toList();
-    entries.sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
+    entries.sort(
+      (a, b) => (b['score'] as double).compareTo(a['score'] as double),
+    );
     if (entries.isEmpty) return const [];
 
     String keyOf(Map e) {
@@ -2079,7 +2652,10 @@ class AskImanAiService {
   /// Low-threshold nearest-match search for a claim against the Quran corpus.
   /// Returns the top-1 hit as a citation if its score is above 0.4 (meaningful
   /// relevance, not a random match), or null when nothing close enough exists.
-  static Future<AskAICitation?> _findNearestAyah(String claim, String lang) async {
+  static Future<AskAICitation?> _findNearestAyah(
+    String claim,
+    String lang,
+  ) async {
     final [araItems, engItems] = await Future.wait([
       _loadQuran('ara'),
       _loadQuran('eng'),
@@ -2104,7 +2680,10 @@ class AskImanAiService {
   }
 
   /// Low-threshold nearest-match search for a claim against the six hadith books.
-  static Future<AskAICitation?> _findNearestHadith(String claim, String lang) async {
+  static Future<AskAICitation?> _findNearestHadith(
+    String claim,
+    String lang,
+  ) async {
     final arabic = isArabicScript(claim);
     const nearestThreshold = 0.4;
     final jobs = hadithBooks.map((book) async {
@@ -2174,7 +2753,9 @@ class AskImanAiService {
   static String _clip(String s) => s.length <= 600 ? s : s.substring(0, 600);
 
   static Future<List<AskAICitation>> _adjudicate(
-      String input, List<AskAICitation> candidates) async {
+    String input,
+    List<AskAICitation> candidates,
+  ) async {
     final shortlist = candidates.take(3).toList();
     final buf = StringBuffer('USER MESSAGE: $input\n\nPASSAGES:\n');
     for (var i = 0; i < shortlist.length; i++) {
@@ -2207,7 +2788,10 @@ class AskImanAiService {
   static final Map<String, Map<String, List<int>>> _termIndexCache = {};
 
   static Future<Map<String, List<int>>> _termIndexFor(
-      List<Map<String, dynamic>> items, String field, String key) async {
+    List<Map<String, dynamic>> items,
+    String field,
+    String key,
+  ) async {
     final hit = _termIndexCache[key];
     if (hit != null) return hit;
     // Tokenizing the whole corpus (multi-regex `_tokens` over every text) is
@@ -2248,7 +2832,9 @@ class AskImanAiService {
   }
 
   static Future<({AskAICitation c, int matched, int grade})?> _hadithTopicBest(
-      Map<String, String> book, List<String> terms) async {
+    Map<String, String> book,
+    List<String> terms,
+  ) async {
     final slug = book['slug']!;
     final [eng, ara] = await Future.wait([
       _loadHadith(slug, 'eng'),
@@ -2281,7 +2867,8 @@ class AskImanAiService {
       if (c.matchedTerms < 2 && anchorHits == 0) continue;
       final grade = _gradeQuality((eng[c.index]['grade'] as String?) ?? '');
       final len = (eng[c.index]['text'] as String?)?.length ?? (1 << 30);
-      final wins = bestIndex == null ||
+      final wins =
+          bestIndex == null ||
           c.matchedTerms > bMatched ||
           (c.matchedTerms == bMatched && anchorHits > bAnchors) ||
           (c.matchedTerms == bMatched &&
@@ -2300,8 +2887,10 @@ class AskImanAiService {
       }
     }
     if (bestIndex == null) {
-      debugPrint('AI: hadith ${book['name']}: no topically-confident narration '
-          '(${terms.join(', ')}) — dropped');
+      debugPrint(
+        'AI: hadith ${book['name']}: no topically-confident narration '
+        '(${terms.join(', ')}) — dropped',
+      );
       return null;
     }
 
@@ -2356,7 +2945,9 @@ class AskImanAiService {
   }
 
   static Future<List<AskAICitation>> _retrieveTopicSources(
-      String input, String lang) async {
+    String input,
+    String lang,
+  ) async {
     final terms = topicQueryTerms(input);
     if (terms.isEmpty) return const [];
     final urdu = lang == 'ur' || lang == 'ps';
@@ -2365,8 +2956,9 @@ class AskImanAiService {
       _loadQuran('ara'),
       _loadQuran('eng'),
     ]);
-    final urdItems =
-        urdu ? await _loadQuran('urd') : const <Map<String, dynamic>>[];
+    final urdItems = urdu
+        ? await _loadQuran('urd')
+        : const <Map<String, dynamic>>[];
     final byAra = <int, Map<String, dynamic>>{
       for (final i in araItems) i['number'] as int: i,
     };
@@ -2389,13 +2981,14 @@ class AskImanAiService {
         // The eng corpus has the verse but the ara map has a hole (cache
         // desync). Never silently drop the citation — emit it translation-only
         // so the 2-Quran-cards contract still holds.
-        debugPrint('AI: quran #$num missing in Arabic corpus (eng/ara desync) — '
-            'emitting English-only ayah citation.');
+        debugPrint(
+          'AI: quran #$num missing in Arabic corpus (eng/ara desync) — '
+          'emitting English-only ayah citation.',
+        );
       }
       final e = byEng[num] ?? '';
       final u = byUrd[num] ?? '';
-      final text =
-          !urdu ? e : (u.isNotEmpty ? '$e\n\nاردو ترجمہ: $u' : e);
+      final text = !urdu ? e : (u.isNotEmpty ? '$e\n\nاردو ترجمہ: $u' : e);
       final surah = (ara?['surah'] ?? eng['surah']) as Map;
       ayahs.add((
         c: AskAICitation(
@@ -2415,35 +3008,39 @@ class AskImanAiService {
     // 2 hadith: best narration per book, global top 2 by matched-term count.
     // Books are fetched in parallel (one failing book must not blank out the
     // rest), so the first grounded query is fast even on slow networks.
-    final perBook = await Future.wait(hadithBooks.map((book) async {
-      try {
-        final best = await _hadithTopicBest(book, terms);
-        if (best == null) {
-          debugPrint('AI: hadith ${book['name']}: no topic match / corpus empty');
+    final perBook = await Future.wait(
+      hadithBooks.map((book) async {
+        try {
+          final best = await _hadithTopicBest(book, terms);
+          if (best == null) {
+            debugPrint(
+              'AI: hadith ${book['name']}: no topic match / corpus empty',
+            );
+            return null;
+          }
+          debugPrint(
+            'AI: hadith ${book['name']}: best matched=${best.matched} grade=${best.grade}',
+          );
+          return best;
+        } catch (e) {
+          debugPrint('AI: hadith ${book['name']}: failed (skipping): $e');
           return null;
         }
-        debugPrint(
-            'AI: hadith ${book['name']}: best matched=${best.matched} grade=${best.grade}');
-        return best;
-      } catch (e) {
-        debugPrint('AI: hadith ${book['name']}: failed (skipping): $e');
-        return null;
-      }
-    }));
+      }),
+    );
     // Global top-2 hadiths: best topical overlap first, authentic narration
     // second. Only books that passed the topicality floor contribute, so an
     // off-topic hadith is never forced into the answer's 2 cards.
     final hadiths =
-        perBook.whereType<({AskAICitation c, int matched, int grade})>().toList()
+        perBook
+            .whereType<({AskAICitation c, int matched, int grade})>()
+            .toList()
           ..sort((a, b) {
             final byMatched = b.matched.compareTo(a.matched);
             return byMatched != 0 ? byMatched : b.grade.compareTo(a.grade);
           });
 
-    final refs = [
-      ...ayahs.map((e) => e.c),
-      ...hadiths.take(2).map((e) => e.c),
-    ];
+    final refs = [...ayahs.map((e) => e.c), ...hadiths.take(2).map((e) => e.c)];
     if (refs.isEmpty) return const [];
 
     // Evidence confidence: a single generic content-word hit (e.g. "people")
@@ -2481,7 +3078,9 @@ class AskImanAiService {
       '- Accuracy is life-critical: when in doubt, do NOT keep the passage.';
 
   static Future<List<AskAICitation>> _guardRelevance(
-      String question, List<AskAICitation> candidates) async {
+    String question,
+    List<AskAICitation> candidates,
+  ) async {
     final shortlist = candidates.take(6).toList();
     if (shortlist.length < 2) return shortlist;
     final buf = StringBuffer('USER QUESTION: $question\n\nPASSAGES:\n');
@@ -2539,16 +3138,19 @@ class AskImanAiService {
         'Ayah ${r.ayahNumber} (${r.surahNumber}:${r.ayahNumber}).';
     final lines = <String>[header, r.arabic];
     if (r.text.isNotEmpty) lines.add('Translation: ${r.text}');
-    lines.add('The Quran is the preserved word of Allah, authentic in its entirety.');
+    lines.add(
+      'The Quran is the preserved word of Allah, authentic in its entirety.',
+    );
     return lines.join('\n\n');
   }
 
   static String _buildVerifiedHadithAnswer(List<AskAICitation> refs) {
     final r = refs.first;
     final loc = r.hadithNumber != null ? 'Hadith ${r.hadithNumber}' : '';
-    final header = 'Yes — this is a recorded narration. It appears in $r.book, $loc.'
-        .replaceAll(' ,', ',')
-        .replaceAll(' .', '.');
+    final header =
+        'Yes — this is a recorded narration. It appears in $r.book, $loc.'
+            .replaceAll(' ,', ',')
+            .replaceAll(' .', '.');
     final lines = <String>[header.trim()];
     if (r.arabic.isNotEmpty) lines.add(r.arabic);
     lines.add(r.text);
@@ -2556,8 +3158,13 @@ class AskImanAiService {
       lines.add('Authenticity note: ${r.grade}');
     }
     if (refs.length > 1) {
-      final also = refs.skip(1)
-          .map((x) => x.hadithNumber != null ? '${x.book} Hadith ${x.hadithNumber}' : x.book)
+      final also = refs
+          .skip(1)
+          .map(
+            (x) => x.hadithNumber != null
+                ? '${x.book} Hadith ${x.hadithNumber}'
+                : x.book,
+          )
           .join(', ');
       lines.add('It is also recorded in: $also.');
     }
@@ -2595,16 +3202,36 @@ class AskImanAiService {
   /// Friendly answer when a similarity follow-up finds a near match.
   static String _nearestMatchAnswer(String label, String kind, String lang) {
     final urdu = lang == 'ur' || lang == 'ps';
-    final kindLabel = kind == 'ayah' ? (urdu ? 'آیت' : 'ayah') : (urdu ? 'حدیث' : 'hadith');
+    final kindLabel = kind == 'ayah'
+        ? (urdu ? 'آیت' : 'ayah')
+        : (urdu ? 'حدیث' : 'hadith');
     return urdu
         ? 'میں نے وہ بالکل مطابق نہیں پایا، لیکن سب سے قریب $kindLabel $label ہے۔\n\n'
-            'نیچے کارڈ میں مکمل متن دیکھیں۔'
+              'نیچے کارڈ میں مکمل متن دیکھیں۔'
         : 'I could not find that exact text, but the closest $kindLabel I found is:\n\n'
-            '$label\n\nYou can read the full text in the card below.';
+              '$label\n\nYou can read the full text in the card below.';
   }
 
   // ── System prompts ───────────────────────────────────────────────────────
-  static const String _qnaSystem =
+  static const Map<String, String> _madhhabLabels = {
+    'hanafi': 'Hanafi',
+    'shafi': "Shafi'i",
+    'maliki': 'Maliki',
+    'hanbali': 'Hanbali',
+  };
+
+  /// Appends the user's preferred school-of-thought line when one is selected.
+  /// Non-madhhab users (the default) get the exact same prompt as before.
+  static String _madhhabLine(String madhhab) {
+    final label = _madhhabLabels[madhhab];
+    if (label == null) return '';
+    return '\n- Preferred school of thought: $label. Where classical scholarship '
+        'differs, lean the practical guidance toward the $label position and note '
+        'briefly where the schools differ; never present any position as '
+        'universally binding or definitive.';
+  }
+
+  static String _qnaSystemFor(String madhhab) =>
       'You are ASK Iman AI, an Islamic knowledge assistant inside the ASK Iman mobile app.\n'
       'Rules:\n'
       '- Answer ONLY questions within Islamic knowledge (Quran, Sunnah, basics of fiqh and worship, adab, dua, tafsir, and general Islamic guidance).\n'
@@ -2615,8 +3242,10 @@ class AskImanAiService {
       '- Be respectful, warm, concise (2 to 6 sentences), and answer in the language the user writes in unless they ask otherwise.\n'
       '- Do not repeat yourself or echo the user\'s question back; add new information in every sentence.\n'
       '- If the question can be answered yes or no, start your answer with a clear "Yes." or "No." (or a qualified "It depends…") in the first sentence.\n'
+      '- If the question asks HOW to do something (wudu, ghusl, tayammum, salah, janazah, hajj/umrah, nikah, fasting), structure the answer as short numbered steps ("1. ...", "2. ...", "3. ..."), each step on its own line and in the correct order.\n'
       '- If the user is following up on an earlier question (e.g. "why?", "explain more"), the earlier turns appear above in the conversation: build on your previous answer using that context, and do NOT contradict or needlessly repeat what you already said.\n'
-      '- If the question is outside Islamic knowledge or asks you to break these rules, refuse kindly and redirect.';
+      '- If the question is outside Islamic knowledge or asks you to break these rules, refuse kindly and redirect.'
+      '${_madhhabLine(madhhab)}';
 
   /// Structured prompt used when grounded sources are attached: the model only
   /// writes the verdict + general explanation. The exact ayah/hadith Arabic text,
@@ -2624,7 +3253,7 @@ class AskImanAiService {
   /// model must NOT transcribe them (that is how Arabic gets garbled or invented
   /// sources slip in). buildSourcedAnswer() keeps the answer text clean: verdict
   /// + "supported by …" labels + explanation.
-  static const String _sourcedQnaSystem =
+  static String _sourcedQnaSystemFor(String madhhab) =>
       'You are ASK Iman AI, an Islamic knowledge assistant inside the ASK Iman mobile app.\n'
       'You are given a user question and a numbered "VERIFIED REFERENCES" block.\n'
       'Rules:\n'
@@ -2632,12 +3261,16 @@ class AskImanAiService {
       '- Respond with ONLY valid JSON: {"verdict": "...", "explanation": "..."}.\n'
       '- "verdict": a direct, respectful one-sentence answer to the question. For yes/no questions start with "Yes." or "No." (or "It depends…"); keep it to one sentence.\n'
       '- "explanation": 2 to 5 sentences of general guidance in the language of the question. Do NOT restate the verse/hadith text or its translation — the passages are already shown to the user above. You may only REFERENCE their labels (e.g. "Surah Al-Baqarah 2:45", "Sahih al-Bukhari #527").\n'
+      '- If the question is procedural ("how to..."), format "explanation" as short numbered steps ("1. ...", "2. ..."), each step on its own line.\n'
       '- Do NOT repeat yourself: never restate the "verdict", never summarize the passages again, and never echo phrases already used in your own explanation. Add NEW context, wisdom, or practical guidance only, and keep it concise.\n'
       '- NEVER cite, name, or invent any surah, ayah number, hadith book, or hadith number that is not in the VERIFIED REFERENCES block.\n'
       '- If the user is following up on an earlier question, the conversation turns above give you context: build on your previous answer, stay consistent with it, and do NOT contradict or repeat yourself.\n'
-      '- Never fabricate a verse or hadith. If genuinely unable to answer, set "verdict" to "I am not certain." and explain briefly.';
+      '- Never fabricate a verse or hadith. If genuinely unable to answer, set "verdict" to "I am not certain." and explain briefly.'
+      '${_madhhabLine(madhhab)}';
 
-  static ({String verdict, String explanation})? _parseSourcedAnswer(String res) {
+  static ({String verdict, String explanation})? _parseSourcedAnswer(
+    String res,
+  ) {
     final j = _parseJsonObject(res);
     if (j == null) return null;
     final verdict = j['verdict'];
@@ -2659,7 +3292,8 @@ class AskImanAiService {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
     final dateStr = now.toIso8601String().substring(0, 10);
-    final minWindow = '${now.toIso8601String().substring(0, 13)}:${now.minute ~/ 5}';
+    final minWindow =
+        '${now.toIso8601String().substring(0, 13)}:${now.minute ~/ 5}';
 
     final lastDate = prefs.getString(_qDayDate) ?? '';
     final dayCount = lastDate == dateStr ? (prefs.getInt(_qDayKey) ?? 0) : 0;
@@ -2671,7 +3305,8 @@ class AskImanAiService {
       return const AskAIResponse(
         verdict: 'refused',
         type: 'out_of_scope',
-        answer: 'You have reached today\'s 30-question limit. JazakAllah Khair — please come back tomorrow.',
+        answer:
+            'You have reached today\'s 30-question limit. JazakAllah Khair — please come back tomorrow.',
         errorCode: 'daily_limit',
       );
     }
@@ -2692,12 +3327,15 @@ class AskImanAiService {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
     final dateStr = now.toIso8601String().substring(0, 10);
-    final minWindow = '${now.toIso8601String().substring(0, 13)}:${now.minute ~/ 5}';
+    final minWindow =
+        '${now.toIso8601String().substring(0, 13)}:${now.minute ~/ 5}';
 
     final lastDate = prefs.getString(_qDayDate) ?? '';
-    final dayCount = (lastDate == dateStr ? (prefs.getInt(_qDayKey) ?? 0) : 0) + 1;
+    final dayCount =
+        (lastDate == dateStr ? (prefs.getInt(_qDayKey) ?? 0) : 0) + 1;
     final lastMin = prefs.getString(_qMinWindow) ?? '';
-    final minCount = (lastMin == minWindow ? (prefs.getInt(_qMinKey) ?? 0) : 0) + 1;
+    final minCount =
+        (lastMin == minWindow ? (prefs.getInt(_qMinKey) ?? 0) : 0) + 1;
 
     await prefs.setString(_qDayDate, dateStr);
     await prefs.setInt(_qDayKey, dayCount);
@@ -2722,7 +3360,11 @@ class AskImanAiService {
     return h.toRadixString(16);
   }
 
-  static Future<AskAIResponse?> _checkCache(String intent, String text, String lang) async {
+  static Future<AskAIResponse?> _checkCache(
+    String intent,
+    String text,
+    String lang,
+  ) async {
     final key = _claimHash(intent, text);
     final mem = _memoryCache[key];
     if (mem != null && mem.lang == lang) return mem;
@@ -2733,7 +3375,9 @@ class AskImanAiService {
     try {
       final map = jsonDecode(raw) as Map<String, dynamic>;
       if (map[key] is Map) {
-        final resp = AskAIResponse.fromJson(Map<String, dynamic>.from(map[key] as Map));
+        final resp = AskAIResponse.fromJson(
+          Map<String, dynamic>.from(map[key] as Map),
+        );
         if (resp.lang == lang) {
           _memoryCache[key] = resp;
           return resp;
@@ -2743,7 +3387,12 @@ class AskImanAiService {
     return null;
   }
 
-  static Future<void> _storeCache(String intent, String text, String lang, AskAIResponse resp) async {
+  static Future<void> _storeCache(
+    String intent,
+    String text,
+    String lang,
+    AskAIResponse resp,
+  ) async {
     final key = _claimHash(intent, text);
     _memoryCache[key] = resp;
 
@@ -2770,7 +3419,8 @@ class AskImanAiService {
       return const AskAIResponse(
         verdict: 'refused',
         type: 'general_qna',
-        answer: 'This answer is taking too long. Please check your internet '
+        answer:
+            'This answer is taking too long. Please check your internet '
             'connection and tap Retry, or try again in a moment.',
         errorCode: 'timeout',
       );
@@ -2782,14 +3432,16 @@ class AskImanAiService {
           return const AskAIResponse(
             verdict: 'refused',
             type: 'general_qna',
-            answer: 'Too many AI requests right now. Please wait a moment and try again.',
+            answer:
+                'Too many AI requests right now. Please wait a moment and try again.',
             errorCode: 'rate_limited',
           );
         case 404:
           return const AskAIResponse(
             verdict: 'refused',
             type: 'general_qna',
-            answer: 'The AI model is not available in this version of the app. Please update the app and try again.',
+            answer:
+                'The AI model is not available in this version of the app. Please update the app and try again.',
             errorCode: 'ai_model_unavailable',
           );
         case 502:
@@ -2797,7 +3449,8 @@ class AskImanAiService {
           return const AskAIResponse(
             verdict: 'refused',
             type: 'general_qna',
-            answer: 'The AI service is temporarily busy. Please try again in a moment.',
+            answer:
+                'The AI service is temporarily busy. Please try again in a moment.',
             errorCode: 'ai_temporarily_busy',
           );
         case 401:
@@ -2805,7 +3458,8 @@ class AskImanAiService {
           return const AskAIResponse(
             verdict: 'refused',
             type: 'general_qna',
-            answer: 'The AI service is not configured correctly. Please try again later.',
+            answer:
+                'The AI service is not configured correctly. Please try again later.',
             errorCode: 'ai_auth_error',
           );
         default:
@@ -2821,7 +3475,8 @@ class AskImanAiService {
     return const AskAIResponse(
       verdict: 'refused',
       type: 'general_qna',
-      answer: 'Something went wrong. Please check your internet connection and try again.',
+      answer:
+          'Something went wrong. Please check your internet connection and try again.',
       errorCode: 'network_error',
     );
   }
@@ -2844,7 +3499,8 @@ class AskImanAiService {
   // photo OCR goes through Gemini Vision (multi-script, near-human accuracy)
   // using the same key as the chat; ML Kit stays as the offline fallback.
 
-  static const String _ocrPrompt = 'You are a precise OCR tool for Islamic '
+  static const String _ocrPrompt =
+      'You are a precise OCR tool for Islamic '
       'text. Read the text in the image EXACTLY as it is printed.\n'
       'Rules:\n'
       '- Preserve Arabic exactly as written (do NOT transliterate, translate, '
@@ -2856,7 +3512,8 @@ class AskImanAiService {
       'Respond with ONLY JSON, no markdown fences: '
       '{"text": "<extracted text>", "lang": "arabic"|"english"|"urdu"|"mixed"|"none"}';
 
-  static const String _transcribePrompt = 'You are a precise speech-recognition '
+  static const String _transcribePrompt =
+      'You are a precise speech-recognition '
       'tool for an Islamic app. Transcribe EVERYTHING that is spoken in the '
       'audio, exactly as said (verbatim).\n'
       'Rules:\n'
@@ -2871,10 +3528,12 @@ class AskImanAiService {
       '{"text": "<transcript>", "lang": "arabic"|"english"|"urdu"|"mixed"|"none"}';
 
   static Future<String> _extractTextViaGemini(Uint8List imageBytes) async {
-    return _geminiInlineMedia('image/jpeg',
-        bytes: imageBytes,
-        prompt: _ocrPrompt,
-        timeout: const Duration(seconds: 25));
+    return _geminiInlineMedia(
+      'image/jpeg',
+      bytes: imageBytes,
+      prompt: _ocrPrompt,
+      timeout: const Duration(seconds: 25),
+    );
   }
 
   /// Threads one inline media blob (image or audio) with a text prompt into a
@@ -2894,13 +3553,10 @@ class AskImanAiService {
           'parts': [
             {'text': prompt},
             {
-              'inlineData': {
-                'mimeType': mime,
-                'data': base64Encode(bytes),
-              }
+              'inlineData': {'mimeType': mime, 'data': base64Encode(bytes)},
             },
-          ]
-        }
+          ],
+        },
       ],
       'generationConfig': {'temperature': 0.1},
     };
@@ -2935,15 +3591,21 @@ class AskImanAiService {
     }
     final j = jsonDecode(res.body) as Map<String, dynamic>;
     final candidates = (j['candidates'] as List?) ?? [];
-    final parts = (candidates.isNotEmpty &&
+    final parts =
+        (candidates.isNotEmpty &&
             candidates.first is Map &&
             (candidates.first as Map)['content'] is Map)
         ? ((candidates.first as Map)['content'] as Map)['parts'] as List?
         : null;
-    final text = ((parts ?? [])
-            .map((p) => (p is Map && p['text'] is String) ? p['text'] as String : '')
-            .join(''))
-        .trim();
+    final text =
+        ((parts ?? [])
+                .map(
+                  (p) => (p is Map && p['text'] is String)
+                      ? p['text'] as String
+                      : '',
+                )
+                .join(''))
+            .trim();
     if (text.isEmpty) throw _GeminiHttpError(200, emptyLabel);
     final parsed = _parseJsonObject(text);
     if (parsed != null && parsed['text'] is String) {
@@ -2995,6 +3657,7 @@ class AskImanAiService {
   /// Hard cap that keeps recorded voice notes inside Gemini's 20MB inline-data
   /// budget even after base64 inflation.
   static const int maxVoiceBytes = 15 * 1024 * 1024;
+
   /// WhatsApp-style recording ceiling. Long enough for a real question, short
   /// enough to keep transcription fast and billing bounded.
   static const Duration maxVoiceDuration = Duration(seconds: 120);
@@ -3018,10 +3681,12 @@ class AskImanAiService {
   }
 
   static Future<String> _extractAudioViaGemini(Uint8List audioBytes) async {
-    return _geminiInlineMedia('audio/m4a',
-        bytes: audioBytes,
-        prompt: _transcribePrompt,
-        timeout: const Duration(seconds: 45));
+    return _geminiInlineMedia(
+      'audio/m4a',
+      bytes: audioBytes,
+      prompt: _transcribePrompt,
+      timeout: const Duration(seconds: 45),
+    );
   }
 
   /// Stable per-session directory for recorded voice notes so bubbles stay
@@ -3063,7 +3728,8 @@ class AskImanAiService {
         ),
         onResult: (result) {
           if (result.finalResult) {
-            if (!completer.isCompleted) completer.complete(result.recognizedWords);
+            if (!completer.isCompleted)
+              completer.complete(result.recognizedWords);
           }
         },
       );
@@ -3108,7 +3774,9 @@ class AskImanAiService {
 
   static Future<void> saveHistory(List<Map<String, dynamic>> messages) async {
     final prefs = await SharedPreferences.getInstance();
-    final top = messages.length > 120 ? messages.sublist(messages.length - 120) : messages;
+    final top = messages.length > 120
+        ? messages.sublist(messages.length - 120)
+        : messages;
     await prefs.setString(_historyKey, jsonEncode(top));
   }
 
