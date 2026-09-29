@@ -50,21 +50,6 @@ flutter:
 
   assets:
     - assets/images/
-    - assets/images/bgColor.png
-    - assets/images/bgcolor.png
-    - assets/images/mosque.png
-    - assets/images/tasbeeh.png
-    - assets/images/Holy Quran.png
-    - assets/images/Kaaba.png
-    - assets/images/mosque interior.png
-    - assets/images/AI orb.png
-    - assets/images/tasbih beads.png
-    - assets/images/islamic lanterns.png
-    - assets/images/masjid_Icon.png
-    - assets/images/shaped_Vector.png
-    - assets/images/scale_Icon.png
-    - assets/images/compass_icon.png
-    - assets/images/Compass_Needle.png
 
   fonts:
     - family: Cairo
